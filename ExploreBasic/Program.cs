@@ -1,4 +1,5 @@
 ﻿
+using System.Threading;
 // See https://aka.ms/new-console-template for more information
 //Console.WriteLine("Hello, World!");
 
@@ -62,3 +63,72 @@ Console.WriteLine(var);
 /* Ini komentar
    lebih dari satu baris */
 
+//Custom Types - Selain tipe bawaan, kita bisa membuat tipe sendiri dengan class.
+UnitConverter feetToInches = new UnitConverter(12);
+Console.WriteLine(feetToInches.Convert(30)); // 360
+
+char omega = '\u03A9'; // Ω
+Console.WriteLine(omega);
+
+//MultiDimension Array
+        // Membuat array 2 dimensi (3 baris, 4 kolom)
+        int[,] nilai = new int[3, 5];
+
+        // Mengisi array
+        for (int i = 0; i < nilai.GetLength(0); i++) // baris
+        {
+            for (int j = 0; j < nilai.GetLength(1); j++) // kolom
+            {
+                nilai[i, j] = (i + 1) * 10 + j;
+            }
+        }
+
+        // Menampilkan isi array
+        for (int i = 0; i < nilai.GetLength(0); i++)
+        {
+            for (int j = 0; j < nilai.GetLength(1); j++)
+            {
+                Console.Write(nilai[i, j] + "\t");
+            }
+            Console.WriteLine();
+        }
+        Console.WriteLine(nilai[1,2]);
+        Console.WriteLine(nilai[0,0]);
+
+int[,] matriks =
+{
+    { 1, 2, 3 },
+    { 4, 5, 6 },
+    { 7, 8, 9 }
+};
+
+Console.WriteLine(matriks[1, 2]); // Output: 6
+
+//Lock example
+    static int counter = 0;
+    static readonly object _lock = new object();
+
+    static void Increment()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            lock (_lock)
+            {
+                counter++;
+            }
+        }
+    }
+
+    static void Main()
+    {
+        Thread t1 = new Thread(Increment);
+        Thread t2 = new Thread(Increment);
+
+        t1.Start();
+        t2.Start();
+
+        t1.Join();
+        t2.Join();
+
+        Console.WriteLine(counter); // Pasti 2000
+    }
