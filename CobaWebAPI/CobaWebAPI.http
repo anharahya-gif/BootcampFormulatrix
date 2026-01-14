@@ -1,0 +1,6 @@
+@CobaWebAPI_HostAddress = http://localhost:5062
+
+GET {{CobaWebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

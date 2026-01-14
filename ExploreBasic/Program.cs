@@ -1,4 +1,5 @@
 ﻿
+using System.Text;
 using System.Threading;
 // See https://aka.ms/new-console-template for more information
 //Console.WriteLine("Hello, World!");
@@ -105,24 +106,9 @@ int[,] matriks =
 Console.WriteLine(matriks[1, 2]); // Output: 6
 
 //Lock example
-    static int counter = 0;
-    static readonly object _lock = new object();
 
-    static void Increment()
-    {
-        for (int i = 0; i < 1000; i++)
-        {
-            lock (_lock)
-            {
-                counter++;
-            }
-        }
-    }
-
-    static void Main()
-    {
-        Thread t1 = new Thread(Increment);
-        Thread t2 = new Thread(Increment);
+        Thread t1 = new Thread(Counter.Increment);
+        Thread t2 = new Thread(Counter.Increment);
 
         t1.Start();
         t2.Start();
@@ -130,5 +116,67 @@ Console.WriteLine(matriks[1, 2]); // Output: 6
         t1.Join();
         t2.Join();
 
-        Console.WriteLine(counter); // Pasti 2000
-    }
+        Console.WriteLine(Counter.GetValue()); // Pasti 2000
+
+// null Example
+//Coalescing Operator (??)
+    string s1 = null;
+    string s2 = s1 ?? "nothing";
+Console.WriteLine(s2);
+//Coalescing Assignment (??=)
+s1 ??= s2;
+// sama seperti 
+if (s1 == null)
+    s1 = s2;
+//Null-Conditional Operator (?.) / Elvis Operator
+StringBuilder sb = null;
+string s = sb?.ToString(); // hasilnya null, tidak error
+// sama dengan 
+s = sb == null ? null : sb.ToString();
+// atau bisa dihain seperti ini x?.y?.z Jika x atau x.y null → hasilnya null (tanpa error)
+
+string name = "Budi";
+int age = 20;
+
+Console.WriteLine($"Name: {name}, Age: {age}");
+
+int? x = null;
+Console.WriteLine(x + 1);
+
+x = 5;
+Console.WriteLine(x++ + ++x);
+
+string nama = "Anhar";
+string userId = "12231";
+string gender = "L";
+UserClass userdata = new UserClass();
+userdata.GetUser(nama,userId,gender);
+
+int[] arr = { 1, 2, 3 };
+Console.WriteLine(arr.Length);
+
+bool a = true;
+bool b = false;
+
+Console.WriteLine(a && b || true);
+
+Console.WriteLine(8 / 3);
+
+ s = null;
+Console.WriteLine(s?.Length);
+
+var userList = new UserList(new List<string>());
+userList.AddUser("Anhar");
+userList.AddUser("Ahya");
+
+List<string> users = userList.GetUsers();
+foreach (var user in users)
+{
+    Console.WriteLine(user);
+}
+Console.WriteLine(5 / 2 + 1.0);
+
+
+
+
+

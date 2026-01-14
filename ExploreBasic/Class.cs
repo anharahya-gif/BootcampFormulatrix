@@ -1,7 +1,7 @@
 public interface IDriveable
     {
-          public string brand {get;set;}
-         public int price {get;set;}
+        public string brand {get;set;}
+        public int price {get;set;}
 
         void Drive();
         void Move();
@@ -105,3 +105,26 @@ public class UnitConverter
         return unit * ratio;
     }
 }
+
+public class Counter
+{
+    private static int counter = 0;
+    private static readonly object _lock = new object();
+
+    public static void Increment()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            lock (_lock)
+            {
+                counter++;
+            }
+        }
+    }
+
+    public static int GetValue()
+    {
+        return counter;
+    }
+}
+
