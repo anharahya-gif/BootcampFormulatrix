@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobaWebApp", "CobaWebApp\Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobaWebAPI", "CobaWebAPI\CobaWebAPI.csproj", "{083262C7-413D-4874-9FD8-D5774557A847}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniBoardgame", "MiniBoardgame\MiniBoardgame.csproj", "{50B3D21E-DD18-494A-AD95-B0427E48D994}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{083262C7-413D-4874-9FD8-D5774557A847}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{083262C7-413D-4874-9FD8-D5774557A847}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{083262C7-413D-4874-9FD8-D5774557A847}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50B3D21E-DD18-494A-AD95-B0427E48D994}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50B3D21E-DD18-494A-AD95-B0427E48D994}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50B3D21E-DD18-494A-AD95-B0427E48D994}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50B3D21E-DD18-494A-AD95-B0427E48D994}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

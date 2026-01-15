@@ -1,0 +1,15 @@
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\bin\Debug\net8.0\MiniBoardgame.exe
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\bin\Debug\net8.0\MiniBoardgame.deps.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\bin\Debug\net8.0\MiniBoardgame.runtimeconfig.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\bin\Debug\net8.0\MiniBoardgame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\bin\Debug\net8.0\MiniBoardgame.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.AssemblyInfoInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.AssemblyInfo.cs
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.csproj.CoreCompileInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.sourcelink.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\refint\MiniBoardgame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\MiniBoardgame.genruntimeconfig.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\obj\Debug\net8.0\ref\MiniBoardgame.dll

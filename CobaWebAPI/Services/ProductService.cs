@@ -2,7 +2,7 @@ using CobaWebAPI.Models;
 
 namespace CobaWebAPI.Services
 {
-    public class ProductService
+    public class ProductService : IProductService
     {
         private static List<Product> _products = new();
         private static int _nextId = 1;

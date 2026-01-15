@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using CobaWebAPI.Models;
 using CobaWebAPI.Services;
 using CobaWebAPI.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CobaWebAPI.Controllers
 {
@@ -9,14 +10,16 @@ namespace CobaWebAPI.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly ProductService _service;
+        private readonly IProductService _service;
 
-        public ProductsController(ProductService service)
+        public ProductsController(IProductService service)
         {
             _service = service;
         }
 
+        
         [HttpGet]
+        [Authorize]
         public IActionResult GetAll()
         {
             
@@ -24,6 +27,7 @@ namespace CobaWebAPI.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public IActionResult GetById(int id)
         {
             var product = _service.GetById(id);
@@ -34,6 +38,7 @@ namespace CobaWebAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public IActionResult Create(ProductCreateDto dto)
         {
             // if (string.IsNullOrEmpty(product.Name))
@@ -49,6 +54,7 @@ namespace CobaWebAPI.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public IActionResult Update(int id, ProductUpdateDto dto)
         {
             /*var success = _service.Update(id, product);
@@ -69,6 +75,7 @@ namespace CobaWebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public IActionResult Delete(int id)
         {
             var success = _service.Delete(id);
@@ -78,6 +85,7 @@ namespace CobaWebAPI.Controllers
             return NoContent();
         }
         [HttpPatch("{id}")]
+        [Authorize]
         public IActionResult Patch(int id, ProductPatchDto dto)
         {
             var product = _service.GetById(id);
