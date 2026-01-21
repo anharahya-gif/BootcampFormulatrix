@@ -1,0 +1,15 @@
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\bin\Debug\net8.0\AdvanceC#.exe
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\bin\Debug\net8.0\AdvanceC#.deps.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\bin\Debug\net8.0\AdvanceC#.runtimeconfig.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\bin\Debug\net8.0\AdvanceC#.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\bin\Debug\net8.0\AdvanceC#.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.AssemblyInfoInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.AssemblyInfo.cs
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.csproj.CoreCompileInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.sourcelink.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\refint\AdvanceC#.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\AdvanceC#.genruntimeconfig.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\AdvanceC#\obj\Debug\net8.0\ref\AdvanceC#.dll
