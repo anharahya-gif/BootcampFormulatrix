@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniBoardgame", "MiniBoardg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdvanceC#", "AdvanceC#\AdvanceC#.csproj", "{5824A827-4F35-4AFA-8E5C-2FDF249C9D13}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnoBoardGame", "UnoBoardGame\UnoBoardGame.csproj", "{5B6C94C6-16AC-46A7-8B1F-C09B3568A4D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{5824A827-4F35-4AFA-8E5C-2FDF249C9D13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5824A827-4F35-4AFA-8E5C-2FDF249C9D13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5824A827-4F35-4AFA-8E5C-2FDF249C9D13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B6C94C6-16AC-46A7-8B1F-C09B3568A4D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B6C94C6-16AC-46A7-8B1F-C09B3568A4D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B6C94C6-16AC-46A7-8B1F-C09B3568A4D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B6C94C6-16AC-46A7-8B1F-C09B3568A4D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

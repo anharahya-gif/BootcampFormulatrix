@@ -1,0 +1,15 @@
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.AssemblyInfoInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.AssemblyInfo.cs
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.csproj.CoreCompileInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.sourcelink.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\bin\Debug\net8.0\UnoBoardGame.exe
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\bin\Debug\net8.0\UnoBoardGame.deps.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\bin\Debug\net8.0\UnoBoardGame.runtimeconfig.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\bin\Debug\net8.0\UnoBoardGame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\bin\Debug\net8.0\UnoBoardGame.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\refint\UnoBoardGame.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\UnoBoardGame.genruntimeconfig.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\obj\Debug\net8.0\ref\UnoBoardGame.dll
