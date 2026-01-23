@@ -1,0 +1,15 @@
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.AssemblyInfoInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.AssemblyInfo.cs
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.csproj.CoreCompileInputs.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.sourcelink.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\bin\Debug\net8.0\Uno.exe
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\bin\Debug\net8.0\Uno.deps.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\bin\Debug\net8.0\Uno.runtimeconfig.json
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\bin\Debug\net8.0\Uno.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\bin\Debug\net8.0\Uno.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\refint\Uno.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.pdb
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\Uno.genruntimeconfig.cache
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\Uno\obj\Debug\net8.0\ref\Uno.dll
