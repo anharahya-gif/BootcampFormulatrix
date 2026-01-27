@@ -1,24 +1,47 @@
-﻿// See https://aka.ms/new-console-template for more information
-//Console.WriteLine("Hello, World!");
+﻿using UnoBoardGame.Game;
+using UnoBoardGame.UI;
 using UnoBoardGame.Models;
-class Program
-{
-    static void Main()
-    {
-        Console.WriteLine("=== UNO GAME ===");
-        Console.Write("Masukkan jumlah pemain (2–4): ");
-        int totalPlayers = int.Parse(Console.ReadLine()!);
 
-        var game = new GameController();
+// var game = new GameController();
+// var view = new ConsoleView();
 
-        game.Players.Add(new Player("YOU", true));
+// // init player, bot, dll
+// game.StartGame();
 
-        for (int i = 2; i <= totalPlayers; i++)
-            game.Players.Add(new Player($"BOT {i}", false));
+// while (!game.IsGameOver)
+// {
+//     var player = game.Players[game.CurrentPlayerIndex];
 
-        game.StartGame();
+//     view.ShowPlayerStatus(game.Players, game.CurrentPlayerIndex);
+//     view.RenderGameInfo(
+//         game.Deck,
+//         game.DiscardPile,
+//         game.GetTopDiscard(),
+//         game.CurrentColor,
+//         game.Direction
+//     );
 
-        while (!game.IsGameOver)
-            game.PlayTurn();
-    }
-}
+//     if (player.IsHuman)
+//     {
+//         var cards = game.GetHumanPlayableCards(player);
+
+//         for (int i = 0; i < cards.Count; i++)
+//             Console.WriteLine($"{i + 1}. {cards[i]}");
+
+//         Console.WriteLine("0. Draw card");
+
+//         int choice = view.AskCardChoice();
+
+//         if (choice == 0)
+//             game.AddCardToPlayer(player, game.DrawFromDeck());
+//         else
+//             game.PlayHumanCard(player, choice - 1);
+//     }
+//     else
+//     {
+//         game.BotTurn(player);
+//     }
+// }
+
+
+

@@ -1,17 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-namespace UnoBoardGame.Models;
+using UnoBoardGame.Models;
+
+namespace UnoBoardGame.Game;
 
 public class GameController
 {
-    public List<Player> Players { get; set; } = new();
-    public Deck Deck { get; set; } = new();
-    public DiscardPile DiscardPile { get; set; } = new();
-    public int CurrentPlayerIndex { get; set; }
-    public Direction Direction { get; set; } = Direction.Clockwise;
-    public CardColor CurrentColor { get; set; }
-    public bool IsGameOver { get; set; }
+    /* ================= STATE ================= */
+
+    public List<Player> Players { get; } = new();
+    public Deck Deck { get; } = new();
+    public DiscardPile DiscardPile { get; } = new();
+
+    public int CurrentPlayerIndex { get; private set; }
+    public Direction Direction { get; private set; } = Direction.Clockwise;
+    public CardColor CurrentColor { get; private set; }
+    public bool IsGameOver { get; private set; }
+
+    public Player CurrentPlayer => Players[CurrentPlayerIndex];
 
     /* ================= GAME FLOW ================= */
 
@@ -22,95 +29,19 @@ public class GameController
 
         foreach (var p in Players)
             for (int i = 0; i < 7; i++)
-                AddCardToPlayer(p, Deck.Draw());
+                AddCardToPlayer(p, DrawFromDeck());
 
-        var firstCard = Deck.Draw();
-        DiscardPile.Cards.Push(firstCard);
+        var firstCard = DrawFromDeck();
+        DiscardPile.Add(firstCard);
+
         CurrentColor = firstCard.Color ?? CardColor.Red;
-
-        Console.WriteLine($"Game start! First card: {firstCard}");
+        CurrentPlayerIndex = 0;
     }
 
-    public void PlayTurn()
+    public void PlayBotTurn()
     {
-        if (IsGameOver) return;
+        var player = CurrentPlayer;
 
-        ShowPlayerStatus();
-
-        var player = Players[CurrentPlayerIndex];
-
-        // ================= RENDER STATE =================
-        Console.WriteLine("\n==================================");
-        Console.WriteLine($"TURN : {player.Name}");
-        Console.WriteLine($"Top Card     : {GetTopDiscard()}");
-        Console.WriteLine($"Current Color: {CurrentColor}");
-        Console.WriteLine($"Your Cards   : {GetPlayerCardCount(player)}");
-        Console.WriteLine("==================================");
-
-        // ================= PLAYER ACTION =================
-        if (player.IsHuman)
-        {
-            HumanTurn(player);
-        }
-        else
-        {
-            BotTurn(player);
-        }
-
-        // ================= POST TURN =================
-        // Jika player habis kartu → game selesai
-        if (GetPlayerCardCount(player) == 0)
-        {
-            EndGame(player);
-            return;
-        }
-
-        // Info state setelah turn (debug / UI)
-        Console.WriteLine($"➡️ Top Card NOW : {GetTopDiscard()}");
-        Console.WriteLine($"➡️ Next Player : {Players[CurrentPlayerIndex].Name}");
-    }
-
-
-
-    private void HumanTurn(Player player)
-    {
-        var cards = player.GetAllCards();
-
-        Console.WriteLine("Your Cards:");
-        for (int i = 0; i < cards.Count; i++)
-            Console.WriteLine($"{i + 1}. {cards[i]}");
-
-        Console.WriteLine("0. Draw card");
-        Console.Write("Choose card: ");
-
-        int choice = int.Parse(Console.ReadLine()!);
-
-        if (choice == 0)
-        {
-            AddCardToPlayer(player, DrawFromDeck());
-            return; // ❗ JANGAN MoveToNextPlayer
-        }
-
-        var selectedCard = cards[choice - 1];
-
-        if (!CanPlayCard(player, selectedCard))
-        {
-            Console.WriteLine("❌ Cannot play that card!");
-            return;
-        }
-
-        PlayCard(player, selectedCard);
-
-        if (GetPlayerCardCount(player) == 1)
-        {
-            Console.Write("Type 'UNO' to call UNO: ");
-            if (Console.ReadLine()?.ToUpper() == "UNO")
-                CallUno(player);
-        }
-    }
-
-    private void BotTurn(Player player)
-    {
         var card = ChooseBestCard(player);
 
         if (card == null)
@@ -125,30 +56,39 @@ public class GameController
             CallUno(player);
     }
 
-
-    public void EndGame(Player winner)
+    public void PlayHumanCard(Player player, int cardIndex)
     {
-        IsGameOver = true;
-        Console.WriteLine($"\n🎉 {winner.Name} WINS!");
+        var cards = player.GetAllCards();
+
+        if (cardIndex < 0 || cardIndex >= cards.Count)
+            throw new InvalidOperationException("Invalid card index");
+
+        var card = cards[cardIndex];
+
+        if (!CanPlayCard(player, card))
+            throw new InvalidOperationException("Card cannot be played");
+
+        PlayCard(player, card);
     }
 
-    /* ================= PLAYER CARD ================= */
-
-    public void AddCardToPlayer(Player player, Card card)
+    public void HumanDraw(Player player)
     {
-        player.Cards[card.Type].Add(card);
+        AddCardToPlayer(player, DrawFromDeck());
     }
 
-    public void RemoveCardFromPlayer(Player player, Card card)
-    {
-        player.Cards[card.Type].Remove(card);
-    }
+    /* ================= PLAYER ================= */
+
+    public int GetPlayerCardCount(Player player)
+        => player.GetAllCards().Count;
 
     public List<Card> GetPlayerCards(Player player)
         => player.GetAllCards();
 
-    public int GetPlayerCardCount(Player player)
-        => player.GetAllCards().Count;
+    private void AddCardToPlayer(Player player, Card card)
+        => player.Cards[card.Type].Add(card);
+
+    private void RemoveCardFromPlayer(Player player, Card card)
+        => player.Cards[card.Type].Remove(card);
 
     /* ================= VALIDATION ================= */
 
@@ -162,103 +102,78 @@ public class GameController
         if (card.Color == CurrentColor)
             return true;
 
-        if (card.Type == top.Type && card.Type == CardType.Number && card.Number == top.Number)
-            return true;
-
-        return false;
+        return card.Type == CardType.Number &&
+               top.Type == CardType.Number &&
+               card.Number == top.Number;
     }
 
-    public bool HasColorCard(Player player, CardColor color)
-        => player.GetAllCards().Any(c => c.Color == color);
+    /* ================= CARD PLAY ================= */
 
-    /* ================= CARD EFFECT ================= */
-
-    public void PlayCard(Player player, Card card)
+    private void PlayCard(Player player, Card card)
     {
         RemoveCardFromPlayer(player, card);
-        AddCardToDiscard(card);
+        DiscardPile.Add(card);
 
         player.HasCalledUno = false;
-
-        Console.WriteLine($"{player.Name} plays {card}");
-
         CurrentColor = card.Color ?? ChooseColor(player);
 
-        HandleCardEffect(card); // 🔥 SATU-SATUNYA YANG MENGUBAH TURN
+        HandleCardEffect(card);
+
+        if (GetPlayerCardCount(player) == 0)
+            EndGame(player);
     }
 
-
-    public void HandleCardEffect(Card card)
+    private void HandleCardEffect(Card card)
     {
         switch (card.Type)
         {
             case CardType.Skip:
                 MoveToNextPlayer(2);
                 break;
+
             case CardType.Reverse:
                 ReverseDirection();
                 MoveToNextPlayer(1);
                 break;
+
             case CardType.DrawTwo:
-                var p = GetNextPlayer(1);
-                AddCardToPlayer(p, DrawFromDeck());
-                AddCardToPlayer(p, DrawFromDeck());
+                ForceDraw(GetNextPlayer(1), 2);
                 MoveToNextPlayer(2);
                 break;
+
             case CardType.WildDrawFour:
-                var p4 = GetNextPlayer(1);
-                for (int i = 0; i < 4; i++)
-                    AddCardToPlayer(p4, DrawFromDeck());
+                ForceDraw(GetNextPlayer(1), 4);
                 MoveToNextPlayer(2);
                 break;
+
             default:
                 MoveToNextPlayer(1);
                 break;
         }
     }
 
-    public CardColor ChooseColor(Player player)
-    {
-        var coloredCards = player.GetAllCards()
-            .Where(c => c.Color != null)
-            .ToList();
-
-        // ❗ Kalau player cuma punya Wild semua
-        if (!coloredCards.Any())
-        {
-            // fallback: random color
-            var colors = Enum.GetValues<CardColor>();
-            return colors[new Random().Next(colors.Length)];
-        }
-
-        return coloredCards
-            .GroupBy(c => c.Color)
-            .OrderByDescending(g => g.Count())
-            .First()
-            .Key!.Value;
-    }
-
-
     /* ================= TURN ================= */
 
-    public void MoveToNextPlayer(int skip)
+    private void MoveToNextPlayer(int step)
     {
         CurrentPlayerIndex =
-            (CurrentPlayerIndex + skip * (int)Direction + Players.Count)
+            (CurrentPlayerIndex + step * (int)Direction + Players.Count)
             % Players.Count;
     }
 
-    public void ReverseDirection()
+    private void ReverseDirection()
     {
-        Direction = (Direction == Direction.Clockwise)
+        Direction = Direction == Direction.Clockwise
             ? Direction.CounterClockwise
             : Direction.Clockwise;
     }
 
-    public Player GetNextPlayer(int offset)
+    private Player GetNextPlayer(int offset)
     {
-        int idx = (CurrentPlayerIndex + offset * (int)Direction + Players.Count)
-                  % Players.Count;
+        int idx =
+            (CurrentPlayerIndex + offset * (int)Direction + Players.Count)
+            % Players.Count;
+
         return Players[idx];
     }
 
@@ -266,82 +181,65 @@ public class GameController
 
     public Card DrawFromDeck()
     {
-        if (Deck.Cards.Count == 0)
+        if (Deck.Count == 0)
             RefillDeckFromDiscard();
 
         return Deck.Draw();
     }
 
-    public void AddCardToDiscard(Card card)
+    private void RefillDeckFromDiscard()
     {
-        DiscardPile.Cards.Push(card);
+        var top = DiscardPile.PopTop();
+
+        var rest = DiscardPile.PopAll();
+        Deck.RefillFrom(rest);
+        Deck.Shuffle();
+
+        DiscardPile.Add(top);
     }
 
     public Card GetTopDiscard()
         => DiscardPile.Top();
 
-    public void RefillDeckFromDiscard()
-    {
-        var top = DiscardPile.Cards.Pop();
-
-        var rest = DiscardPile.Cards.ToList();
-        DiscardPile.Cards.Clear();
-        DiscardPile.Cards.Push(top);
-
-        Deck.RefillFrom(rest);
-        Deck.Shuffle();
-    }
-
-
     /* ================= UNO ================= */
 
     public void CallUno(Player player)
-    {
-        player.HasCalledUno = true;
-    }
+        => player.HasCalledUno = true;
 
-    public void CheckUno(Player player)
-    {
-        if (GetPlayerCardCount(player) == 1 && !player.HasCalledUno)
-            ApplyUnoPenalty(player);
-    }
+    public bool ShouldApplyUnoPenalty(Player player)
+        => GetPlayerCardCount(player) == 1 && !player.HasCalledUno;
 
     public void ApplyUnoPenalty(Player player)
-    {
-        Console.WriteLine($"{player.Name} forgot UNO! +2 cards");
-        AddCardToPlayer(player, DrawFromDeck());
-        AddCardToPlayer(player, DrawFromDeck());
-    }
+        => ForceDraw(player, 2);
 
     /* ================= STRATEGY ================= */
+
     private Card ChooseBestCard(Player player)
     {
-        var playableCards = player.GetAllCards()
+        var playable = player.GetAllCards()
             .Where(c => CanPlayCard(player, c))
             .ToList();
 
-        if (!playableCards.Any())
+        if (!playable.Any())
             return null!;
 
         var opponent = GetNextPlayer(1);
-        bool opponentDanger = GetPlayerCardCount(opponent) <= 2;
+        bool danger = GetPlayerCardCount(opponent) <= 2;
 
         var colorCount = player.GetAllCards()
             .Where(c => c.Color != null)
-            .GroupBy(c => c.Color)
-            .ToDictionary(g => g.Key!.Value, g => g.Count());
+            .GroupBy(c => c.Color!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
 
-        Card bestCard = playableCards
-            .OrderByDescending(card => ScoreCard(card, colorCount, opponentDanger))
+        return playable
+            .OrderByDescending(c => ScoreCard(c, colorCount, danger))
             .First();
-
-        return bestCard;
     }
 
     private int ScoreCard(
-    Card card,
-    Dictionary<CardColor, int> colorCount,
-    bool opponentDanger)
+        Card card,
+        Dictionary<CardColor, int> colorCount,
+        bool opponentDanger)
     {
         int score = card.Type switch
         {
@@ -366,43 +264,56 @@ public class GameController
         return score;
     }
 
+    /* ================= UTILS ================= */
+
+    private void ForceDraw(Player player, int count)
+    {
+        for (int i = 0; i < count; i++)
+            AddCardToPlayer(player, DrawFromDeck());
+    }
+
+    private CardColor ChooseColor(Player player)
+    {
+        var colored = player.GetAllCards()
+            .Where(c => c.Color != null)
+            .ToList();
+
+        if (!colored.Any())
+        {
+            var colors = Enum.GetValues<CardColor>();
+            return colors[new Random().Next(colors.Length)];
+        }
+
+        return colored
+            .GroupBy(c => c.Color!.Value)
+            .OrderByDescending(g => g.Count())
+            .First()
+            .Key;
+    }
+
+    private void EndGame(Player winner)
+    {
+        IsGameOver = true;
+    }
+
     /* ================= INIT ================= */
 
     private void BuildDeck()
     {
-        foreach (CardColor color in Enum.GetValues(typeof(CardColor)))
+        foreach (CardColor color in Enum.GetValues<CardColor>())
         {
             for (int i = 0; i <= 9; i++)
-                Deck.Cards.Push(new Card { Type = CardType.Number, Color = color, Number = i });
+                Deck.Add(new Card { Type = CardType.Number, Color = color, Number = i });
 
-            Deck.Cards.Push(new Card { Type = CardType.Skip, Color = color });
-            Deck.Cards.Push(new Card { Type = CardType.Reverse, Color = color });
-            Deck.Cards.Push(new Card { Type = CardType.DrawTwo, Color = color });
+            Deck.Add(new Card { Type = CardType.Skip, Color = color });
+            Deck.Add(new Card { Type = CardType.Reverse, Color = color });
+            Deck.Add(new Card { Type = CardType.DrawTwo, Color = color });
         }
 
         for (int i = 0; i < 4; i++)
         {
-            Deck.Cards.Push(new Card { Type = CardType.Wild });
-            Deck.Cards.Push(new Card { Type = CardType.WildDrawFour });
+            Deck.Add(new Card { Type = CardType.Wild });
+            Deck.Add(new Card { Type = CardType.WildDrawFour });
         }
     }
-    private void ShowPlayerStatus()
-{
-    Console.WriteLine("\n===== PLAYER STATUS =====");
-
-    for (int i = 0; i < Players.Count; i++)
-    {
-        var p = Players[i];
-
-        string turnMarker = (i == CurrentPlayerIndex) ? "👉" : "  ";
-        string type = p.IsHuman ? "(YOU)" : "(BOT)";
-
-        Console.WriteLine(
-            $"{turnMarker} {p.Name,-10} {type,-6} : {GetPlayerCardCount(p)} cards"
-        );
-    }
-
-    Console.WriteLine("=========================");
-}
-
 }
