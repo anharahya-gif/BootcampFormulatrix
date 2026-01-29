@@ -1,0 +1,145 @@
+﻿@page
+@using PokerUI.Models
+@model PokerUI.Pages.IndexModel
+@{
+    ViewData["Title"] = "Poker Table";
+}
+
+<h1>Meja Poker</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div style="color:red">@Model.ErrorMessage</div>
+}
+
+<!-- --- Player Management --- -->
+<form method="post">
+    <input asp-for="NewPlayerName" placeholder="Nama Player" />
+    <input asp-for="NewChips" placeholder="Jumlah Chips" />
+    <button type="submit" asp-page-handler="AddPlayer">Tambah Player</button>
+    <button type="submit" asp-page-handler="RemovePlayer">Hapus Player</button>
+</form>
+
+<!-- --- Community Cards --- -->
+<h2>Community Cards</h2>
+<div>
+    @foreach (var card in Model.GameState?.CommunityCards ?? new List<string>())
+    {
+        <span style="margin-right:8px">@card</span>
+    }
+</div>
+
+<!-- --- Winner Cards --- -->
+@if (Model.ShowdownState != null)
+{
+    <h2>Winner</h2>
+    <div>
+        <strong>Winners:</strong>
+        @foreach (var winner in Model.ShowdownState.Winners)
+        {
+            <span style="margin-right:8px">@winner</span>
+        }
+    </div>
+
+    <div>
+        <strong>Hand Rank:</strong> @Model.ShowdownState.HandRank
+    </div>
+
+    <div>
+        <strong>Message:</strong> @Model.ShowdownState.Message
+    </div>
+}
+
+
+
+
+
+<!-- --- Players Table --- -->
+<h2>Players</h2>
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Nama</th>
+            <th>Chips</th>
+            <th>Status</th>
+            <th>Hand (Current Player)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var player in Model.GameState?.Players ?? new List<PlayerDTO>())
+        {
+            if (player == null) continue;
+
+            <tr>
+                <td>@player.Name</td>
+                <td>@player.ChipStack</td>
+                <td>@(player.IsFolded ? "Folded" : "Active")</td>
+
+                <!-- Hand -->
+                <td>
+                    @if (Model.GameState?.CurrentPlayer == player.Name)
+                    {
+                        @foreach (var card in player.Hand ?? new List<string>())
+                        {
+                            <span style="margin-right:5px">@card</span>
+                        }
+                    }
+                    else if (Model.GameState?.Phase == "Showdown" && !player.IsFolded)
+                    {
+                        @foreach (var card in player.Hand ?? new List<string>())
+                        {
+                            <span style="margin-right:5px">@card</span>
+                        }
+
+                    }
+                </td>
+
+                <!-- Actions -->
+                <td>
+                    @if (!player.IsFolded && Model.GameState?.CurrentPlayer == player.Name)
+                    {
+                        <form method="post" style="display:inline">
+                            <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                            <input asp-for="Amount" placeholder="Amount" />
+                            <button asp-page-handler="Bet" disabled="@( !Model.CanBetOrRaise(player) )">Bet</button>
+                            <button asp-page-handler="Raise" disabled="@( !Model.CanBetOrRaise(player) )">Raise</button>
+                            <button asp-page-handler="Call" disabled="@( !Model.CanCall(player) )"
+                                title="Bisa dipanggil hanya saat ada taruhan aktif">Call</button>
+                            <button asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
+                            <button asp-page-handler="Fold" disabled="@( !Model.CanFold(player) )">Fold</button>
+
+                        </form>
+                        <form method="post" style="display:inline">
+                            <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                            <button type="submit" asp-page-handler="AllIn" disabled="@( !Model.CanAllIn(player) )">
+                                All-In
+                            </button>
+                        </form>
+
+
+
+
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- --- Game Info --- -->
+<h2>Game Info</h2>
+<p>Phase: @Model.GameState?.Phase</p>
+<p>Pot: @Model.GameState?.Pot</p>
+<p>Current Turn: @Model.GameState?.CurrentPlayer</p>
+
+<!-- --- Game Controls --- -->
+<form method="post">
+    <button asp-page-handler="StartRound" disabled="@( !Model.CanStartRound() )">Start Round</button>
+    <button asp-page-handler="NextPhase" disabled="@( !Model.CanNextPhase() )">Next Phase</button>
+
+    <button asp-page-handler="Showdown" disabled="@( !Model.CanShowdown() )">
+        Showdown
+    </button>
+
+</form>

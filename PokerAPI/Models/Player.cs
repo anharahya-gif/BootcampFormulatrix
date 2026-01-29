@@ -10,5 +10,7 @@ namespace PokerAPI.Models
             Name = name;
             ChipStack = startingChips;
         }
+        public PlayerState State { get; set; } = PlayerState.Active;
+        public bool IsAllIn => State == PlayerState.AllIn;
     }
 }

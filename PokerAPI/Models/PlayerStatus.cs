@@ -5,12 +5,15 @@ namespace PokerAPI.Models
         public List<Card> Hand { get; set; } = new List<Card>();
         public PlayerState State { get; set; } = PlayerState.Active;
         public int CurrentBet { get; set; } = 0;
+        public bool HasActed { get; set; }
+
 
         public void ResetStatus()
         {
             Hand.Clear();
             State = PlayerState.Active;
             CurrentBet = 0;
+            HasActed = false;
         }
     }
 }

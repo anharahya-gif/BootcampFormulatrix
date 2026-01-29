@@ -18,6 +18,10 @@ namespace PokerAPI.Services
         public int CurrentPlayerIndex { get; private set; } = 0;
         public int CurrentBet { get; private set; } = 0;
         public GamePhase Phase { get; private set; } = GamePhase.PreFlop;
+        public event Action? RoundStarted;
+        public ShowdownResult? LastShowdown { get; private set; }
+
+
 
         // ======================
         // Player Management
@@ -57,6 +61,7 @@ namespace PokerAPI.Services
                 status.ResetStatus();
 
             DealHoleCards();
+            RoundStarted?.Invoke();
         }
 
         private void DealHoleCards()
@@ -119,11 +124,17 @@ namespace PokerAPI.Services
         private void StartBettingRound()
         {
             foreach (var status in PlayerMap.Values)
+            {
                 status.CurrentBet = 0;
+                status.HasActed = false;
+            }
             CurrentBet = 0;
 
             // Set first active player
-            CurrentPlayerIndex = PlayerMap.Keys.ToList().FindIndex(p => PlayerMap[p].State == PlayerState.Active);
+            CurrentPlayerIndex = Math.Max(0,
+            PlayerMap.Keys.ToList()
+            .FindIndex(p => PlayerMap[p].State == PlayerState.Active));
+
         }
 
         // ======================
@@ -162,7 +173,11 @@ namespace PokerAPI.Services
         public bool IsBettingRoundOver()
         {
             var active = ActivePlayers();
-            return active.All(p => PlayerMap[p].CurrentBet == CurrentBet || PlayerMap[p].State != PlayerState.Active);
+
+            return active.All(p =>
+                PlayerMap[p].HasActed &&
+                PlayerMap[p].CurrentBet == CurrentBet
+            );
         }
 
         // ======================
@@ -176,6 +191,7 @@ namespace PokerAPI.Services
 
             player.ChipStack -= amount;
             status.CurrentBet += amount;
+            status.HasActed = true;
             Pot.AddChips(amount);
             CurrentBet = Math.Max(CurrentBet, status.CurrentBet);
 
@@ -194,6 +210,7 @@ namespace PokerAPI.Services
                 Pot.AddChips(player.ChipStack);
                 status.CurrentBet += player.ChipStack;
                 player.ChipStack = 0;
+                status.HasActed = true;
                 status.State = PlayerState.AllIn;
             }
             else
@@ -216,6 +233,7 @@ namespace PokerAPI.Services
 
             player.ChipStack -= totalBet;
             status.CurrentBet += totalBet;
+            status.HasActed = true;
             Pot.AddChips(totalBet);
             CurrentBet = status.CurrentBet;
 
@@ -226,6 +244,7 @@ namespace PokerAPI.Services
         {
             var status = PlayerMap[player];
             status.State = PlayerState.Folded;
+            status.HasActed = true;
         }
 
         public void HandleCheck(Player player)
@@ -233,9 +252,31 @@ namespace PokerAPI.Services
             var status = PlayerMap[player];
             if (CurrentBet == status.CurrentBet)
             {
-                // Check allowed, nothing else needed
+                status.HasActed = true;
             }
         }
+        public bool HandleAllIn(string playerName)
+        {
+            var player = PlayerMap.Keys.FirstOrDefault(p => p.Name == playerName);
+            if (player == null) return false;
+
+            var status = PlayerMap[player];
+            if (status.State != PlayerState.Active) return false;
+
+            int amount = player.ChipStack;
+            if (amount <= 0) return false;
+
+            player.ChipStack = 0;
+            status.CurrentBet += amount;
+            status.State = PlayerState.AllIn;
+
+            Pot.AddChips(amount);
+            CurrentBet = Math.Max(CurrentBet, status.CurrentBet);
+
+            return true;
+        }
+
+
 
         // ======================
         // Showdown
@@ -376,6 +417,48 @@ namespace PokerAPI.Services
 
             return null;
         }
+        public List<Player> ResolveShowdown()
+        {
+            var winners = DetermineWinners();
+            if (!winners.Any()) return winners;
+
+            int share = Pot.TotalChips / winners.Count;
+
+            foreach (var winner in winners)
+            {
+                winner.ChipStack += share;
+            }
+
+            Pot.Reset();
+            return winners;
+        }
+        public (List<Player> winners, HandRank rank) ResolveShowdownDetailed()
+        {
+            if (Phase != GamePhase.Showdown)
+                throw new InvalidOperationException("Not in showdown phase");
+
+            var handResults = EvaluateHands();
+            if (!handResults.Any())
+                return (new List<Player>(), HandRank.HighCard);
+
+            var bestRank = handResults.Values.Max();
+            var winners = handResults
+                .Where(kv => kv.Value == bestRank)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            int share = Pot.TotalChips / winners.Count;
+            foreach (var winner in winners)
+                winner.ChipStack += share;
+
+            Pot.Reset();
+            LastShowdown = new ShowdownResult(winners, bestRank);
+
+            return (winners, bestRank);
+        }
+
+
+
 
 
 

@@ -9,7 +9,21 @@ namespace PokerAPI.Controllers
     [Route("api/[controller]")]
     public class GameControllerAPI : ControllerBase
     {
-        private static readonly GameController _game = new GameController();
+        private readonly GameController _game;
+
+        public GameControllerAPI(GameController game)
+        {
+            _game = game;
+            _game.RoundStarted += OnRoundStarted;
+
+        }
+
+
+        private void OnRoundStarted()
+        {
+            Console.WriteLine("Round started event received");
+        }
+
 
         // ======================
         // Helper
@@ -199,29 +213,64 @@ namespace PokerAPI.Controllers
         // ======================
         // Showdown
         // ======================
-        [HttpGet("showdown")]
+        [HttpPost("showdown")]
         public IActionResult Showdown()
         {
-            var winners = _game.DetermineWinners();
+            var (winners, rank) = _game.ResolveShowdownDetailed();
+
             if (!winners.Any())
                 return BadRequest("No winners");
 
-            int pot = _game.Pot.TotalChips;
-            int share = pot / winners.Count;
-
-            foreach (var winner in winners)
-                winner.ChipStack += share;
-
-            _game.Pot.Reset();
+            bool isSplit = winners.Count > 1;
 
             return Ok(new
             {
-                winners = winners.Select(p => p.Name),
-                potShare = share,
-                communityCards = _game.CommunityCards
-                    .Select(c => $"{c.Rank} of {c.Suit}")
+                result = isSplit ? "SplitPot" : "Win",
+                handRank = rank.ToString(),
+
+                winners = winners.Select(p => new
+                {
+                    name = p.Name,
+                    handRank = rank.ToString()
+                }),
+
+                message = isSplit
+                    ? $"Split pot: all winners have {rank}"
+                    : $"{winners.First().Name} wins with {rank}"
             });
         }
+
+        // =====================
+        // All-Inn
+        // =====================
+        [HttpPost("allin")]
+        public IActionResult AllIn([FromQuery] string name)
+        {
+            bool success = _game.HandleAllIn(name);
+
+            if (!success)
+                return BadRequest("Player tidak bisa all-in");
+
+            return Ok(new
+            {
+                success = true,
+                state = new
+                {
+                    phase = _game.Phase.ToString(),
+                    currentBet = _game.CurrentBet,
+                    pot = _game.Pot.TotalChips,
+                    players = _game.PlayerMap.Select(kv => new
+                    {
+                        name = kv.Key.Name,
+                        chipStack = kv.Key.ChipStack,
+                        state = kv.Value.State.ToString(),
+                        currentBet = kv.Value.CurrentBet
+                    })
+                }
+            });
+        }
+
+
         // =====================
         // State
         // =====================
@@ -253,9 +302,21 @@ namespace PokerAPI.Controllers
                 pot = _game.Pot.TotalChips,
                 communityCards = _game.CommunityCards
                     .Select(c => $"{c.Rank} of {c.Suit}"),
-                players
+
+                players,
+
+                showdown = _game.LastShowdown is null
+                ? null
+                : new
+                {
+                    winners = _game.LastShowdown.Winners.Select(p => p.Name),
+                    handRank = _game.LastShowdown.HandRank.ToString(),
+                    message = _game.LastShowdown.Message
+
+                }
             });
         }
+
 
     }
 }
