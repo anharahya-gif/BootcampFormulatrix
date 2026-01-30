@@ -1,0 +1,242 @@
+﻿@page
+@using PokerBetterUI.Models
+@model PokerBetterUI.Pages.IndexModel
+
+@{
+    ViewData["Title"] = "Poker Table";
+}
+
+<h1 style="color:gold">Meja Poker</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div style="color:red">@Model.ErrorMessage</div>
+}
+
+<div class="poker-table">
+
+    <!-- ================= PLAYER MANAGEMENT ================= -->
+    <form method="post">
+        <input asp-for="NewPlayerName" placeholder="Nama Player" />
+        <input asp-for="NewChips" placeholder="Jumlah Chips" />
+        <button asp-page-handler="AddPlayer">Tambah Player</button>
+        <button asp-page-handler="RemovePlayer">Hapus Player</button>
+    </form>
+    <!-- ================= END PLAYER MANAGEMENT ================= -->
+    <!-- ================= GAME INFO ================= -->
+    <h2>Game Info</h2>
+    <p>Phase: @Model.GameState?.Phase</p>
+    <p>Pot: @Model.GameState?.Pot</p>
+    <p>Current Turn: @Model.GameState?.CurrentPlayer</p>
+
+    <!-- ================= CONTROLS ================= -->
+    <form method="post">
+        <button asp-page-handler="StartRound" disabled="@( !Model.CanStartRound() )">Start Round</button>
+        <button asp-page-handler="NextPhase" disabled="@( !Model.CanNextPhase() )">Next Phase</button>
+        <button asp-page-handler="Showdown" disabled="@( !Model.CanShowdown() )">Showdown</button>
+    </form>
+
+
+    @* <!-- ================= TABLE CENTER ================= -->
+    <div class="table-center">
+        <div class="community-cards">
+            @if (Model.CommunityCardImages != null && Model.CommunityCardImages.Any())
+            {
+                foreach (var card in Model.CommunityCardImages)
+                {
+                    <img src="~/lib/cards/@card" class="card" />
+                }
+            }
+        </div>
+
+        <div class="pot-label">
+            Pot: @Model.GameState?.Pot
+        </div>
+    </div> *@
+
+    <!-- ================= SHOWDOWN ================= -->
+    @if (Model.ShowdownState != null)
+    {
+        <h2>Winner</h2>
+        <div>
+            <strong>Winners:</strong>
+            @foreach (var winner in Model.ShowdownState.Winners)
+            {
+                <span style="margin-right:8px">@winner</span>
+            }
+        </div>
+
+        <div><strong>Hand Rank:</strong> @Model.ShowdownState.HandRank</div>
+        <div><strong>Message:</strong> @Model.ShowdownState.Message</div>
+    }
+
+    <!-- ================= PLAYERS ================= -->
+    <div class="table-center">
+
+        <!-- COMMUNITY CARDS -->
+        <div class="community-cards">
+            @foreach (var card in Model.CommunityCardImages ?? new())
+            {
+                <img src="~/lib/cards/@card" />
+            }
+        </div>
+
+        <div class="pot-label">
+            Pot: @Model.GameState?.Pot
+        </div>
+
+        @{
+            var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+            var count = players.Count;
+            var radius = 240;
+            var center = 300;
+        }
+
+        @for (int i = 0; i < count; i++)
+        {
+            var player = players[i];
+            var angle = (2 * Math.PI / count) * i - Math.PI / 2;
+            var x = center + radius * Math.Cos(angle);
+            var y = center + radius * Math.Sin(angle);
+
+            bool isCurrent = Model.GameState?.CurrentPlayer == player.Name;
+
+            <div class="player-seat @(isCurrent ? "current" : "")"
+                style="left:@($"{x}px"); top:@($"{y}px"); transform:translate(-50%, -50%);">
+
+                <div class="player-name">@player.Name</div>
+                <div class="chips">💰 @player.ChipStack</div>
+
+                <div class="player-hand">
+                    @if (isCurrent || (Model.GameState?.Phase == "Showdown" && !player.IsFolded))
+                    {
+                        foreach (var card in player.Hand ?? new())
+                        {
+                            var img = PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card);
+                            <img src="~/lib/cards/@img" />
+                        }
+                    }
+                    else
+                    {
+                        foreach (var _ in player.Hand ?? new())
+                        {
+                            <img src="~/lib/cards/back_dark.png" />
+                        }
+                    }
+                    @if (Model.GameState?.CurrentPlayer == player.Name && !player.IsFolded)
+                    {
+                        <div class="player-actions">
+                            <form method="post">
+                                <input type="hidden" name="ActionPlayer" value="@player.Name" />
+
+                                <input asp-for="Amount" class="bet-input" placeholder="Bet" />
+
+                                <div class="action-buttons">
+                                    <button asp-page-handler="Bet" disabled="@( !Model.CanBetOrRaise(player) )">Bet</button>
+                                    <button asp-page-handler="Raise" disabled="@( !Model.CanBetOrRaise(player) )">Raise</button>
+                                    <button asp-page-handler="Call" disabled="@( !Model.CanCall(player) )">Call</button>
+                                    <button asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
+                                    <button asp-page-handler="Fold">Fold</button>
+                                    <button type="button" onclick="allIn('@player.Name')" @( !Model.CanAllIn(player) ?
+                                                                                                                         "disabled" : "" )>
+                                All-In
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                                }
+
+            </div>
+
+
+        </div>
+                }
+
+    </div>
+
+</div>
+
+<script>
+    async function allIn(playerName) {
+        try {
+            const response = await fetch(
+                'http://localhost:5175/api/GameControllerAPI/allin?name=' + encodeURIComponent(playerName),
+                { method: 'POST' }
+            );
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                console.error('All-In gagal', response.status);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+</script>
+<style>
+    .poker-table {
+        width: 900px;
+        margin: auto;
+    }
+
+    .table-center {
+        position: relative;
+        width: 600px;
+        height: 600px;
+        margin: 40px auto;
+        border-radius: 50%;
+        background: radial-gradient(circle, #1e7f3a, #0b3d1f);
+        box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .community-cards {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -60%);
+    }
+
+    .community-cards img {
+        width: 70px;
+        margin-right: 6px;
+    }
+
+    .pot-label {
+        position: absolute;
+        top: 58%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .player-seat {
+        position: absolute;
+        width: 150px;
+        text-align: center;
+        color: white;
+        font-size: 14px;
+    }
+
+    .player-seat.current {
+        border: 2px solid gold;
+        border-radius: 10px;
+        padding: 5px;
+    }
+
+    .player-hand img {
+        width: 45px;
+        margin: 2px;
+    }
+
+    .player-name {
+        font-weight: bold;
+    }
+
+    .chips {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    
+</style>

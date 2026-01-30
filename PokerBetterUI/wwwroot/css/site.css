@@ -1,0 +1,100 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+body {
+    background: #1b1b1b;
+    font-family: Segoe UI, sans-serif;
+}
+
+/* Meja */
+.poker-table {
+    background: radial-gradient(circle, #0f7a3a 0%, #064b23 70%);
+    border-radius: 50%;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 30px auto;
+    color: white;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+}
+
+/* Center table */
+.table-center {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.community-cards {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.card {
+    width: 80px;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+}
+
+.pot-label {
+    margin-top: 10px;
+    font-size: 1.4em;
+    font-weight: bold;
+    color: gold;
+}
+
+/* Player */
+.player-hand {
+    display: flex;
+    gap: 6px;
+}
+
+.player-hand img {
+    width: 60px;
+}
+
+/* Current player highlight */
+.current-player {
+    background: rgba(255, 215, 0, 0.15);
+    border-left: 5px solid gold;
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    gap: 6px;
+}
+
+.actions button {
+    background: #222;
+    color: white;
+    border: 1px solid #555;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.actions button:hover {
+    background: #333;
+}
+
+.actions button:disabled {
+    opacity: 0.4;
+}

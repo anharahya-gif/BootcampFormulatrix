@@ -1,6 +1,7 @@
 using PokerAPI.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace PokerAPI.Services
@@ -19,6 +20,7 @@ namespace PokerAPI.Services
         public int CurrentBet { get; private set; } = 0;
         public GamePhase Phase { get; private set; } = GamePhase.PreFlop;
         public event Action? RoundStarted;
+
         public ShowdownResult? LastShowdown { get; private set; }
 
 
@@ -61,6 +63,7 @@ namespace PokerAPI.Services
                 status.ResetStatus();
 
             DealHoleCards();
+            Debug.WriteLine("Round started");
             RoundStarted?.Invoke();
         }
 

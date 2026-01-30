@@ -23,10 +23,16 @@
 <!-- --- Community Cards --- -->
 <h2>Community Cards</h2>
 <div>
-    @foreach (var card in Model.GameState?.CommunityCards ?? new List<string>())
+    @if (Model.CommunityCardImages.Any())
     {
-        <span style="margin-right:8px">@card</span>
+        <div class="community-cards">
+            @foreach (var card in Model.CommunityCardImages)
+            {
+                <img src="~/lib/cards/@card" width="80" />
+            }
+        </div>
     }
+
 </div>
 
 <!-- --- Winner Cards --- -->
@@ -66,7 +72,7 @@
             <th>Actions</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody tablecolor="green">
         @foreach (var player in Model.GameState?.Players ?? new List<PlayerDTO>())
         {
             if (player == null) continue;
@@ -74,26 +80,33 @@
             <tr>
                 <td>@player.Name</td>
                 <td>@player.ChipStack</td>
-                <td>@(player.IsFolded ? "Folded" : "Active")</td>
+                <td>@(player.State)</td>
 
                 <!-- Hand -->
                 <td>
-                    @if (Model.GameState?.CurrentPlayer == player.Name)
+                    @* Kartu terbuka: current player ATAU showdown *@
+        @if (
+                                    Model.GameState?.CurrentPlayer == player.Name ||
+                                    (Model.GameState?.Phase == "Showdown" && !player.IsFolded)
+                                    )
                     {
                         @foreach (var card in player.Hand ?? new List<string>())
                         {
-                            <span style="margin-right:5px">@card</span>
+                            var img = PokerUI.Pages.IndexModel.CardImageMapper.ToImageFile(card);
+
+                            <img src="~/lib/cards/@img" width="60" style="margin-right:5px" />
                         }
                     }
-                    else if (Model.GameState?.Phase == "Showdown" && !player.IsFolded)
+                    else
                     {
-                        @foreach (var card in player.Hand ?? new List<string>())
+                        @* Kartu tertutup *@
+                @foreach (var _ in player.Hand ?? new List<string>())
                         {
-                            <span style="margin-right:5px">@card</span>
+                            <img src="~/lib/cards/back_dark.png" width="60" style="margin-right:5px" />
                         }
-
                     }
                 </td>
+
 
                 <!-- Actions -->
                 <td>
@@ -108,19 +121,22 @@
                                 title="Bisa dipanggil hanya saat ada taruhan aktif">Call</button>
                             <button asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
                             <button asp-page-handler="Fold" disabled="@( !Model.CanFold(player) )">Fold</button>
+                            <button type="button" onclick="allIn('@player.Name')" @( !Model.CanAllIn(player) ? "disabled" : ""  )>
+                                All-In
+                            </button>
 
                         </form>
-                        <form method="post" style="display:inline">
+                        @* <form method="post" style="display:inline">
                             <input type="hidden" name="ActionPlayer" value="@player.Name" />
                             <button type="submit" asp-page-handler="AllIn" disabled="@( !Model.CanAllIn(player) )">
                                 All-In
                             </button>
-                        </form>
+                        </form> *@
 
 
 
 
-                    }
+                        }
                 </td>
             </tr>
         }
@@ -143,3 +159,23 @@
     </button>
 
 </form>
+<script>
+    async function allIn(playerName) {
+        try {
+            const response = await fetch('http://localhost:5175/api/GameControllerAPI/allin?name=' + encodeURIComponent(playerName), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (response.ok) {
+                console.log('All-In sukses');
+                // refresh page supaya UI update
+                window.location.reload();
+            } else {
+                console.error('All-In gagal', response.status);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+</script>

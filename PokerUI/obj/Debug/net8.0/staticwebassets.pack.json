@@ -197,6 +197,234 @@
       "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map"
     },
     {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\README.md",
+      "PackagePath": "staticwebassets\\lib\\cards\\README.md"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\back_dark.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\back_dark.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\back_light.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\back_light.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\card-deck-grafikfighter-mod.sketch",
+      "PackagePath": "staticwebassets\\lib\\cards\\card-deck-grafikfighter-mod.sketch"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\card-deck-grafikfighter.sketch",
+      "PackagePath": "staticwebassets\\lib\\cards\\card-deck-grafikfighter.sketch"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_10.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_10.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_2.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_2.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_3.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_3.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_4.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_4.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_5.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_5.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_6.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_6.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_7.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_7.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_8.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_8.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_9.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_9.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_A.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_A.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_J.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_J.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_K.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_K.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\clubs_Q.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\clubs_Q.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_10.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_10.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_2.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_2.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_3.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_3.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_4.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_4.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_5.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_5.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_6.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_6.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_7.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_7.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_8.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_8.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_9.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_9.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_A.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_A.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_J.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_J.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_K.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_K.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\diamonds_Q.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\diamonds_Q.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_10.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_10.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_2.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_2.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_3.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_3.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_4.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_4.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_5.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_5.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_6.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_6.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_7.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_7.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_8.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_8.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_9.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_9.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_A.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_A.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_J.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_J.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_K.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_K.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\hearts_Q.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\hearts_Q.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_10.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_10.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_2.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_2.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_3.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_3.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_4.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_4.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_5.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_5.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_6.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_6.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_7.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_7.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_8.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_8.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_9.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_9.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_A.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_A.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_J.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_J.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_K.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_K.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\cards\\spades_Q.png",
+      "PackagePath": "staticwebassets\\lib\\cards\\spades_Q.png"
+    },
+    {
       "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerUI\\wwwroot\\lib\\jquery-validation-unobtrusive\\LICENSE.txt",
       "PackagePath": "staticwebassets\\lib\\jquery-validation-unobtrusive\\LICENSE.txt"
     },

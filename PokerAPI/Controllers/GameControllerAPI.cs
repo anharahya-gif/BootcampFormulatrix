@@ -10,11 +10,12 @@ namespace PokerAPI.Controllers
     public class GameControllerAPI : ControllerBase
     {
         private readonly GameController _game;
+        private int _roundStartedCount = 0;
 
         public GameControllerAPI(GameController game)
         {
             _game = game;
-            _game.RoundStarted += OnRoundStarted;
+
 
         }
 
@@ -22,6 +23,8 @@ namespace PokerAPI.Controllers
         private void OnRoundStarted()
         {
             Console.WriteLine("Round started event received");
+            _roundStartedCount++;
+            Console.WriteLine($"Round started event triggered {_roundStartedCount} time(s)");
         }
 
 
@@ -74,8 +77,10 @@ namespace PokerAPI.Controllers
         {
             if (_game.PlayerMap.Count < 2)
                 return BadRequest("Minimum 2 players required");
-
+            _game.RoundStarted -= OnRoundStarted;
+            _game.RoundStarted += OnRoundStarted;
             _game.StartRound();
+            _game.RoundStarted -= OnRoundStarted;
 
             var players = _game.PlayerMap.Select(kv =>
             {
@@ -90,6 +95,7 @@ namespace PokerAPI.Controllers
                 };
             });
 
+
             return Ok(new
             {
                 phase = _game.Phase.ToString(),
@@ -98,6 +104,7 @@ namespace PokerAPI.Controllers
                 expectedDeckRemaining = 52 - (_game.PlayerMap.Count * 2),
                 players
             });
+
         }
 
 

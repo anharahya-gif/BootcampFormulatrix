@@ -15,6 +15,10 @@ namespace PokerUI.Pages
             _api = api;
         }
 
+        public List<string> CommunityCards { get; set; } = new();
+        public List<string> CommunityCardImages { get; set; } = new();
+
+
         // --- Bind Properties ---
         [BindProperty]
         public string? NewPlayerName { get; set; }
@@ -59,7 +63,61 @@ namespace PokerUI.Pages
                     Pot = 0
                 };
             }
+            CommunityCards = GameState.CommunityCards ?? new List<string>();
+
+            CommunityCardImages = CommunityCards
+                .Select(CardImageMapper.ToImageFile)
+                .ToList();
         }
+
+
+        // Card list
+        public static class CardImageMapper
+        {
+            private static readonly Dictionary<string, string> RankMap = new()
+            {
+                ["Two"] = "2",
+                ["Three"] = "3",
+                ["Four"] = "4",
+                ["Five"] = "5",
+                ["Six"] = "6",
+                ["Seven"] = "7",
+                ["Eight"] = "8",
+                ["Nine"] = "9",
+                ["Ten"] = "10",
+                ["Jack"] = "J",
+                ["Queen"] = "Q",
+                ["King"] = "K",
+                ["Ace"] = "A"
+            };
+
+            private static readonly Dictionary<string, string> SuitMap = new()
+            {
+                ["Clubs"] = "clubs",
+                ["Diamonds"] = "diamonds",
+                ["Hearts"] = "hearts",
+                ["Spades"] = "spades"
+            };
+
+            public static string ToImageFile(string apiCard)
+            {
+                if (string.IsNullOrWhiteSpace(apiCard))
+                    return "back_dark.png";
+
+                var parts = apiCard.Split(" of ", StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2)
+                    return "back_dark.png";
+
+                if (!RankMap.TryGetValue(parts[0], out var rank))
+                    return "back_dark.png";
+
+                if (!SuitMap.TryGetValue(parts[1], out var suit))
+                    return "back_dark.png";
+
+                return $"{suit}_{rank}.png";
+            }
+        }
+
 
         // =====================
         // Player management
