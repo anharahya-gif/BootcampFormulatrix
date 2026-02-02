@@ -4,55 +4,133 @@
 
 @{
     ViewData["Title"] = "Poker Table";
-}
 
-<h1 style="color:gold">Meja Poker</h1>
+    // posisi 10 kursi fixed (persentase dari table-center)
+    var seatPositions = new (double x, double y)[]
+    {
+        (50, 5),   // top center
+        (75, 10),
+        (90, 30),
+        (90, 70),
+        (75, 90),
+        (50, 95),  // bottom center
+        (25, 90),
+        (10, 70),
+        (10, 30),
+        (25, 10)
+    };
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div style="color:red">@Model.ErrorMessage</div>
+    // randomize seat assignment
+    var rnd = new Random();
+    var seats = seatPositions.ToList();
+    var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+    var playerSeatMap = new Dictionary<int, PlayerDTO>();
+    foreach (var player in players)
+    {
+        if (seats.Count == 0) break;
+        int index = rnd.Next(seats.Count);
+        playerSeatMap[index] = player;
+        seats.RemoveAt(index);
+    }
 }
+<div class="poker-background"></div>
 
 <div class="poker-table">
+    <h1 class="title">Meja Poker</h1>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger text-center">@Model.ErrorMessage</div>
+    }
 
     <!-- ================= PLAYER MANAGEMENT ================= -->
-    <form method="post">
-        <input asp-for="NewPlayerName" placeholder="Nama Player" />
-        <input asp-for="NewChips" placeholder="Jumlah Chips" />
-        <button asp-page-handler="AddPlayer">Tambah Player</button>
-        <button asp-page-handler="RemovePlayer">Hapus Player</button>
-    </form>
-    <!-- ================= END PLAYER MANAGEMENT ================= -->
+    @if (Model.GameState?.gameState != "InProgress")
+    {
+        <h2>Manajemen Player</h2>
+        <form method="post" class="mb-3">
+            <input asp-for="NewPlayerName" placeholder="Nama Player" class="form-control mb-1" />
+            <input asp-for="NewChips" placeholder="Jumlah Chips" class="form-control mb-1" />
+            <button class="btn btn-primary me-2" asp-page-handler="AddPlayer">Tambah Player</button>
+            <button class="btn btn-danger" asp-page-handler="RemovePlayer">Hapus Player</button>
+        </form>
+    }
+
     <!-- ================= GAME INFO ================= -->
     <h2>Game Info</h2>
     <p>Phase: @Model.GameState?.Phase</p>
-    <p>Pot: @Model.GameState?.Pot</p>
+    <p>Pot: <img src="~/lib/icons/chip.png" class="chip-icon" /> @Model.GameState?.Pot</p>
     <p>Current Turn: @Model.GameState?.CurrentPlayer</p>
 
     <!-- ================= CONTROLS ================= -->
-    <form method="post">
-        <button asp-page-handler="StartRound" disabled="@( !Model.CanStartRound() )">Start Round</button>
-        <button asp-page-handler="NextPhase" disabled="@( !Model.CanNextPhase() )">Next Phase</button>
-        <button asp-page-handler="Showdown" disabled="@( !Model.CanShowdown() )">Showdown</button>
+    <form method="post" class="mb-3">
+        <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@( !Model.CanStartRound() )">Start Round</button>
+        <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@( !Model.CanNextPhase() )">Next Phase</button>
     </form>
 
-
-    @* <!-- ================= TABLE CENTER ================= -->
+    <!-- ================= TABLE CENTER ================= -->
     <div class="table-center">
+        <!-- COMMUNITY CARDS -->
         <div class="community-cards">
-            @if (Model.CommunityCardImages != null && Model.CommunityCardImages.Any())
+            @foreach (var card in Model.CommunityCardImages ?? new())
             {
-                foreach (var card in Model.CommunityCardImages)
-                {
-                    <img src="~/lib/cards/@card" class="card" />
-                }
+                <img src="~/lib/cards/@card" class="card" />
             }
         </div>
 
-        <div class="pot-label">
-            Pot: @Model.GameState?.Pot
-        </div>
-    </div> *@
+        <!-- PLAYERS RANDOM SEAT -->
+        @for (int i = 0; i < seatPositions.Length; i++)
+        {
+            seatPositions[i] = seatPositions[i]; // for clarity
+            playerSeatMap.TryGetValue(i, out var player);
+
+            <div class="player-seat @(player != null && Model.GameState?.CurrentPlayer == player.Name ? "current" : "")"
+                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%; transform:translate(-50%, -50%);">
+                @if (player != null)
+                {
+                    <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
+                    <div class="player-name">@player.Name</div>
+                    <div class="chips">
+                        <img src="~/lib/icons/chip.png" class="chip-icon" /> @player.ChipStack
+                    </div>
+
+                    <div class="player-hand">
+                        @foreach (var card in player.Hand ?? new())
+                        {
+                            var img = (Model.GameState.CurrentPlayer == player.Name || (Model.GameState.Phase == "Showdown" && !player.IsFolded))
+                                      ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
+                                      : "back_dark.png";
+                            <img src="~/lib/cards/@img" />
+                        }
+                    </div>
+
+                    @if (!player.IsFolded && Model.GameState?.gameState == "InProgress" && Model.GameState.CurrentPlayer == player.Name)
+                    {
+                        <div class="player-actions">
+                            <form method="post">
+                                <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                                <input asp-for="Amount" class="form-control form-control-sm mb-1" placeholder="Bet" />
+                                <div class="action-buttons btn-group" role="group">
+                                    @if (Model.GameState?.Pot == 0)
+                                    {
+                                        <button class="btn btn-primary btn-sm" asp-page-handler="Bet" disabled="@( !Model.CanBetOrRaise(player) )">Bet</button>
+                                    }
+                                    <button class="btn btn-success btn-sm" asp-page-handler="Raise" disabled="@( !Model.CanBetOrRaise(player) )">Raise</button>
+                                    <button class="btn btn-info btn-sm" asp-page-handler="Call" disabled="@( !Model.CanCall(player) )">Call</button>
+                                    <button class="btn btn-secondary btn-sm" asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
+                                    <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name')" @( !Model.CanAllIn(player) ? "disabled" : "" )>All-In</button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="player-pic empty-pic"></div>
+                }
+            </div>
+        }
+    </div>
 
     <!-- ================= SHOWDOWN ================= -->
     @if (Model.ShowdownState != null)
@@ -62,181 +140,63 @@
             <strong>Winners:</strong>
             @foreach (var winner in Model.ShowdownState.Winners)
             {
-                <span style="margin-right:8px">@winner</span>
+                <span class="me-2">@winner</span>
             }
         </div>
-
         <div><strong>Hand Rank:</strong> @Model.ShowdownState.HandRank</div>
         <div><strong>Message:</strong> @Model.ShowdownState.Message</div>
     }
-
-    <!-- ================= PLAYERS ================= -->
-    <div class="table-center">
-
-        <!-- COMMUNITY CARDS -->
-        <div class="community-cards">
-            @foreach (var card in Model.CommunityCardImages ?? new())
-            {
-                <img src="~/lib/cards/@card" />
-            }
-        </div>
-
-        <div class="pot-label">
-            Pot: @Model.GameState?.Pot
-        </div>
-
-        @{
-            var players = Model.GameState?.Players ?? new List<PlayerDTO>();
-            var count = players.Count;
-            var radius = 240;
-            var center = 300;
-        }
-
-        @for (int i = 0; i < count; i++)
-        {
-            var player = players[i];
-            var angle = (2 * Math.PI / count) * i - Math.PI / 2;
-            var x = center + radius * Math.Cos(angle);
-            var y = center + radius * Math.Sin(angle);
-
-            bool isCurrent = Model.GameState?.CurrentPlayer == player.Name;
-
-            <div class="player-seat @(isCurrent ? "current" : "")"
-                style="left:@($"{x}px"); top:@($"{y}px"); transform:translate(-50%, -50%);">
-
-                <div class="player-name">@player.Name</div>
-                <div class="chips">💰 @player.ChipStack</div>
-
-                <div class="player-hand">
-                    @if (isCurrent || (Model.GameState?.Phase == "Showdown" && !player.IsFolded))
-                    {
-                        foreach (var card in player.Hand ?? new())
-                        {
-                            var img = PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card);
-                            <img src="~/lib/cards/@img" />
-                        }
-                    }
-                    else
-                    {
-                        foreach (var _ in player.Hand ?? new())
-                        {
-                            <img src="~/lib/cards/back_dark.png" />
-                        }
-                    }
-                    @if (Model.GameState?.CurrentPlayer == player.Name && !player.IsFolded)
-                    {
-                        <div class="player-actions">
-                            <form method="post">
-                                <input type="hidden" name="ActionPlayer" value="@player.Name" />
-
-                                <input asp-for="Amount" class="bet-input" placeholder="Bet" />
-
-                                <div class="action-buttons">
-                                    <button asp-page-handler="Bet" disabled="@( !Model.CanBetOrRaise(player) )">Bet</button>
-                                    <button asp-page-handler="Raise" disabled="@( !Model.CanBetOrRaise(player) )">Raise</button>
-                                    <button asp-page-handler="Call" disabled="@( !Model.CanCall(player) )">Call</button>
-                                    <button asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
-                                    <button asp-page-handler="Fold">Fold</button>
-                                    <button type="button" onclick="allIn('@player.Name')" @( !Model.CanAllIn(player) ?
-                                                                                                                         "disabled" : "" )>
-                                All-In
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                                }
-
-            </div>
-
-
-        </div>
-                }
-
-    </div>
-
 </div>
 
 <script>
-    async function allIn(playerName) {
-        try {
-            const response = await fetch(
-                'http://localhost:5175/api/GameControllerAPI/allin?name=' + encodeURIComponent(playerName),
-                { method: 'POST' }
-            );
-
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                console.error('All-In gagal', response.status);
-            }
-        } catch (err) {
-            console.error(err);
-        }
+async function allIn(playerName) {
+    try {
+        const response = await fetch(`/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+        if (response.ok) window.location.reload();
+        else console.error('All-In gagal', response.status);
+    } catch (err) {
+        console.error(err);
     }
+}
 </script>
+
 <style>
-    .poker-table {
-        width: 900px;
-        margin: auto;
-    }
+html, body { margin:0; padding:0; height:100%; font-family:Arial,sans-serif; }
+.poker-background {
+    width:100%; min-height:100vh;
+    background: url('/lib/bg/bg.jpg') no-repeat center center;
+    background-size: cover;
+    position: fixed; top:0; left:0; z-index:-1;
+}
+.poker-table { width:90%; max-width:1000px; margin:auto; position:relative; padding-top:20px; z-index:1; }
+.title { color: gold; text-align: center; }
+.alert { margin-bottom:10px; }
 
-    .table-center {
-        position: relative;
-        width: 600px;
-        height: 600px;
-        margin: 40px auto;
-        border-radius: 50%;
-        background: radial-gradient(circle, #1e7f3a, #0b3d1f);
-        box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
-    }
+.table-center {
+    width:90%; max-width:1000px; height:0; padding-bottom:60%; margin:40px auto;
+    border-radius:50%; background: radial-gradient(ellipse at center,#1f8a43,#0b3d1f);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+    border: 20px solid #8B5A2B; position: relative; box-sizing: border-box;
+}
+.table-center::before {
+    content:""; position:absolute; inset:-20px; border-radius:50%;
+    background:linear-gradient(135deg,#6b3e1e,#8b5a2b,#6b3e1e); z-index:-1;
+}
+.community-cards { position:absolute; top:50%; left:50%; transform:translate(-50%,-60%); display:flex; gap:8px; flex-wrap:nowrap; justify-content:center; }
+.community-cards img { width:8vw; max-width:70px; margin-right:0.5vw; }
 
-    .community-cards {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -60%);
-    }
+.pot-label { position:absolute; top:58%; left:50%; transform:translateX(-50%); color:#fff; font-weight:bold; }
 
-    .community-cards img {
-        width: 70px;
-        margin-right: 6px;
-    }
+.player-seat { position:absolute; width:18%; text-align:center; color:white; font-size:1vw; min-width:100px; }
+.player-seat.current { border:2px solid gold; border-radius:10px; padding:5px; }
 
-    .pot-label {
-        position: absolute;
-        top: 58%;
-        left: 50%;
-        transform: translateX(-50%);
-        color: #fff;
-        font-weight: bold;
-    }
+.player-hand img { width:6vw; max-width:45px; margin:2px; }
+.player-pic img { width:40px; height:40px; border-radius:50%; margin-bottom:5px; }
+.player-name { font-weight:bold; }
+.chips { font-size:12px; opacity:0.9; }
+.player-actions { margin-top:5px; }
+.chip-icon { width:30px; height:30px; vertical-align:middle; margin-right:4px; }
+.player-seat.empty .empty-pic { width:40px; height:40px; border-radius:50%; border:2px dashed rgba(255,255,255,0.5); margin-bottom:5px; }
 
-    .player-seat {
-        position: absolute;
-        width: 150px;
-        text-align: center;
-        color: white;
-        font-size: 14px;
-    }
-
-    .player-seat.current {
-        border: 2px solid gold;
-        border-radius: 10px;
-        padding: 5px;
-    }
-
-    .player-hand img {
-        width: 45px;
-        margin: 2px;
-    }
-
-    .player-name {
-        font-weight: bold;
-    }
-
-    .chips {
-        font-size: 12px;
-        opacity: 0.9;
-    }
-    
+.form-control-sm { height:auto; padding:.25rem .5rem; font-size:.75rem; }
 </style>

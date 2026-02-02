@@ -70,22 +70,32 @@ internal class Program
         // }
 
 
-        for (int x = 1; x <= n; x++)
-        {
-            string output = "";
+        // for (int x = 1; x <= n; x++)
+        // {
+        //     string output = "";
 
-            if (x % 3 == 0) output += "foo";
-            if (x % 5 == 0) output += "bar";
-            if (x % 7 == 0) output += "jazz";
-            if (x % 9 == 0) output += "huzz";
+        //     if (x % 3 == 0) output += "foo";
+        //     if (x % 5 == 0) output += "bar";
+        //     if (x % 7 == 0) output += "jazz";
+        //     if (x % 9 == 0) output += "huzz";
 
-            if (output == "")
-                output = x.ToString();
+        //     if (output == "")
+        //         output = x.ToString();
 
-            Console.Write(output);
+        //     Console.Write(output);
 
-            if (x < n)
-                Console.Write(", ");
-        }
+        //     if (x < n)
+        //         Console.Write(", ");
+        // }
+         var myClass = new DivisibleWordGenerator();
+
+        
+        myClass.AddRule(3, "foo");
+        myClass.AddRule(4, "baz");
+        myClass.AddRule(5, "sus");
+        myClass.AddRule(7, "jazz");
+        myClass.AddRule(9, "huzz");
+
+        myClass.Generate(n);
     }
 }

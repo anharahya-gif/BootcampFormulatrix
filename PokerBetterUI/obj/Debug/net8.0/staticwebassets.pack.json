@@ -17,6 +17,14 @@
       "PackagePath": "staticwebassets\\js\\site.js"
     },
     {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\bg\\bg.jpg",
+      "PackagePath": "staticwebassets\\lib\\bg\\bg.jpg"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\bg\\bg1.jpg",
+      "PackagePath": "staticwebassets\\lib\\bg\\bg1.jpg"
+    },
+    {
       "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\bootstrap\\LICENSE",
       "PackagePath": "staticwebassets\\lib\\bootstrap"
     },
@@ -423,6 +431,14 @@
     {
       "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\cards\\spades_Q.png",
       "PackagePath": "staticwebassets\\lib\\cards\\spades_Q.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\icons\\chip.png",
+      "PackagePath": "staticwebassets\\lib\\icons\\chip.png"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\icons\\user.png",
+      "PackagePath": "staticwebassets\\lib\\icons\\user.png"
     },
     {
       "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\wwwroot\\lib\\jquery-validation-unobtrusive\\LICENSE.txt",

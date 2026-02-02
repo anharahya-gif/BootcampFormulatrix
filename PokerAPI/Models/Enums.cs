@@ -54,4 +54,11 @@ namespace PokerAPI.Models
         AllIn,
         Eliminated
     }
+
+    public enum GameState
+    {
+        WaitingForPlayers,
+        InProgress,
+        Completed
+    }
 }

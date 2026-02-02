@@ -11,6 +11,8 @@ namespace PokerAPI.Services
         // ======================
         // Game State
         // ======================
+        private bool _hasRoundStarted = false;
+        private const int MaxPlayers = 10;
         public Deck Deck { get; private set; } = new Deck();
         public Pot Pot { get; private set; } = new Pot();
         public Dictionary<Player, PlayerStatus> PlayerMap { get; private set; } = new Dictionary<Player, PlayerStatus>();
@@ -23,15 +25,45 @@ namespace PokerAPI.Services
 
         public ShowdownResult? LastShowdown { get; private set; }
 
+        public string GetGameState()
+        {
+            if (PlayerMap.Count < 2)
+                return "WaitingForPlayers";
+            else if (Phase == GamePhase.Showdown)
+                return "Completed";
+            else if (_hasRoundStarted)
+                return "InProgress";
+            else
+                return "WaitingForStartRound";
+        }
 
+
+        public bool CanStartRound()
+        {
+            if (PlayerMap.Count < 2)
+                return false;
+
+            // Belum pernah mulai
+            if (!_hasRoundStarted)
+                return true;
+
+            // Sudah selesai (showdown)
+            return Phase == GamePhase.Showdown;
+        }
 
         // ======================
         // Player Management
         // ======================
         public void AddPlayer(Player player)
         {
-            if (!PlayerMap.ContainsKey(player))
-                PlayerMap.Add(player, new PlayerStatus());
+            if (PlayerMap.Count >= MaxPlayers)
+                throw new InvalidOperationException("Table is full (max 10 players)");
+
+            if (PlayerMap.ContainsKey(player))
+                throw new InvalidOperationException("Player already exists");
+
+            PlayerMap[player] = new PlayerStatus();
+
         }
 
         public void RemovePlayer(Player player)
@@ -51,6 +83,11 @@ namespace PokerAPI.Services
         // ======================
         public void StartRound()
         {
+            if (!CanStartRound())
+                throw new InvalidOperationException("Cannot start round in current state because of insufficient players.");
+            else if (_hasRoundStarted && Phase != GamePhase.Showdown)
+                throw new InvalidOperationException("Round already in progress.");
+            _hasRoundStarted = true;
             Deck = new Deck();
             Deck.Shuffle();
             Pot.Reset();
@@ -188,16 +225,26 @@ namespace PokerAPI.Services
         // ======================
         public bool HandleBet(Player player, int amount)
         {
+            if (amount <= 0)
+                throw new InvalidOperationException("Bet amount must be greater than 0");
+
+            if (Phase == GamePhase.Showdown)
+                throw new InvalidOperationException("Cannot bet at showdown");
+
             var status = PlayerMap[player];
-            if (status.State != PlayerState.Active) return false;
-            if (player.ChipStack < amount) return false;
+
+            if (status.State != PlayerState.Active)
+                throw new InvalidOperationException("Player cannot bet in current state");
+
+            if (player.ChipStack < amount)
+                throw new InvalidOperationException("Insufficient chips");
 
             player.ChipStack -= amount;
             status.CurrentBet += amount;
             status.HasActed = true;
             Pot.AddChips(amount);
             CurrentBet = Math.Max(CurrentBet, status.CurrentBet);
-
+            TryAutoAdvance();
             return true;
         }
 
@@ -221,8 +268,9 @@ namespace PokerAPI.Services
                 player.ChipStack -= toCall;
                 status.CurrentBet += toCall;
                 Pot.AddChips(toCall);
+                status.HasActed = true;
             }
-
+            TryAutoAdvance();
             return true;
         }
 
@@ -239,16 +287,28 @@ namespace PokerAPI.Services
             status.HasActed = true;
             Pot.AddChips(totalBet);
             CurrentBet = status.CurrentBet;
-
+            TryAutoAdvance();
             return true;
         }
 
         public void HandleFold(Player player)
         {
             var status = PlayerMap[player];
+            if (status.State != PlayerState.Active)
+                return;
+
+            bool wasCurrent = GetCurrentPlayer() == player;
+
             status.State = PlayerState.Folded;
             status.HasActed = true;
+            status.Hand.Clear();
+
+            if (wasCurrent)
+                GetNextActivePlayer();
+
+            TryAutoAdvance();
         }
+
 
         public void HandleCheck(Player player)
         {
@@ -257,6 +317,7 @@ namespace PokerAPI.Services
             {
                 status.HasActed = true;
             }
+            TryAutoAdvance();
         }
         public bool HandleAllIn(string playerName)
         {
@@ -272,10 +333,11 @@ namespace PokerAPI.Services
             player.ChipStack = 0;
             status.CurrentBet += amount;
             status.State = PlayerState.AllIn;
+            status.HasActed = true;
 
             Pot.AddChips(amount);
             CurrentBet = Math.Max(CurrentBet, status.CurrentBet);
-
+            TryAutoAdvance();
             return true;
         }
 
@@ -438,7 +500,7 @@ namespace PokerAPI.Services
         public (List<Player> winners, HandRank rank) ResolveShowdownDetailed()
         {
             if (Phase != GamePhase.Showdown)
-                throw new InvalidOperationException("Not in showdown phase");
+                return (new List<Player>(), HandRank.HighCard);
 
             var handResults = EvaluateHands();
             if (!handResults.Any())
@@ -456,9 +518,104 @@ namespace PokerAPI.Services
 
             Pot.Reset();
             LastShowdown = new ShowdownResult(winners, bestRank);
+            CleanupAfterRound();
+
+
+
+            _hasRoundStarted = false;
+            Phase = GamePhase.PreFlop;
 
             return (winners, bestRank);
         }
+
+        private void CleanupAfterRound()
+        {
+            // Clear community cards
+            CommunityCards.Clear();
+
+            // Clear player hands & reset status
+            foreach (var status in PlayerMap.Values)
+            {
+                status.Hand.Clear();
+                status.CurrentBet = 0;
+                status.HasActed = false;
+
+                if (status.State != PlayerState.Active)
+                    status.State = PlayerState.Active;
+            }
+
+            CurrentBet = 0;
+            CurrentPlayerIndex = 0;
+        }
+
+        private bool NoMoreActionsPossible()
+        {
+            var alive = PlayerMap.Values
+                .Where(s => s.State != PlayerState.Folded)
+                .ToList();
+
+            // Semua all-in
+            if (alive.All(s => s.State == PlayerState.AllIn))
+                return true;
+
+            // Tidak ada Active yang bisa raise
+            var active = alive.Where(s => s.State == PlayerState.Active).ToList();
+            if (!active.Any())
+                return true;
+
+            return false;
+        }
+
+        private void TryAutoAdvance()
+        {
+            // 1️⃣ Tinggal 1 player → langsung menang
+            if (ActivePlayers().Count == 1)
+            {
+                Phase = GamePhase.Showdown;
+                ResolveShowdownDetailed();
+                return;
+            }
+
+            // 2️⃣ Semua all-in → buka sisa kartu → showdown
+            if (NoMoreActionsPossible())
+            {
+                DealRemainingCommunityCards();
+                Phase = GamePhase.Showdown;
+                ResolveShowdownDetailed();
+                return;
+            }
+
+            // 3️⃣ Betting normal selesai → lanjut phase
+            if (IsBettingRoundOver())
+            {
+                NextPhase();
+                if (Phase == GamePhase.Showdown)
+                {
+                    ResolveShowdownDetailed();
+                }
+            }
+        }
+
+        private void DealRemainingCommunityCards()
+        {
+            if (Phase == GamePhase.PreFlop)
+            {
+                DealFlop();
+                DealTurn();
+                DealRiver();
+            }
+            else if (Phase == GamePhase.Flop)
+            {
+                DealTurn();
+                DealRiver();
+            }
+            else if (Phase == GamePhase.Turn)
+            {
+                DealRiver();
+            }
+        }
+
+
 
 
 
