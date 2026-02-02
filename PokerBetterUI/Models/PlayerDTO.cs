@@ -14,6 +14,7 @@ namespace PokerBetterUI.Models
         // NEW: State property
         // =========================
         public string State { get; set; } = string.Empty;
+        public int SeatIndex { get; set; }
 
     }
 }

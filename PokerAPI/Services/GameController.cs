@@ -62,9 +62,26 @@ namespace PokerAPI.Services
             if (PlayerMap.ContainsKey(player))
                 throw new InvalidOperationException("Player already exists");
 
-            PlayerMap[player] = new PlayerStatus();
+            // ============================
+            // Tentukan seat index secara random
+            // ============================
+            var occupiedSeats = PlayerMap.Keys.Select(p => p.SeatIndex).ToList();
+            var availableSeats = Enumerable.Range(0, MaxPlayers)
+                                           .Where(i => !occupiedSeats.Contains(i))
+                                           .ToList();
 
+            if (!availableSeats.Any())
+                throw new InvalidOperationException("No seats available");
+
+            var rnd = new Random();
+            player.SeatIndex = availableSeats[rnd.Next(availableSeats.Count)];
+
+            // ============================
+            // Tambahkan player ke map
+            // ============================
+            PlayerMap[player] = new PlayerStatus();
         }
+
 
         public void RemovePlayer(Player player)
         {

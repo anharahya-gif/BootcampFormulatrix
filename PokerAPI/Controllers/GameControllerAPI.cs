@@ -378,50 +378,50 @@ namespace PokerAPI.Controllers
         // =====================
         // State
         // =====================
-        [HttpGet("state")]
-        public IActionResult State()
-        {
-            var players = _game.PlayerMap.Select(kv =>
+            [HttpGet("state")]
+            public IActionResult State()
             {
-                var player = kv.Key;
-                var status = kv.Value;
-
-                return new
+                var players = _game.PlayerMap.Select(kv =>
                 {
-                    
-                    name = player.Name,
-                    chipStack = player.ChipStack,
-                    state = status.State.ToString(),
-                    currentBet = status.CurrentBet,
-                    hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}")
-                };
-            });
+                    var player = kv.Key;
+                    var status = kv.Value;
 
-            var currentPlayer = _game.GetCurrentPlayer();
+                    return new
+                    {   
+                        seatIndex = player.SeatIndex,                        
+                        name = player.Name,
+                        chipStack = player.ChipStack,
+                        state = status.State.ToString(),
+                        currentBet = status.CurrentBet,
+                        hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}")
+                    };
+                });
 
-            return Ok(new
-            {
-                gameState = _game.GetGameState(),
-                phase = _game.Phase.ToString(),
-                currentPlayer = currentPlayer?.Name,
-                currentBet = _game.CurrentBet,
-                pot = _game.Pot.TotalChips,
-                communityCards = _game.CommunityCards
-                    .Select(c => $"{c.Rank} of {c.Suit}"),
+                var currentPlayer = _game.GetCurrentPlayer();
 
-                players,
-
-                showdown = _game.LastShowdown is null
-                ? null
-                : new
+                return Ok(new
                 {
-                    winners = _game.LastShowdown.Winners.Select(p => p.Name),
-                    handRank = _game.LastShowdown.HandRank.ToString(),
-                    message = _game.LastShowdown.Message
+                    gameState = _game.GetGameState(),
+                    phase = _game.Phase.ToString(),
+                    currentPlayer = currentPlayer?.Name,
+                    currentBet = _game.CurrentBet,
+                    pot = _game.Pot.TotalChips,
+                    communityCards = _game.CommunityCards
+                        .Select(c => $"{c.Rank} of {c.Suit}"),
 
-                }
-            });
-        }
+                    players,
+
+                    showdown = _game.LastShowdown is null
+                    ? null
+                    : new
+                    {
+                        winners = _game.LastShowdown.Winners.Select(p => p.Name),
+                        handRank = _game.LastShowdown.HandRank.ToString(),
+                        message = _game.LastShowdown.Message
+
+                    }
+                });
+            }
 
 
     }

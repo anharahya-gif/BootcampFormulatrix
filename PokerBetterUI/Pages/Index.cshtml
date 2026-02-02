@@ -5,45 +5,31 @@
 @{
     ViewData["Title"] = "Poker Table";
 
-    // posisi 10 kursi fixed (persentase dari table-center)
-    var seatPositions = new (double x, double y)[]
-    {
-        (50, 5),   // top center
-        (75, 10),
-        (90, 30),
-        (90, 70),
-        (75, 90),
-        (50, 95),  // bottom center
-        (25, 90),
-        (10, 70),
-        (10, 30),
-        (25, 10)
+    // Posisi 10 kursi fixed (% dari center)
+    var seatPositions = new (double x, double y)[] 
+    { 
+        (50, 5), (75, 10), (90, 30), (90, 70), (75, 90),
+        (50, 95), (25, 90), (10, 70), (10, 30), (25, 10) 
     };
 
-    // randomize seat assignment
-    var rnd = new Random();
-    var seats = seatPositions.ToList();
-    var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+    // Assign pemain ke kursi sesuai urutan
     var playerSeatMap = new Dictionary<int, PlayerDTO>();
-    foreach (var player in players)
+    var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+    for (int i = 0; i < players.Count && i < seatPositions.Length; i++)
     {
-        if (seats.Count == 0) break;
-        int index = rnd.Next(seats.Count);
-        playerSeatMap[index] = player;
-        seats.RemoveAt(index);
+        playerSeatMap[players[i].SeatIndex] = players[i];
     }
 }
+
 <div class="poker-background"></div>
 
 <div class="poker-table">
     <h1 class="title">Meja Poker</h1>
 
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger text-center">@Model.ErrorMessage</div>
-    }
+    <div class="alert alert-danger text-center" hidden="@string.IsNullOrEmpty(Model.ErrorMessage)">
+        @Model.ErrorMessage
+    </div>
 
-    <!-- ================= PLAYER MANAGEMENT ================= -->
     @if (Model.GameState?.gameState != "InProgress")
     {
         <h2>Manajemen Player</h2>
@@ -55,21 +41,18 @@
         </form>
     }
 
-    <!-- ================= GAME INFO ================= -->
     <h2>Game Info</h2>
     <p>Phase: @Model.GameState?.Phase</p>
     <p>Pot: <img src="~/lib/icons/chip.png" class="chip-icon" /> @Model.GameState?.Pot</p>
     <p>Current Turn: @Model.GameState?.CurrentPlayer</p>
 
-    <!-- ================= CONTROLS ================= -->
     <form method="post" class="mb-3">
-        <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@( !Model.CanStartRound() )">Start Round</button>
-        <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@( !Model.CanNextPhase() )">Next Phase</button>
+        <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@(!Model.CanStartRound())">Start Round</button>
+        <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@(!Model.CanNextPhase())">Next Phase</button>
     </form>
 
-    <!-- ================= TABLE CENTER ================= -->
     <div class="table-center">
-        <!-- COMMUNITY CARDS -->
+        <!-- Community Cards -->
         <div class="community-cards">
             @foreach (var card in Model.CommunityCardImages ?? new())
             {
@@ -77,48 +60,53 @@
             }
         </div>
 
-        <!-- PLAYERS RANDOM SEAT -->
+        <!-- Players -->
         @for (int i = 0; i < seatPositions.Length; i++)
         {
-            seatPositions[i] = seatPositions[i]; // for clarity
             playerSeatMap.TryGetValue(i, out var player);
+            var isCurrent = player != null && Model.GameState?.CurrentPlayer == player.Name;
 
-            <div class="player-seat @(player != null && Model.GameState?.CurrentPlayer == player.Name ? "current" : "")"
-                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%; transform:translate(-50%, -50%);">
+            <div class="player-container @(isCurrent ? "current-turn" : "")"
+                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
                 @if (player != null)
                 {
                     <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
                     <div class="player-name">@player.Name</div>
-                    <div class="chips">
-                        <img src="~/lib/icons/chip.png" class="chip-icon" /> @player.ChipStack
-                    </div>
-
+                    <div class="chips"><img src="~/lib/icons/chip.png" class="chip-icon" /> @player.ChipStack</div>
                     <div class="player-hand">
                         @foreach (var card in player.Hand ?? new())
                         {
-                            var img = (Model.GameState.CurrentPlayer == player.Name || (Model.GameState.Phase == "Showdown" && !player.IsFolded))
+                            var img = (player.Hand.Count == 2 &&
+                                       (Model.GameState.CurrentPlayer == player.Name ||
+                                        (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
                                       ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
                                       : "back_dark.png";
-                            <img src="~/lib/cards/@img" />
+                            <img src="~/lib/cards/@img" class="player-card" />
                         }
                     </div>
 
-                    @if (!player.IsFolded && Model.GameState?.gameState == "InProgress" && Model.GameState.CurrentPlayer == player.Name)
+                    @if (isCurrent && Model.GameState?.gameState == "InProgress")
                     {
                         <div class="player-actions">
                             <form method="post">
                                 <input type="hidden" name="ActionPlayer" value="@player.Name" />
                                 <input asp-for="Amount" class="form-control form-control-sm mb-1" placeholder="Bet" />
-                                <div class="action-buttons btn-group" role="group">
+                                <div class="btn-group" role="group">
                                     @if (Model.GameState?.Pot == 0)
                                     {
-                                        <button class="btn btn-primary btn-sm" asp-page-handler="Bet" disabled="@( !Model.CanBetOrRaise(player) )">Bet</button>
+                                        <button class="btn btn-primary btn-sm" asp-page-handler="Bet"
+                                                disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
                                     }
-                                    <button class="btn btn-success btn-sm" asp-page-handler="Raise" disabled="@( !Model.CanBetOrRaise(player) )">Raise</button>
-                                    <button class="btn btn-info btn-sm" asp-page-handler="Call" disabled="@( !Model.CanCall(player) )">Call</button>
-                                    <button class="btn btn-secondary btn-sm" asp-page-handler="Check" disabled="@( !Model.CanCheck(player) )">Check</button>
+                                    <button class="btn btn-success btn-sm" asp-page-handler="Raise"
+                                            disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
+                                    <button class="btn btn-info btn-sm" asp-page-handler="Call"
+                                            disabled="@(!Model.CanCall(player))">Call</button>
+                                    <button class="btn btn-secondary btn-sm" asp-page-handler="Check"
+                                            disabled="@(!Model.CanCheck(player))">Check</button>
                                     <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
-                                    <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name')" @( !Model.CanAllIn(player) ? "disabled" : "" )>All-In</button>
+                                    <button type="button" class="btn btn-warning btn-sm"
+                                            onclick="allIn('@player.Name', this)"
+                                            disabled="@(!Model.CanAllIn(player))">All-In</button>
                                 </div>
                             </form>
                         </div>
@@ -132,7 +120,6 @@
         }
     </div>
 
-    <!-- ================= SHOWDOWN ================= -->
     @if (Model.ShowdownState != null)
     {
         <h2>Winner</h2>
@@ -149,54 +136,141 @@
 </div>
 
 <script>
-async function allIn(playerName) {
+async function allIn(playerName, btn) {
     try {
-        const response = await fetch(`/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
-        if (response.ok) window.location.reload();
-        else console.error('All-In gagal', response.status);
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Processing...";
+        const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            console.error('All-In gagal', response.status);
+            btn.disabled = false;
+            btn.textContent = originalText;
+            alert("Gagal All-In!");
+        }
     } catch (err) {
         console.error(err);
+        alert("Terjadi error!");
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 }
 </script>
 
 <style>
-html, body { margin:0; padding:0; height:100%; font-family:Arial,sans-serif; }
+html, body {
+    margin:0;
+    padding:0;
+    height:100%;
+    font-family: Arial,sans-serif;
+}
+
 .poker-background {
-    width:100%; min-height:100vh;
+    width:100%;
+    min-height:100vh;
     background: url('/lib/bg/bg.jpg') no-repeat center center;
     background-size: cover;
-    position: fixed; top:0; left:0; z-index:-1;
+    position: fixed;
+    top:0;
+    left:0;
+    z-index:-1;
 }
-.poker-table { width:90%; max-width:1000px; margin:auto; position:relative; padding-top:20px; z-index:1; }
-.title { color: gold; text-align: center; }
+
+.poker-table {
+    width:90%;
+    max-width:1000px;
+    margin:auto;
+    position:relative;
+    padding-top:20px;
+    z-index:1;
+}
+
+.title { color: gold; text-align:center; margin-bottom:10px; }
 .alert { margin-bottom:10px; }
 
 .table-center {
-    width:90%; max-width:1000px; height:0; padding-bottom:60%; margin:40px auto;
-    border-radius:50%; background: radial-gradient(ellipse at center,#1f8a43,#0b3d1f);
+    width:90%;
+    max-width:1000px;
+    aspect-ratio:1/1;
+    margin:40px auto;
+    border-radius:50%;
+    background: radial-gradient(ellipse at center,#1f8a43,#0b3d1f);
     box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
-    border: 20px solid #8B5A2B; position: relative; box-sizing: border-box;
+    border: 20px solid #8B5A2B;
+    position:relative;
+    box-sizing:border-box;
 }
 .table-center::before {
     content:""; position:absolute; inset:-20px; border-radius:50%;
     background:linear-gradient(135deg,#6b3e1e,#8b5a2b,#6b3e1e); z-index:-1;
 }
-.community-cards { position:absolute; top:50%; left:50%; transform:translate(-50%,-60%); display:flex; gap:8px; flex-wrap:nowrap; justify-content:center; }
+
+.community-cards {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-60%);
+    display:flex; gap:8px; flex-wrap:nowrap; justify-content:center;
+}
 .community-cards img { width:8vw; max-width:70px; margin-right:0.5vw; }
 
-.pot-label { position:absolute; top:58%; left:50%; transform:translateX(-50%); color:#fff; font-weight:bold; }
+.player-container {
+    position:absolute;
+    width:18%;
+    text-align:center;
+    color:white;
+    min-width:100px;
+    transition: transform 0.5s ease, z-index 0.5s ease, box-shadow 0.5s ease;
+}
 
-.player-seat { position:absolute; width:18%; text-align:center; color:white; font-size:1vw; min-width:100px; }
-.player-seat.current { border:2px solid gold; border-radius:10px; padding:5px; }
+/* Current player menonjol */
+@@keyframes glowPulse {
+    0% { box-shadow: 0 0 5px gold; }
+    50% { box-shadow: 0 0 20px gold; }
+    100% { box-shadow: 0 0 5px gold; }
+}
 
-.player-hand img { width:6vw; max-width:45px; margin:2px; }
+.player-container.current-turn {
+    transform: translate(-50%, -50%) scale(1.25);
+    z-index: 15;
+    animation: glowPulse 1.2s infinite ease-in-out;
+    transform-origin: center bottom; /* supaya tombol tetap bisa diklik */
+}
+
+/* Kartu current player ikut membesar */
+.player-container.current-turn .player-hand img { transform: scale(1.2); }
+
+.player-container:not(.current-turn) {
+    transform: translate(-50%, -50%) scale(1);
+    z-index: 1;
+}
+
 .player-pic img { width:40px; height:40px; border-radius:50%; margin-bottom:5px; }
 .player-name { font-weight:bold; }
 .chips { font-size:12px; opacity:0.9; }
-.player-actions { margin-top:5px; }
 .chip-icon { width:30px; height:30px; vertical-align:middle; margin-right:4px; }
-.player-seat.empty .empty-pic { width:40px; height:40px; border-radius:50%; border:2px dashed rgba(255,255,255,0.5); margin-bottom:5px; }
+.player-hand img { width:6vw; max-width:45px; margin:2px; transition: transform 0.5s ease; }
+
+/* Player Actions tombol agar bisa diklik */
+.player-actions {
+    position:relative;
+    z-index:20;
+    margin-top:5px;
+    background:rgba(0,0,0,0.6);
+    padding:5px;
+    border-radius:6px;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+}
+.player-actions .btn { font-size:0.7rem; padding:2px 5px; }
 
 .form-control-sm { height:auto; padding:.25rem .5rem; font-size:.75rem; }
+
+/* Responsive */
+@@media (max-width:768px) {
+    .player-container { width:20%; font-size:2.5vw; }
+    .player-hand img { width:10vw; max-width:35px; }
+    .community-cards img { width:12vw; max-width:50px; }
+    .player-actions { flex-direction:row; flex-wrap:wrap; justify-content:center; }
+}
 </style>

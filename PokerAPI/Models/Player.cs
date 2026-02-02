@@ -12,5 +12,6 @@ namespace PokerAPI.Models
         }
         public PlayerState State { get; set; } = PlayerState.Active;
         public bool IsAllIn => State == PlayerState.AllIn;
+        public int SeatIndex { get; set; } 
     }
 }
