@@ -26,4 +26,10 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+app.MapGet("/api/gamestate", async (ApiService api) =>
+{
+    var state = await api.GetStateAsync();
+    return state is null ? Results.NotFound() : Results.Ok(state);
+});
+
 app.Run();

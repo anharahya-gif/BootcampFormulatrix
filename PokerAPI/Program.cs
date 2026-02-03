@@ -14,7 +14,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalhostUI", policy =>
     {
-        policy.WithOrigins("http://localhost:5148") // ganti dengan port UI kamu
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

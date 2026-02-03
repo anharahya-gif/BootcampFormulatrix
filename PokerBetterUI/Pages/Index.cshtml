@@ -47,6 +47,14 @@
             <div class="game-phase">
                 @Model.GameState?.Phase
             </div>
+            <!-- Tampilkan community cards -->
+            <div id="community-cards" class="community-cards hidden">
+                @foreach (var card in Model.CommunityCardImages ?? new())
+                {
+                    <img src="~/lib/cards/@card" class="card" />
+                }
+            </div>
+
 
             <!-- Tampilkan pot -->
             <div class="game-pot">
@@ -75,8 +83,8 @@
             Model.ShowdownState?.Winners?.Contains(player.Name) == true;
 
             <div class="player-container
-                                                                                    @(isCurrent ? "current-turn" : "")
-                                                                                    @(isWinner ? "winner-player" : "")"
+                                                                                                    @(isCurrent ? "current-turn" : "")
+                                                                                                    @(isWinner ? "winner-player" : "")"
                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
 
                 @* Jika ada player *@
@@ -187,6 +195,40 @@
 </div>
 
 <script>
+    function updateCommunityCards(cards) {
+        const container = document.getElementById('community-cards');
+        if (!container) return;
+
+        container.innerHTML = '';
+        cards.forEach(card => {
+            const img = document.createElement('img');
+            img.src = `/lib/cards/${card}`;
+            img.className = 'card';
+            container.appendChild(img);
+        });
+
+        // tampilkan setelah render
+        container.classList.remove('hidden');
+    }
+
+    // Panggil saat halaman load untuk kartu awal
+    document.addEventListener("DOMContentLoaded", () => {
+        const container = document.getElementById('community-cards');
+        if (container) container.classList.remove('hidden');
+    });
+
+    async function refreshGameState() {
+        const res = await fetch('/api/gamestate');
+        const data = await res.json();
+
+        // update player chips, pot, community cards
+        updateCommunityCards(data.communityCards);
+        updatePlayers(data.players);
+    }
+
+    // auto refresh tiap 2 detik
+    setInterval(refreshGameState, 2000);
+
     async function allIn(playerName, btn) {
         try {
             btn.disabled = true;
@@ -459,6 +501,12 @@
         display: flex;
         gap: 8px;
         justify-content: center;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .community-cards.hidden {
+        opacity: 0;
     }
 
     .community-cards img {
