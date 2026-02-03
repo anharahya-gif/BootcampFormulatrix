@@ -88,6 +88,34 @@ namespace PokerAPI.Controllers
         }
 
 
+        [HttpPost("addchips")]
+        public IActionResult AddChips([FromBody] AddChipsRequest request)
+        {
+            // Validasi phase game
+            if (_game.GetGameState() == "InProgress")
+                return BadRequest("Tidak bisa menambahkan chip saat game sedang berjalan.");
+
+            // Cari player di PlayerMap
+            var kv = _game.PlayerMap.FirstOrDefault(p => p.Key.Name == request.PlayerName);
+            if (kv.Key == null)
+                return NotFound("Player tidak ditemukan.");
+
+            var player = kv.Key;
+
+            // Validasi jumlah chip
+            if (request.Amount <= 0)
+                return BadRequest("Jumlah chip harus lebih dari 0.");
+
+            // Tambahkan chip
+            player.ChipStack += request.Amount;
+
+            return Ok(new
+            {
+                PlayerName = player.Name,
+                NewChips = player.ChipStack,
+                Message = $"{request.Amount} chip berhasil ditambahkan."
+            });
+        }
 
         [HttpPost("removePlayer")]
         public IActionResult RemovePlayer([FromQuery] string name)
