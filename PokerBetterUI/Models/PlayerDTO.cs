@@ -16,5 +16,7 @@ namespace PokerBetterUI.Models
         public string State { get; set; } = string.Empty;
         public int SeatIndex { get; set; }
 
+        public List<int> LastWinnerSeatIndexes { get; set; } = new();
+
     }
 }

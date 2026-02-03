@@ -6,15 +6,16 @@
     ViewData["Title"] = "Poker Table";
 
     // Posisi 10 kursi fixed (% dari center)
-    var seatPositions = new (double x, double y)[] 
-    { 
-        (50, 5), (75, 10), (90, 30), (90, 70), (75, 90),
-        (50, 95), (25, 90), (10, 70), (10, 30), (25, 10) 
+    var seatPositions = new (double x, double y)[]
+    {
+(50, 5), (75, 10), (90, 30), (90, 70), (75, 90),
+(50, 95), (25, 90), (10, 70), (10, 30), (25, 10)
     };
 
     // Assign pemain ke kursi sesuai urutan
     var playerSeatMap = new Dictionary<int, PlayerDTO>();
     var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+
     for (int i = 0; i < players.Count && i < seatPositions.Length; i++)
     {
         playerSeatMap[players[i].SeatIndex] = players[i];
@@ -32,26 +33,32 @@
 
     @if (Model.GameState?.gameState != "InProgress")
     {
-        <h2>Manajemen Player</h2>
-        <form method="post" class="mb-3">
-            <input asp-for="NewPlayerName" placeholder="Nama Player" class="form-control mb-1" />
-            <input asp-for="NewChips" placeholder="Jumlah Chips" class="form-control mb-1" />
-            <button class="btn btn-primary me-2" asp-page-handler="AddPlayer">Tambah Player</button>
-            <button class="btn btn-danger" asp-page-handler="RemovePlayer">Hapus Player</button>
-        </form>
+        <div class="text-center mb-3">
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#playerModal">
+                ⚙️ Manajemen Player
+            </button>
+        </div>
     }
 
+    @* 
     <h2>Game Info</h2>
     <p>Phase: @Model.GameState?.Phase</p>
     <p>Pot: <img src="~/lib/icons/chip.png" class="chip-icon" /> @Model.GameState?.Pot</p>
-    <p>Current Turn: @Model.GameState?.CurrentPlayer</p>
+    <p>Current Turn: @Model.GameState?.CurrentPlayer</p> *@
 
     <form method="post" class="mb-3">
-        <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@(!Model.CanStartRound())">Start Round</button>
-        <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@(!Model.CanNextPhase())">Next Phase</button>
+        <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@(!Model.CanStartRound())">Start
+            Round</button>
+        <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@(!Model.CanNextPhase())">Next
+            Phase</button>
     </form>
 
     <div class="table-center">
+        <!-- PHASE -->
+        <div class="game-phase">
+            @Model.GameState?.Phase
+        </div>
+
         <!-- Community Cards -->
         <div class="community-cards">
             @foreach (var card in Model.CommunityCardImages ?? new())
@@ -60,16 +67,32 @@
             }
         </div>
 
+        <!-- POT -->
+        <div class="game-pot">
+            <img src="~/lib/icons/chip.png" class="chip-icon" />
+            @Model.GameState?.Pot
+        </div>
+
         <!-- Players -->
         @for (int i = 0; i < seatPositions.Length; i++)
         {
             playerSeatMap.TryGetValue(i, out var player);
             var isCurrent = player != null && Model.GameState?.CurrentPlayer == player.Name;
+            var isWinner = player != null &&
+            Model.ShowdownState != null &&
+            Model.ShowdownState.Winners != null &&
+            Model.ShowdownState.Winners.Contains(player.Name);
 
-            <div class="player-container @(isCurrent ? "current-turn" : "")"
-                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+
+            <div class="player-container
+                     @(isCurrent ? "current-turn" : "")
+                     @(isWinner ? "winner-player" : "")" style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
                 @if (player != null)
                 {
+                    @if (Model.ShowdownState?.Winners.Contains(player.Name) == true)
+                    {
+                        <div class="winner-crown">👑</div>
+                    }
                     <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
                     <div class="player-name">@player.Name</div>
                     <div class="chips"><img src="~/lib/icons/chip.png" class="chip-icon" /> @player.ChipStack</div>
@@ -77,10 +100,10 @@
                         @foreach (var card in player.Hand ?? new())
                         {
                             var img = (player.Hand.Count == 2 &&
-                                       (Model.GameState.CurrentPlayer == player.Name ||
-                                        (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
-                                      ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
-                                      : "back_dark.png";
+                            (Model.GameState.CurrentPlayer == player.Name ||
+                            (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
+                            ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
+                            : "back_dark.png";
                             <img src="~/lib/cards/@img" class="player-card" />
                         }
                     </div>
@@ -95,18 +118,17 @@
                                     @if (Model.GameState?.Pot == 0)
                                     {
                                         <button class="btn btn-primary btn-sm" asp-page-handler="Bet"
-                                                disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
+                                            disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
                                     }
                                     <button class="btn btn-success btn-sm" asp-page-handler="Raise"
-                                            disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
+                                        disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
                                     <button class="btn btn-info btn-sm" asp-page-handler="Call"
-                                            disabled="@(!Model.CanCall(player))">Call</button>
+                                        disabled="@(!Model.CanCall(player))">Call</button>
                                     <button class="btn btn-secondary btn-sm" asp-page-handler="Check"
-                                            disabled="@(!Model.CanCheck(player))">Check</button>
+                                        disabled="@(!Model.CanCheck(player))">Check</button>
                                     <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
-                                    <button type="button" class="btn btn-warning btn-sm"
-                                            onclick="allIn('@player.Name', this)"
-                                            disabled="@(!Model.CanAllIn(player))">All-In</button>
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name', this)"
+                                        disabled="@(!Model.CanAllIn(player))">All-In</button>
                                 </div>
                             </form>
                         </div>
@@ -119,158 +141,473 @@
             </div>
         }
     </div>
-
+    @* winnerinfo *@
     @if (Model.ShowdownState != null)
     {
-        <h2>Winner</h2>
-        <div>
-            <strong>Winners:</strong>
-            @foreach (var winner in Model.ShowdownState.Winners)
-            {
-                <span class="me-2">@winner</span>
-            }
+        <div class="winner-overlay" onclick="closeWinnerOverlay()">
+            <div class="winner-box" onclick="event.stopPropagation()">
+                <div class="winner-title">🏆 WINNER 🏆</div>
+
+                <div class="winner-names">
+                    @foreach (var winner in Model.ShowdownState.Winners)
+                    {
+                        <span>@winner</span>
+                    }
+                </div>
+
+                <div class="winner-rank">
+                    Hand: <strong>@Model.ShowdownState.HandRank</strong>
+                </div>
+
+                <div class="winner-message">
+                    @Model.ShowdownState.Message
+                </div>
+            </div>
         </div>
-        <div><strong>Hand Rank:</strong> @Model.ShowdownState.HandRank</div>
-        <div><strong>Message:</strong> @Model.ShowdownState.Message</div>
     }
+
 </div>
+@if (Model.GameState?.gameState != "InProgress")
+{
+    <div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Manajemen Player</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form method="post">
+                        <input asp-for="NewPlayerName" placeholder="Nama Player" class="form-control mb-2" />
+
+                        <input asp-for="NewChips" placeholder="Jumlah Chips" class="form-control mb-2" />
+
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-success" asp-page-handler="AddPlayer">
+                                ➕ Tambah
+                            </button>
+
+                            <button class="btn btn-danger" asp-page-handler="RemovePlayer">
+                                🗑 Hapus
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
 
 <script>
-async function allIn(playerName, btn) {
-    try {
-        btn.disabled = true;
-        const originalText = btn.textContent;
-        btn.textContent = "Processing...";
-        const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            console.error('All-In gagal', response.status);
+    async function allIn(playerName, btn) {
+        try {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "Processing...";
+            const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                console.error('All-In gagal', response.status);
+                btn.disabled = false;
+                btn.textContent = originalText;
+                alert("Gagal All-In!");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi error!");
             btn.disabled = false;
             btn.textContent = originalText;
-            alert("Gagal All-In!");
         }
-    } catch (err) {
-        console.error(err);
-        alert("Terjadi error!");
-        btn.disabled = false;
-        btn.textContent = originalText;
     }
-}
+    document.addEventListener("DOMContentLoaded", () => {
+
+        const overlay = document.querySelector('.winner-overlay');
+        if (!overlay) return;
+
+        // fingerprint showdown (tanpa ID)
+        const winners = "@string.Join(",", Model.ShowdownState?.Winners ?? new List<string>())";
+        const handRank = "@Model.ShowdownState?.HandRank";
+        const showdownKey = `showdown_${winners}_${handRank}`;
+
+        // kalau showdown ini sudah pernah ditampilkan → hapus
+        if (localStorage.getItem(showdownKey)) {
+            overlay.remove();
+            return;
+        }
+
+        // tandai showdown ini sudah ditampilkan
+        localStorage.setItem(showdownKey, "true");
+
+        // auto close
+        setTimeout(() => closeWinnerOverlay(), 3000);
+    });
+    function closeWinnerOverlay() {
+        const overlay = document.querySelector('.winner-overlay');
+        if (!overlay) return;
+
+        overlay.style.animation = 'fadeOut .4s ease forwards';
+        setTimeout(() => overlay.remove(), 400);
+    }   
 </script>
 
 <style>
-html, body {
-    margin:0;
-    padding:0;
-    height:100%;
-    font-family: Arial,sans-serif;
-}
+    /* ================= BASE ================= */
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+    }
 
-.poker-background {
-    width:100%;
-    min-height:100vh;
-    background: url('/lib/bg/bg.jpg') no-repeat center center;
-    background-size: cover;
-    position: fixed;
-    top:0;
-    left:0;
-    z-index:-1;
-}
+    .poker-background {
+        width: 100%;
+        min-height: 100vh;
+        background: url('/lib/bg/bg.jpg') no-repeat center center;
+        background-size: cover;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+    }
 
-.poker-table {
-    width:90%;
-    max-width:1000px;
-    margin:auto;
-    position:relative;
-    padding-top:20px;
-    z-index:1;
-}
+    .poker-table {
+        width: 90%;
+        max-width: 1000px;
+        margin: auto;
+        position: relative;
+        padding-top: 20px;
+        z-index: 1;
+    }
 
-.title { color: gold; text-align:center; margin-bottom:10px; }
-.alert { margin-bottom:10px; }
+    .title {
+        color: gold;
+        text-align: center;
+        margin-bottom: 10px;
+    }
 
-.table-center {
-    width:90%;
-    max-width:1000px;
-    aspect-ratio:1/1;
-    margin:40px auto;
-    border-radius:50%;
-    background: radial-gradient(ellipse at center,#1f8a43,#0b3d1f);
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
-    border: 20px solid #8B5A2B;
-    position:relative;
-    box-sizing:border-box;
-}
-.table-center::before {
-    content:""; position:absolute; inset:-20px; border-radius:50%;
-    background:linear-gradient(135deg,#6b3e1e,#8b5a2b,#6b3e1e); z-index:-1;
-}
+    .alert {
+        margin-bottom: 10px;
+    }
 
-.community-cards {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-60%);
-    display:flex; gap:8px; flex-wrap:nowrap; justify-content:center;
-}
-.community-cards img { width:8vw; max-width:70px; margin-right:0.5vw; }
+    /* ================= TABLE ================= */
+    .table-center {
+        width: 90%;
+        max-width: 1000px;
+        aspect-ratio: 1/1;
+        margin: 40px auto;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at center, #1f8a43, #0b3d1f);
+        box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+        border: 20px solid #8B5A2B;
+        position: relative;
+        box-sizing: border-box;
+    }
 
-.player-container {
-    position:absolute;
-    width:18%;
-    text-align:center;
-    color:white;
-    min-width:100px;
-    transition: transform 0.5s ease, z-index 0.5s ease, box-shadow 0.5s ease;
-}
+    .table-center::before {
+        content: "";
+        position: absolute;
+        inset: -20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6b3e1e, #8b5a2b, #6b3e1e);
+        z-index: -1;
+    }
 
-/* Current player menonjol */
-@@keyframes glowPulse {
-    0% { box-shadow: 0 0 5px gold; }
-    50% { box-shadow: 0 0 20px gold; }
-    100% { box-shadow: 0 0 5px gold; }
-}
+    /* ================= GAME INFO ================= */
+    .game-phase {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translate(-50%, -100%);
+        font-weight: bold;
+        font-size: 1.3rem;
+        color: gold;
+        text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        letter-spacing: 1px;
+        pointer-events: none;
+        z-index: 5;
+    }
 
-.player-container.current-turn {
-    transform: translate(-50%, -50%) scale(1.25);
-    z-index: 15;
-    animation: glowPulse 1.2s infinite ease-in-out;
-    transform-origin: center bottom; /* supaya tombol tetap bisa diklik */
-}
+    .game-pot {
+        position: absolute;
+        top: 58%;
+        left: 50%;
+        transform: translate(-50%, 0);
+        font-size: 1.1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+        pointer-events: none;
+        z-index: 5;
+    }
 
-/* Kartu current player ikut membesar */
-.player-container.current-turn .player-hand img { transform: scale(1.2); }
+    .game-pot img {
+        width: 26px;
+        height: 26px;
+    }
 
-.player-container:not(.current-turn) {
-    transform: translate(-50%, -50%) scale(1);
-    z-index: 1;
-}
+    @@keyframes potPulse {
+        0% {
+            transform: translate(-50%, 0) scale(1);
+        }
 
-.player-pic img { width:40px; height:40px; border-radius:50%; margin-bottom:5px; }
-.player-name { font-weight:bold; }
-.chips { font-size:12px; opacity:0.9; }
-.chip-icon { width:30px; height:30px; vertical-align:middle; margin-right:4px; }
-.player-hand img { width:6vw; max-width:45px; margin:2px; transition: transform 0.5s ease; }
+        50% {
+            transform: translate(-50%, 0) scale(1.1);
+        }
 
-/* Player Actions tombol agar bisa diklik */
-.player-actions {
-    position:relative;
-    z-index:20;
-    margin-top:5px;
-    background:rgba(0,0,0,0.6);
-    padding:5px;
-    border-radius:6px;
-    display:flex;
-    flex-direction:column;
-    gap:3px;
-}
-.player-actions .btn { font-size:0.7rem; padding:2px 5px; }
+        100% {
+            transform: translate(-50%, 0) scale(1);
+        }
+    }
 
-.form-control-sm { height:auto; padding:.25rem .5rem; font-size:.75rem; }
+    .game-pot {
+        animation: potPulse 1.5s infinite ease-in-out;
+    }
 
-/* Responsive */
-@@media (max-width:768px) {
-    .player-container { width:20%; font-size:2.5vw; }
-    .player-hand img { width:10vw; max-width:35px; }
-    .community-cards img { width:12vw; max-width:50px; }
-    .player-actions { flex-direction:row; flex-wrap:wrap; justify-content:center; }
-}
+    /* ================= COMMUNITY CARDS ================= */
+    .community-cards {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -60%);
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .community-cards img {
+        width: 8vw;
+        max-width: 70px;
+    }
+
+    /* ================= PLAYERS ================= */
+    .player-container {
+        position: absolute;
+        width: 18%;
+        min-width: 100px;
+        text-align: center;
+        color: white;
+        transition: transform .5s ease, z-index .5s ease, box-shadow .5s ease;
+    }
+
+    @@keyframes glowPulse {
+        0% {
+            box-shadow: 0 0 5px gold;
+        }
+
+        50% {
+            box-shadow: 0 0 20px gold;
+        }
+
+        100% {
+            box-shadow: 0 0 5px gold;
+        }
+    }
+
+    .player-container.current-turn {
+        transform: translate(-50%, -50%) scale(1.25);
+        z-index: 15;
+        animation: glowPulse 1.2s infinite ease-in-out;
+    }
+
+    .player-container:not(.current-turn) {
+        transform: translate(-50%, -50%);
+        z-index: 1;
+    }
+
+    .player-pic img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+    .player-name {
+        font-weight: bold;
+    }
+
+    .chips {
+        font-size: 12px;
+        opacity: .9;
+    }
+
+    .chip-icon {
+        width: 30px;
+        height: 30px;
+        margin-right: 4px;
+    }
+
+    .player-hand img {
+        width: 6vw;
+        max-width: 45px;
+        margin: 2px;
+        transition: transform .5s ease;
+    }
+
+    /* ================= PLAYER ACTIONS (FIXED) ================= */
+    .player-actions {
+        position: relative;
+        z-index: 20;
+        margin-top: 6px;
+        background: rgba(0, 0, 0, 0.65);
+        padding: 6px;
+        border-radius: 8px;
+    }
+
+    /* FLEX GRID DI FORM */
+    .player-actions form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    /* BET INPUT */
+    .player-actions input.form-control-sm {
+        flex: 1 1 100%;
+    }
+
+    /* BUTTON DEFAULT */
+    .player-actions .btn {
+        flex: 1 1 45%;
+        min-width: 48px;
+        font-size: .7rem;
+        padding: 3px 6px;
+    }
+
+    /* FORCE BOTTOM ROW */
+    .player-actions .btn-danger,
+    .player-actions .btn-warning {
+        flex: 1 1 100%;
+    }
+
+    /* ALL-IN STYLE */
+    .player-actions .btn-warning {
+        background: linear-gradient(135deg, #ff9800, #ff5722);
+        color: black;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 0 10px rgba(255, 120, 0, .9);
+    }
+
+    .player-actions .btn-warning:hover {
+        transform: scale(1.05);
+    }
+
+    /* ================= WINNER OVERLAY ================= */
+    .winner-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, .6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        animation: fadeIn .6s ease forwards;
+    }
+
+    .winner-box {
+        background: radial-gradient(circle, #2c7a3f, #0b3d1f);
+        border: 4px solid gold;
+        padding: 24px 36px;
+        border-radius: 20px;
+        text-align: center;
+        color: gold;
+        box-shadow: 0 0 40px rgba(255, 215, 0, .9);
+        animation: popWinner .6s ease forwards;
+    }
+
+    .winner-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 12px;
+        text-shadow: 0 0 12px gold;
+    }
+
+    .winner-names span {
+        display: block;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 6px;
+    }
+
+    .winner-rank {
+        margin-top: 10px;
+        font-size: 1.1rem;
+    }
+
+    .winner-message {
+        margin-top: 8px;
+        font-style: italic;
+        color: #ffd700;
+    }
+
+    .winner-player {
+        transform: translate(-50%, -50%) scale(1.35);
+        z-index: 20;
+        box-shadow: 0 0 35px gold;
+    }
+
+
+    /* ================= ANIMATIONS WINNER ================= */
+    @@keyframes popWinner {
+        0% {
+            transform: scale(.5);
+            opacity: 0;
+        }
+
+        80% {
+            transform: scale(1.1);
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+        }
+    }
+
+
+
+    /* ================= RESPONSIVE ================= */
+    @@media (max-width:768px) {
+        .player-container {
+            width: 20%;
+            font-size: 2.5vw;
+        }
+
+        .player-hand img {
+            width: 10vw;
+            max-width: 35px;
+        }
+
+        .community-cards img {
+            width: 12vw;
+            max-width: 50px;
+        }
+    }
 </style>

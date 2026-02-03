@@ -12,6 +12,7 @@ namespace PokerBetterUI.Models
         public List<string> CommunityCards { get; set; } = new List<string>();
         public ShowdownResultDTO? Showdown { get; set; }
         public Dictionary<int, PlayerDTO> PlayerSeatMap { get; set; } = new();
+        public List<int> LastWinnerSeatIndexes { get; set; } = new();
     }
     public class ShowdownResultDTO
     {
