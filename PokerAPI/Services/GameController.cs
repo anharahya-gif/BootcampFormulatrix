@@ -57,24 +57,21 @@ namespace PokerAPI.Services
         public void AddPlayer(Player player)
         {
             if (PlayerMap.Count >= MaxPlayers)
-                throw new InvalidOperationException("Table is full (max 10 players)");
+                throw new InvalidOperationException($"Table is full (max {MaxPlayers} players)");
 
             if (PlayerMap.ContainsKey(player))
                 throw new InvalidOperationException("Player already exists");
 
             // ============================
-            // Tentukan seat index secara random
+            // Tentukan seat index dari frontend
             // ============================
             var occupiedSeats = PlayerMap.Keys.Select(p => p.SeatIndex).ToList();
-            var availableSeats = Enumerable.Range(0, MaxPlayers)
-                                           .Where(i => !occupiedSeats.Contains(i))
-                                           .ToList();
 
-            if (!availableSeats.Any())
-                throw new InvalidOperationException("No seats available");
+            if (player.SeatIndex < 0 || player.SeatIndex >= MaxPlayers)
+                throw new InvalidOperationException("Seat index invalid");
 
-            var rnd = new Random();
-            player.SeatIndex = availableSeats[rnd.Next(availableSeats.Count)];
+            if (occupiedSeats.Contains(player.SeatIndex))
+                throw new InvalidOperationException("Seat already occupied");
 
             // ============================
             // Tambahkan player ke map

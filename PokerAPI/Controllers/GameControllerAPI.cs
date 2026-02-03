@@ -46,27 +46,26 @@ namespace PokerAPI.Controllers
         // Player Management
         // ======================
         [HttpPost("addPlayer")]
-        public IActionResult AddPlayer([FromQuery] string name, [FromQuery] int chips = 1000)
+        public IActionResult AddPlayer([FromQuery] string name, [FromQuery] int chips = 1000, [FromQuery] int seatIndex = -1)
         {
-            // if (_game.PlayerMap.Keys.Any(p => p.Name == name))
-            //     return BadRequest("Player name already exists");
-
-            // var player = new Player(name, chips);
-            // _game.AddPlayer(player);
-
-            // return Ok(new
-            // {
-            //     success = true,
-            //     players = _game.PlayerMap.Keys.Select(p => p.Name),
-            //     totalPlayers = _game.PlayerMap.Count,
-            //     maxPlayers = 10
-            // });
             try
             {
                 if (_game.PlayerMap.Keys.Any(p => p.Name == name))
                     return BadRequest("Player name already exists");
 
+                // ===========================
+                // Buat player dulu
+                // ===========================
                 var player = new Player(name, chips);
+
+                // ===========================
+                // Assign seatIndex dari frontend
+                // ===========================
+                player.SeatIndex = seatIndex;
+
+                // ===========================
+                // Tambahkan player ke map
+                // ===========================
                 _game.AddPlayer(player);
 
                 return Ok(new
@@ -78,7 +77,6 @@ namespace PokerAPI.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                // contoh: "Table is full (max 10 players)"
                 return BadRequest(new
                 {
                     success = false,
@@ -88,6 +86,8 @@ namespace PokerAPI.Controllers
                 });
             }
         }
+
+
 
         [HttpPost("removePlayer")]
         public IActionResult RemovePlayer([FromQuery] string name)
@@ -378,50 +378,50 @@ namespace PokerAPI.Controllers
         // =====================
         // State
         // =====================
-            [HttpGet("state")]
-            public IActionResult State()
+        [HttpGet("state")]
+        public IActionResult State()
+        {
+            var players = _game.PlayerMap.Select(kv =>
             {
-                var players = _game.PlayerMap.Select(kv =>
+                var player = kv.Key;
+                var status = kv.Value;
+
+                return new
                 {
-                    var player = kv.Key;
-                    var status = kv.Value;
+                    seatIndex = player.SeatIndex,
+                    name = player.Name,
+                    chipStack = player.ChipStack,
+                    state = status.State.ToString(),
+                    currentBet = status.CurrentBet,
+                    hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}")
+                };
+            });
 
-                    return new
-                    {   
-                        seatIndex = player.SeatIndex,                        
-                        name = player.Name,
-                        chipStack = player.ChipStack,
-                        state = status.State.ToString(),
-                        currentBet = status.CurrentBet,
-                        hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}")
-                    };
-                });
+            var currentPlayer = _game.GetCurrentPlayer();
 
-                var currentPlayer = _game.GetCurrentPlayer();
+            return Ok(new
+            {
+                gameState = _game.GetGameState(),
+                phase = _game.Phase.ToString(),
+                currentPlayer = currentPlayer?.Name,
+                currentBet = _game.CurrentBet,
+                pot = _game.Pot.TotalChips,
+                communityCards = _game.CommunityCards
+                    .Select(c => $"{c.Rank} of {c.Suit}"),
 
-                return Ok(new
+                players,
+
+                showdown = _game.LastShowdown is null
+                ? null
+                : new
                 {
-                    gameState = _game.GetGameState(),
-                    phase = _game.Phase.ToString(),
-                    currentPlayer = currentPlayer?.Name,
-                    currentBet = _game.CurrentBet,
-                    pot = _game.Pot.TotalChips,
-                    communityCards = _game.CommunityCards
-                        .Select(c => $"{c.Rank} of {c.Suit}"),
+                    winners = _game.LastShowdown.Winners.Select(p => p.Name),
+                    handRank = _game.LastShowdown.HandRank.ToString(),
+                    message = _game.LastShowdown.Message
 
-                    players,
-
-                    showdown = _game.LastShowdown is null
-                    ? null
-                    : new
-                    {
-                        winners = _game.LastShowdown.Winners.Select(p => p.Name),
-                        handRank = _game.LastShowdown.HandRank.ToString(),
-                        message = _game.LastShowdown.Message
-
-                    }
-                });
-            }
+                }
+            });
+        }
 
 
     }

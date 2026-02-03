@@ -20,6 +20,8 @@
     {
         playerSeatMap[players[i].SeatIndex] = players[i];
     }
+
+    var canManagePlayers = Model.GameState?.gameState != "InProgress";
 }
 
 <div class="poker-background"></div>
@@ -31,71 +33,64 @@
         @Model.ErrorMessage
     </div>
 
-    @if (Model.GameState?.gameState != "InProgress")
-    {
-        <div class="text-center mb-3">
-            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#playerModal">
-                ⚙️ Manajemen Player
-            </button>
-        </div>
-    }
-
-    @* 
-    <h2>Game Info</h2>
-    <p>Phase: @Model.GameState?.Phase</p>
-    <p>Pot: <img src="~/lib/icons/chip.png" class="chip-icon" /> @Model.GameState?.Pot</p>
-    <p>Current Turn: @Model.GameState?.CurrentPlayer</p> *@
-
-    <form method="post" class="mb-3">
+    @* <form method="post" class="mb-3">
         <button class="btn btn-primary me-2" asp-page-handler="StartRound" disabled="@(!Model.CanStartRound())">Start
             Round</button>
         <button class="btn btn-secondary" asp-page-handler="NextPhase" disabled="@(!Model.CanNextPhase())">Next
             Phase</button>
-    </form>
+    </form> *@
 
     <div class="table-center">
-        <!-- PHASE -->
-        <div class="game-phase">
-            @Model.GameState?.Phase
-        </div>
+        @if (Model.GameState?.gameState == "InProgress")
+        {
+            <!-- Tampilkan phase -->
+            <div class="game-phase">
+                @Model.GameState?.Phase
+            </div>
 
-        <!-- Community Cards -->
-        <div class="community-cards">
-            @foreach (var card in Model.CommunityCardImages ?? new())
-            {
-                <img src="~/lib/cards/@card" class="card" />
-            }
-        </div>
-
-        <!-- POT -->
-        <div class="game-pot">
-            <img src="~/lib/icons/chip.png" class="chip-icon" />
-            @Model.GameState?.Pot
-        </div>
-
+            <!-- Tampilkan pot -->
+            <div class="game-pot">
+                <img src="~/lib/icons/chip.png" class="chip-icon" />
+                @Model.GameState?.Pot
+            </div>
+        }
+        else
+        {
+            <!-- Tampilkan tombol Start Round di tengah meja -->
+            <div class="start-round-center">
+                <form method="post">
+                    <button class="btn btn-primary btn-lg" asp-page-handler="StartRound"
+                        disabled="@(!Model.CanStartRound())">
+                        Start Round
+                    </button>
+                </form>
+            </div>
+        }
         <!-- Players -->
         @for (int i = 0; i < seatPositions.Length; i++)
         {
             playerSeatMap.TryGetValue(i, out var player);
             var isCurrent = player != null && Model.GameState?.CurrentPlayer == player.Name;
             var isWinner = player != null &&
-            Model.ShowdownState != null &&
-            Model.ShowdownState.Winners != null &&
-            Model.ShowdownState.Winners.Contains(player.Name);
-
+            Model.ShowdownState?.Winners?.Contains(player.Name) == true;
 
             <div class="player-container
-                     @(isCurrent ? "current-turn" : "")
-                     @(isWinner ? "winner-player" : "")" style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+                                            @(isCurrent ? "current-turn" : "")
+                                            @(isWinner ? "winner-player" : "")"
+                style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+
+                @* Jika ada player *@
                 @if (player != null)
                 {
-                    @if (Model.ShowdownState?.Winners.Contains(player.Name) == true)
+                    @if (isWinner)
                     {
                         <div class="winner-crown">👑</div>
                     }
+
                     <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
                     <div class="player-name">@player.Name</div>
                     <div class="chips"><img src="~/lib/icons/chip.png" class="chip-icon" /> @player.ChipStack</div>
+
                     <div class="player-hand">
                         @foreach (var card in player.Hand ?? new())
                         {
@@ -108,6 +103,15 @@
                         }
                     </div>
 
+                    @* Tombol Leave / Add Chips hanya saat game belum InProgress *@
+                    @if (canManagePlayers)
+                    {
+                        <button class="btn btn-sm btn-danger" onclick="leaveSeat('@player.Name')">Leave</button>
+                        <button class="btn btn-warning btn-sm" onclick="alert('Tambah chip: belum implementasi backend')">Add
+                            Chips</button>
+                    }
+
+                    @* Player Actions saat ronde berjalan *@
                     @if (isCurrent && Model.GameState?.gameState == "InProgress")
                     {
                         <div class="player-actions">
@@ -136,70 +140,41 @@
                 }
                 else
                 {
-                    <div class="player-pic empty-pic"></div>
+                    @* Jika kursi kosong, tampilkan tombol Join hanya saat game belum InProgress *@
+                    @if (canManagePlayers)
+                    {
+                        <button class="btn btn-success btn-sm" onclick="joinSeat(@i)">Join</button>
+                    }
+                    else
+                    {
+                        <div class="player-pic empty-pic"></div>
+                    }
                 }
             </div>
         }
     </div>
-    @* winnerinfo *@
+
+    @* Winner Overlay *@
     @if (Model.ShowdownState != null)
     {
         <div class="winner-overlay" onclick="closeWinnerOverlay()">
             <div class="winner-box" onclick="event.stopPropagation()">
                 <div class="winner-title">🏆 WINNER 🏆</div>
-
                 <div class="winner-names">
                     @foreach (var winner in Model.ShowdownState.Winners)
                     {
                         <span>@winner</span>
                     }
                 </div>
-
                 <div class="winner-rank">
                     Hand: <strong>@Model.ShowdownState.HandRank</strong>
                 </div>
-
-                <div class="winner-message">
-                    @Model.ShowdownState.Message
-                </div>
+                <div class="winner-message">@Model.ShowdownState.Message</div>
             </div>
         </div>
     }
 
 </div>
-@if (Model.GameState?.gameState != "InProgress")
-{
-    <div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">Manajemen Player</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <form method="post">
-                        <input asp-for="NewPlayerName" placeholder="Nama Player" class="form-control mb-2" />
-
-                        <input asp-for="NewChips" placeholder="Jumlah Chips" class="form-control mb-2" />
-
-                        <div class="d-flex justify-content-between">
-                            <button class="btn btn-success" asp-page-handler="AddPlayer">
-                                ➕ Tambah
-                            </button>
-
-                            <button class="btn btn-danger" asp-page-handler="RemovePlayer">
-                                🗑 Hapus
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-            </div>
-        </div>
-    </div>
-}
 
 <script>
     async function allIn(playerName, btn) {
@@ -208,51 +183,76 @@
             const originalText = btn.textContent;
             btn.textContent = "Processing...";
             const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                console.error('All-In gagal', response.status);
-                btn.disabled = false;
-                btn.textContent = originalText;
-                alert("Gagal All-In!");
-            }
+            if (response.ok) window.location.reload();
+            else { btn.disabled = false; btn.textContent = originalText; alert("Gagal All-In!"); }
         } catch (err) {
             console.error(err);
-            alert("Terjadi error!");
-            btn.disabled = false;
-            btn.textContent = originalText;
+            alert("Terjadi error!"); btn.disabled = false; btn.textContent = originalText;
         }
     }
-    document.addEventListener("DOMContentLoaded", () => {
 
+    function joinSeat(seatIndex) {
+        const playerName = prompt("Masukkan nama player:");
+        if (!playerName) return;
+
+        let chipsInput = prompt("Masukkan jumlah chip (default 1000):", "1000");
+        if (chipsInput === null) return; // user cancel
+        let chips = parseInt(chipsInput);
+        if (isNaN(chips) || chips <= 0) {
+            alert("Jumlah chip tidak valid! Gunakan nilai positif.");
+            return;
+        }
+
+        const url = `http://localhost:5175/api/GameControllerAPI/addPlayer?name=${encodeURIComponent(playerName)}&chips=${chips}&seatIndex=${seatIndex}`;
+
+        fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            })
+            .catch(err => alert("Error: " + err));
+    }
+    function leaveSeat(playerName) {
+        if (!playerName) return;
+
+        if (!confirm(`Apakah kamu yakin ingin menghapus player ${playerName}?`)) return;
+
+        const url = `http://localhost:5175/api/GameControllerAPI/removePlayer?name=${encodeURIComponent(playerName)}`;
+
+        fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            })
+            .catch(err => alert("Error: " + err));
+    }
+
+
+
+    document.addEventListener("DOMContentLoaded", () => {
         const overlay = document.querySelector('.winner-overlay');
         if (!overlay) return;
 
-        // fingerprint showdown (tanpa ID)
         const winners = "@string.Join(",", Model.ShowdownState?.Winners ?? new List<string>())";
         const handRank = "@Model.ShowdownState?.HandRank";
         const showdownKey = `showdown_${winners}_${handRank}`;
 
-        // kalau showdown ini sudah pernah ditampilkan → hapus
-        if (localStorage.getItem(showdownKey)) {
-            overlay.remove();
-            return;
-        }
-
-        // tandai showdown ini sudah ditampilkan
+        if (localStorage.getItem(showdownKey)) { overlay.remove(); return; }
         localStorage.setItem(showdownKey, "true");
 
-        // auto close
         setTimeout(() => closeWinnerOverlay(), 3000);
     });
+
     function closeWinnerOverlay() {
         const overlay = document.querySelector('.winner-overlay');
         if (!overlay) return;
-
         overlay.style.animation = 'fadeOut .4s ease forwards';
         setTimeout(() => overlay.remove(), 400);
-    }   
+    }
 </script>
+
 
 <style>
     /* ================= BASE ================= */
@@ -370,6 +370,19 @@
         animation: potPulse 1.5s infinite ease-in-out;
     }
 
+    .start-round-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+
+    .start-round-center .btn-lg {
+        font-size: 1.5rem;
+        padding: 12px 24px;
+    }
+
     /* ================= COMMUNITY CARDS ================= */
     .community-cards {
         position: absolute;
@@ -398,15 +411,15 @@
 
     @@keyframes glowPulse {
         0% {
-            box-shadow: 0 0 5px gold;
+            box-shadow: 0 0 5px silver;
         }
 
         50% {
-            box-shadow: 0 0 20px gold;
+            box-shadow: 0 0 20px silver;
         }
 
         100% {
-            box-shadow: 0 0 5px gold;
+            box-shadow: 0 0 5px silver;
         }
     }
 
