@@ -1,6 +1,9 @@
+
+using PokerAPI.Services.Interfaces;
+
 namespace PokerAPI.Models
 {
-    public class Deck
+    public class Deck : IDeck
     {
         private Stack<Card> _cards;
 

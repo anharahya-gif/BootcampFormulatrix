@@ -1,6 +1,8 @@
+using PokerAPI.Services.Interfaces;
+
 namespace PokerAPI.Models
 {
-    public class Player
+    public class Player : IPlayer
     {
         public string Name { get; set; }
         public int ChipStack { get; set; }

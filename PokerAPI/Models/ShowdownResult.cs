@@ -1,13 +1,14 @@
 using System.Collections.Generic;
+using PokerAPI.Services.Interfaces;
 
 namespace PokerAPI.Models
 {
     public class ShowdownResult
     {
-        public List<Player> Winners { get; }
+        public List<IPlayer> Winners { get; }
         public HandRank HandRank { get; }
 
-        public ShowdownResult(List<Player> winners, HandRank handRank)
+        public ShowdownResult(List<IPlayer> winners, HandRank handRank)
         {
             Winners = winners;
             HandRank = handRank;

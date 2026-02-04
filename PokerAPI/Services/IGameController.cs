@@ -1,0 +1,64 @@
+using PokerAPI.Models;
+using System;
+using System.Collections.Generic;
+
+namespace PokerAPI.Services.Interfaces
+{
+    public interface IGameController
+    {
+        // ======================
+        // Game State
+        // ======================
+        string GetGameState();
+        bool CanStartRound();
+
+        GamePhase Phase { get; }
+        int CurrentBet { get; }
+        int CurrentPlayerIndex { get; }
+        List<Card> CommunityCards { get; }
+        ShowdownResult? LastShowdown { get; }
+
+        // ======================
+        // Player Management
+        // ======================
+        void AddPlayer(IPlayer player);
+        void RemovePlayer(IPlayer player);
+        List<IPlayer> ActivePlayers();
+
+        // ======================
+        // Round Management
+        // ======================
+        void StartRound();
+        void NextPhase();
+
+        // ======================
+        // Player Turn Management
+        // ======================
+        IPlayer GetCurrentPlayer();
+        IPlayer GetNextActivePlayer();
+        bool IsBettingRoundOver();
+
+        // ======================
+        // Betting Actions
+        // ======================
+        bool HandleBet(IPlayer player, int amount);
+        bool HandleCall(IPlayer player);
+        bool HandleRaise(IPlayer player, int raiseAmount);
+        void HandleFold(IPlayer player);
+        void HandleCheck(IPlayer player);
+        bool HandleAllIn(string playerName);
+
+        // ======================
+        // Showdown
+        // ======================
+        Dictionary<IPlayer, HandRank> EvaluateHands();
+        List<IPlayer> DetermineWinners();
+        List<IPlayer> ResolveShowdown();
+        (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed();
+
+        // ======================
+        // Event
+        // ======================
+        event Action? RoundStarted;
+    }
+}

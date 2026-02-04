@@ -2,20 +2,21 @@ using PokerAPI.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using PokerAPI.Services.Interfaces;
 using System.Linq;
 
 namespace PokerAPI.Services
 {
-    public class GameController
+    public class GameController : IGameController
     {
         // ======================
         // Game State
         // ======================
         private bool _hasRoundStarted = false;
         private const int MaxPlayers = 10;
-        public Deck Deck { get; private set; } = new Deck();
-        public Pot Pot { get; private set; } = new Pot();
-        public Dictionary<Player, PlayerStatus> PlayerMap { get; private set; } = new Dictionary<Player, PlayerStatus>();
+        public IDeck Deck { get; private set; } = new Deck();
+        public IPot Pot { get; private set; } = new Pot();
+        public Dictionary<IPlayer, PlayerStatus> PlayerMap { get; private set; } = new Dictionary<IPlayer, PlayerStatus>();
         public List<Card> CommunityCards { get; private set; } = new List<Card>();
 
         public int CurrentPlayerIndex { get; private set; } = 0;
@@ -54,7 +55,7 @@ namespace PokerAPI.Services
         // ======================
         // Player Management
         // ======================
-        public void AddPlayer(Player player)
+        public void AddPlayer(IPlayer player)
         {
             if (PlayerMap.Count >= MaxPlayers)
                 throw new InvalidOperationException($"Table is full (max {MaxPlayers} players)");
@@ -80,13 +81,13 @@ namespace PokerAPI.Services
         }
 
 
-        public void RemovePlayer(Player player)
+        public void RemovePlayer(IPlayer player)
         {
             if (PlayerMap.ContainsKey(player))
                 PlayerMap.Remove(player);
         }
 
-        public List<Player> ActivePlayers()
+        public List<IPlayer> ActivePlayers()
         {
             return PlayerMap.Where(kv => kv.Value.State == PlayerState.Active || kv.Value.State == PlayerState.AllIn)
                             .Select(kv => kv.Key).ToList();
@@ -194,7 +195,7 @@ namespace PokerAPI.Services
         // ======================
         // Player Turn Management
         // ======================
-        public Player GetCurrentPlayer()
+        public IPlayer GetCurrentPlayer()
         {
             var activePlayers = ActivePlayers();
             if (!activePlayers.Any()) return null;
@@ -207,7 +208,7 @@ namespace PokerAPI.Services
             return player;
         }
 
-        public Player GetNextActivePlayer()
+        public IPlayer GetNextActivePlayer()
         {
             var playerList = PlayerMap.Keys.ToList();
             int count = playerList.Count;
@@ -237,7 +238,7 @@ namespace PokerAPI.Services
         // ======================
         // Betting Actions
         // ======================
-        public bool HandleBet(Player player, int amount)
+        public bool HandleBet(IPlayer player, int amount)
         {
             if (amount <= 0)
                 throw new InvalidOperationException("Bet amount must be greater than 0");
@@ -262,7 +263,7 @@ namespace PokerAPI.Services
             return true;
         }
 
-        public bool HandleCall(Player player)
+        public bool HandleCall(IPlayer player)
         {
             var status = PlayerMap[player];
             if (status.State != PlayerState.Active) return false;
@@ -288,7 +289,7 @@ namespace PokerAPI.Services
             return true;
         }
 
-        public bool HandleRaise(Player player, int raiseAmount)
+        public bool HandleRaise(IPlayer player, int raiseAmount)
         {
             var status = PlayerMap[player];
             if (status.State != PlayerState.Active) return false;
@@ -305,7 +306,7 @@ namespace PokerAPI.Services
             return true;
         }
 
-        public void HandleFold(Player player)
+        public void HandleFold(IPlayer player)
         {
             var status = PlayerMap[player];
             if (status.State != PlayerState.Active)
@@ -324,7 +325,7 @@ namespace PokerAPI.Services
         }
 
 
-        public void HandleCheck(Player player)
+        public void HandleCheck(IPlayer player)
         {
             var status = PlayerMap[player];
             if (CurrentBet == status.CurrentBet)
@@ -360,9 +361,9 @@ namespace PokerAPI.Services
         // ======================
         // Showdown
         // ======================
-        public Dictionary<Player, HandRank> EvaluateHands()
+        public Dictionary<IPlayer, HandRank> EvaluateHands()
         {
-            var result = new Dictionary<Player, HandRank>();
+            var result = new Dictionary<IPlayer, HandRank>();
             foreach (var kv in PlayerMap)
             {
                 var player = kv.Key;
@@ -375,10 +376,10 @@ namespace PokerAPI.Services
             return result;
         }
 
-        public List<Player> DetermineWinners()
+        public List<IPlayer> DetermineWinners()
         {
             var hands = EvaluateHands();
-            if (!hands.Any()) return new List<Player>();
+            if (!hands.Any()) return new List<IPlayer>();
 
             var maxRank = hands.Values.Max();
             var winners = hands.Where(kv => kv.Value == maxRank).Select(kv => kv.Key).ToList();
@@ -496,7 +497,7 @@ namespace PokerAPI.Services
 
             return null;
         }
-        public List<Player> ResolveShowdown()
+        public List<IPlayer> ResolveShowdown()
         {
             var winners = DetermineWinners();
             if (!winners.Any()) return winners;
@@ -511,14 +512,14 @@ namespace PokerAPI.Services
             Pot.Reset();
             return winners;
         }
-        public (List<Player> winners, HandRank rank) ResolveShowdownDetailed()
+        public (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed()
         {
             if (Phase != GamePhase.Showdown)
-                return (new List<Player>(), HandRank.HighCard);
+                return (new List<IPlayer>(), HandRank.HighCard);
 
             var handResults = EvaluateHands();
             if (!handResults.Any())
-                return (new List<Player>(), HandRank.HighCard);
+                return (new List<IPlayer>(), HandRank.HighCard);
 
             var bestRank = handResults.Values.Max();
             var winners = handResults
