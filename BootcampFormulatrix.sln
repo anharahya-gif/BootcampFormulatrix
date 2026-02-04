@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokerUI", "PokerUI\PokerUI.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokerBetterUI", "PokerBetterUI\PokerBetterUI.csproj", "{ECE2895F-611E-481F-9548-0675C4E3D621}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokerMultiplayerAPI", "PokerMultiplayerAPI\PokerMultiplayerAPI.csproj", "{6A7115B6-530B-4FB6-A9E5-402F459A923A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -104,6 +106,10 @@ Global
 		{ECE2895F-611E-481F-9548-0675C4E3D621}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ECE2895F-611E-481F-9548-0675C4E3D621}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ECE2895F-611E-481F-9548-0675C4E3D621}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A7115B6-530B-4FB6-A9E5-402F459A923A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A7115B6-530B-4FB6-A9E5-402F459A923A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A7115B6-530B-4FB6-A9E5-402F459A923A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A7115B6-530B-4FB6-A9E5-402F459A923A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

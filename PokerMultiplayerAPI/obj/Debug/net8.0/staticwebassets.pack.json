@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerMultiplayerAPI\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.PokerMultiplayerAPI.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.PokerMultiplayerAPI.props",
+      "PackagePath": "build\\PokerMultiplayerAPI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.PokerMultiplayerAPI.props",
+      "PackagePath": "buildMultiTargeting\\PokerMultiplayerAPI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.PokerMultiplayerAPI.props",
+      "PackagePath": "buildTransitive\\PokerMultiplayerAPI.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

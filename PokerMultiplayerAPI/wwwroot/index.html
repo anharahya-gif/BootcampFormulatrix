@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Poker Test Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; display: flex; gap: 20px; }
+        .panel { padding: 15px; border: 1px solid #ccc; border-radius: 8px; flex: 1; }
+        .log { height: 200px; overflow-y: scroll; background: #f0f0f0; border: 1px solid #999; padding: 5px; font-family: monospace; font-size: 12px; }
+        button { margin: 5px 0; cursor: pointer; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; box-sizing: border-box; padding: 5px; }
+        .card { display: inline-block; padding: 3px; border: 1px solid black; margin: 2px; border-radius: 4px; background: white;}
+        #gameStateView { white-space: pre-wrap; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="panel" style="max-width: 300px;">
+    <h2>1. Lobby</h2>
+    <button onclick="loadTables()">Refresh Table List</button>
+    <ul id="tableList"></ul>
+
+    <h3>Create Table</h3>
+    <input type="text" id="newTableName" placeholder="Table Name">
+    <button onclick="createTable()">Create</button>
+
+    <h3>Join Table</h3>
+    <input type="text" id="targetTableId" placeholder="Table ID from list above">
+    <input type="text" id="playerName" placeholder="Player Name" value="Player1">
+    <input type="number" id="buyIn" placeholder="Buy In" value="1000">
+    <button onclick="joinTable()">Join & Connect</button>
+</div>
+
+<div class="panel">
+    <h2>2. Game Control</h2>
+    <div id="controls" style="display:none; background: #e6f7ff; padding: 10px; border-radius: 4px;">
+        <div>
+            <strong>You are:</strong> <span id="myPlayerInfo"></span>
+        </div>
+        <hr>
+        <button onclick="startGame()">Start Game (Need 2+ players)</button>
+        
+        <h4>Actions</h4>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="sendAction('Check', 0)">Check</button>
+            <button onclick="sendAction('Call', 0)">Call</button>
+            <button onclick="sendAction('Fold', 0)">Fold</button>
+            <input type="number" id="raiseAmount" placeholder="Amount" style="width: 80px;">
+            <button onclick="sendAction('Raise', 0)">Raise</button>
+            <button onclick="sendAction('AllIn', 0)">All In</button>
+        </div>
+    </div>
+    
+    <h3>Game State</h3>
+    <div id="gameStateView" class="log" style="height: 400px; background: #222; color: #0f0;">Not connected...</div>
+</div>
+
+<div class="panel" style="max-width: 300px;">
+    <h2>3. Logs</h2>
+    <div id="appLog" class="log"></div>
+</div>
+
+<script>
+    const API_URL = '/api';
+    let connection = null;
+    let currentTableId = null;
+    let currentPlayerId = null;
+
+    // --- Lobby Functions ---
+    async function loadTables() {
+        log("Loading tables...");
+        const res = await fetch(`${API_URL}/Lobby`);
+        const tables = await res.json();
+        const list = document.getElementById('tableList');
+        list.innerHTML = '';
+        tables.forEach(t => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${t.name}</strong><br><small>${t.id}</small> 
+                            <button onclick="document.getElementById('targetTableId').value='${t.id}'">Select</button>`;
+            list.appendChild(li);
+        });
+        log(`Loaded ${tables.length} tables.`);
+    }
+
+    async function createTable() {
+        const name = document.getElementById('newTableName').value;
+        if(!name) return;
+        await fetch(`${API_URL}/Lobby`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(name)
+        });
+        loadTables();
+    }
+
+    async function joinTable() {
+        const tableId = document.getElementById('targetTableId').value;
+        const playerName = document.getElementById('playerName').value;
+        const buyIn = parseFloat(document.getElementById('buyIn').value);
+
+        if(!tableId || !playerName) { alert("Fill details"); return; }
+
+        log(`Joining table ${tableId}...`);
+
+        try {
+            // 1. Call API to Join
+            const res = await fetch(`${API_URL}/Game/${tableId}/join`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ playerName, buyIn })
+            });
+            
+            if(!res.ok) {
+                const err = await res.text();
+                throw new Error(err);
+            }
+
+            const data = await res.json();
+            currentTableId = data.tableId;
+            currentPlayerId = data.playerId;
+            
+            document.getElementById('myPlayerInfo').innerText = `${playerName} (${currentPlayerId})`;
+            log("Joined via API. Connecting SignalR...");
+
+            // 2. Connect SignalR
+            await connectSignalR(tableId);
+            
+            document.getElementById('controls').style.display = 'block';
+
+        } catch (e) {
+            logError(e.message);
+            alert("Error: " + e.message);
+        }
+    }
+
+    // --- SignalR ---
+    async function connectSignalR(tableId) {
+        if(connection) await connection.stop();
+
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/pokerHub")
+            .build();
+
+        connection.on("ReceiveGameState", (state) => {
+            renderState(state);
+        });
+
+        connection.on("ReceivePlayerAction", (data) => {
+            log(`ACTION: ${data.playerName} did ${data.action} ${data.amount > 0 ? data.amount : ''}`);
+        });
+
+        connection.on("ReceiveError", (err) => {
+             logError(`SERVER ERROR: ${err}`);
+             alert(err);
+        });
+
+        await connection.start();
+        log("SignalR Connected.");
+        
+        // Join the Group for this table
+        await connection.invoke("JoinTableGroup", tableId);
+        log("Joined SignalR Group: " + tableId);
+    }
+
+    // --- Game Functions ---
+    async function startGame() {
+        if(!currentTableId) return;
+        await fetch(`${API_URL}/Game/${currentTableId}/start`, { method: 'POST' });
+    }
+
+    async function sendAction(action, amount) {
+        if(!currentTableId || !currentPlayerId) return;
+        
+        if(action === 'Raise') {
+            amount = parseFloat(document.getElementById('raiseAmount').value);
+        }
+
+        const res = await fetch(`${API_URL}/Game/${currentTableId}/action?playerId=${currentPlayerId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action, amount })
+        });
+        
+        if(!res.ok) {
+           logError(await res.text());
+        }
+    }
+
+    // --- Helpers ---
+    function renderState(state) {
+        const view = document.getElementById('gameStateView');
+        // Simple pretty print
+        view.innerText = JSON.stringify(state, null, 2);
+        
+        // Highlight logic could go here
+        log(`State Updated: ${state.phase}`);
+    }
+
+    function log(msg) {
+        const div = document.getElementById('appLog');
+        div.innerHTML += `<div>[INFO] ${msg}</div>`;
+        div.scrollTop = div.scrollHeight;
+    }
+    
+    function logError(msg) {
+        const div = document.getElementById('appLog');
+        div.innerHTML += `<div style="color:red">[ERR] ${msg}</div>`;
+        div.scrollTop = div.scrollHeight;
+    }
+
+    // Init
+    loadTables();
+
+</script>
+</body>
+</html>

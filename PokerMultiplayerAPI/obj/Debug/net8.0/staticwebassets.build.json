@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "UQV/zTsHr/Zky21nyAQhv0S1ocskJ2NJXlKsUqQ/qs0=",
+  "Source": "PokerMultiplayerAPI",
+  "BasePath": "_content/PokerMultiplayerAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "PokerMultiplayerAPI\\wwwroot",
+      "Source": "PokerMultiplayerAPI",
+      "ContentRoot": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerMultiplayerAPI\\wwwroot\\",
+      "BasePath": "_content/PokerMultiplayerAPI",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerMultiplayerAPI\\wwwroot\\index.html",
+      "SourceId": "PokerMultiplayerAPI",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerMultiplayerAPI\\wwwroot\\",
+      "BasePath": "_content/PokerMultiplayerAPI",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}
