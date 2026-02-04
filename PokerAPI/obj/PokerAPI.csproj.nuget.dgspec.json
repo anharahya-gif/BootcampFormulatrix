@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
+    "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
+    "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "projectUniqueName": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
         "projectName": "PokerAPI",
-        "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
-        "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\obj\\",
+        "projectPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "packagesPath": "C:\\Users\\AnharAhya\\.nuget\\packages\\",
+        "outputPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\AnharAhya\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -47,6 +47,10 @@
               "target": "Package",
               "version": "[8.0.22, )"
             },
+            "Microsoft.AspNetCore.SignalR": {
+              "target": "Package",
+              "version": "[1.2.9, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.6.2, )"
@@ -71,7 +75,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
