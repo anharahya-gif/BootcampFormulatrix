@@ -1,4 +1,5 @@
 using PokerAPI.Services;
+using PokerAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,15 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSingleton<GameController>();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen();  
+builder.Services.AddSignalR(); 
 // --- Tambahkan CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalhostUI", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5148") 
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
+              
     });
 });
 
@@ -36,7 +40,14 @@ app.UseCors("AllowLocalhostUI");
 
 app.UseAuthorization();
 
-app.MapControllers();
+//app.MapControllers();
+//addPokerHubforSignalR
+app.UseRouting();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapHub<PokerHub>("/pokerHub");
+});
 
 // =======================
 // Run (HARUS TERAKHIR)

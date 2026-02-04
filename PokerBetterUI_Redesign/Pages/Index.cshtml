@@ -240,6 +240,20 @@
 </div>
 
 <script>
+    const hubConnection = new signalR.HubConnectionBuilder()
+    .withUrl("http://localhost:5175/pokerHub") // ganti sesuai URL hub-mu
+    .withAutomaticReconnect()
+    .build();
+
+// Log semua pesan dari hub
+hubConnection.on("ReceiveGameState", (state) => {
+    console.log("[PokerHub] ReceiveGameState:", state);
+});
+
+// Hub connection start
+hubConnection.start()
+    .then(() => console.log("[PokerHub] Connected"))
+    .catch(err => console.error("[PokerHub] Connection error:", err));
     // JavaScript Card Name Converter (matches C# CardImageMapper)
     function convertCardToFileName(apiCard) {
         if (!apiCard || typeof apiCard !== 'string') {

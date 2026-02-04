@@ -197,8 +197,24 @@
     }
 
 </div>
+<!-- Letakkan sebelum script yang pakai signalR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
 <script>
+  const connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:5175/pokerHub", { withCredentials: true })
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+  connection.start()
+      .then(() => console.log("✅ SignalR connected"))
+      .catch(err => console.error("❌ SignalR connection error:", err));
+
+  // Contoh menerima pesan
+  connection.on("ReceiveMessage", (user, message) => {
+      console.log(`${user}: ${message}`);
+  });
+
 
     // JavaScript Card Name Converter (matches C# CardImageMapper)
     function convertCardToFileName(apiCard) {
