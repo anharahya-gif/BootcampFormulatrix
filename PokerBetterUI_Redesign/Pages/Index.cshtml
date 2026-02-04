@@ -1,0 +1,1231 @@
+@page
+@using PokerBetterUI_Redesign.Models
+@model PokerBetterUI_Redesign.Pages.IndexModel
+
+@{
+    ViewData["Title"] = "Premium Poker Table";
+
+    // Posisi 10 kursi fixed (% dari center)
+    var seatPositions = new (double x, double y)[]
+    {
+(50, 5), (75, 10), (90, 30), (90, 70), (75, 90),
+(50, 95), (25, 90), (10, 70), (10, 30), (25, 10)
+    };
+
+    // Assign pemain ke kursi sesuai urutan
+    var playerSeatMap = new Dictionary<int, PlayerDTO>();
+    var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+
+    for (int i = 0; i < players.Count && i < seatPositions.Length; i++)
+    {
+        playerSeatMap[players[i].SeatIndex] = players[i];
+    }
+
+    var canManagePlayers = Model.GameState?.gameState != "InProgress";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="animated-background">
+    <div class="stars"></div>
+    <div class="gradient-overlay"></div>
+</div>
+
+<div class="poker-container">
+    <h1 class="page-title">
+        <span class="title-icon">♠</span>
+        PREMIUM POKER
+        <span class="title-icon">♥</span>
+    </h1>
+
+    <div class="alert alert-danger text-center modern-alert" hidden="@string.IsNullOrEmpty(Model.ErrorMessage)">
+        <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+    </div>
+
+    <div class="table-wrapper">
+        <div class="table-container">
+            @if (Model.GameState?.gameState == "InProgress")
+            {
+                <!-- Phase Display -->
+                <div class="game-phase">
+                    <div class="phase-badge">@Model.GameState?.Phase</div>
+                </div>
+
+                <!-- Community Cards -->
+                <div id="community-cards" class="community-cards">
+                    @foreach (var card in Model.CommunityCardImages ?? new())
+                    {
+                        <div class="card-wrapper">
+                            <img src="~/lib/cards/@card" class="poker-card" />
+                        </div>
+                    }
+                </div>
+
+                <!-- Pot Display -->
+                <div class="game-pot">
+                    <div class="pot-container">
+                        <img src="~/lib/icons/chip.png" class="pot-chip-icon" />
+                        <span class="pot-amount">@Model.GameState?.Pot</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Start Round Button -->
+                <div class="start-round-center">
+                    <form method="post">
+                        <button class="btn-start-round" asp-page-handler="StartRound"
+                                disabled="@(!Model.CanStartRound())">
+                            <i class="bi bi-play-circle-fill"></i>
+                            START ROUND
+                        </button>
+                    </form>
+                </div>
+            }
+
+            <!-- Players -->
+            @for (int i = 0; i < seatPositions.Length; i++)
+            {
+                playerSeatMap.TryGetValue(i, out var player);
+                var isCurrent = player != null && Model.GameState?.CurrentPlayer == player.Name;
+                var isWinner = player != null &&
+                Model.ShowdownState?.Winners?.Contains(player.Name) == true;
+
+                <div class="player-seat @(isCurrent ? "active-turn" : "") @(isWinner ? "winner-glow" : "")"
+                     style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+
+                    @if (player != null)
+                    {
+                        @if (isWinner)
+                        {
+                            <div class="winner-crown-float">👑</div>
+                        }
+
+                        <div class="player-avatar">
+                            <div class="avatar-ring"></div>
+                            <img src="~/lib/icons/user.png" />
+                        </div>
+
+                        <div class="player-info">
+                            <div class="player-name">@player.Name</div>
+                            <div class="player-chips">
+                                <img src="~/lib/icons/chip.png" class="chip-mini-icon" />
+                                <span class="chip-value">@player.ChipStack</span>
+                            </div>
+                        </div>
+
+                        <div class="player-hand-cards">
+                            @foreach (var card in player.Hand ?? new())
+                            {
+                                var img = (player.Hand.Count == 2 &&
+                                (Model.GameState.CurrentPlayer == player.Name ||
+                                (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
+                                ? PokerBetterUI_Redesign.Pages.IndexModel.CardImageMapper.ToImageFile(card)
+                                : "back_dark.png";
+                                <img src="~/lib/cards/@img" class="hand-card" />
+                            }
+                        </div>
+
+                        @if (canManagePlayers)
+                        {
+                            <div class="player-management">
+                                <button class="btn-manage btn-leave" onclick="leaveSeat('@player.Name')" title="Remove Player">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+
+                                <input type="number" min="1" value="100" class="add-chips-input" title="Chip amount" />
+
+                                <button class="btn-manage btn-add-chips" data-player-name="@player.Name" title="Add Chips">
+                                    <i class="bi bi-plus-circle"></i>
+                                </button>
+                            </div>
+                        }
+
+                        @if (isCurrent && Model.GameState?.gameState == "InProgress")
+                        {
+                            <div class="action-panel">
+                                <form method="post" class="action-form">
+                                    <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                                    <input asp-for="Amount" class="bet-input" placeholder="Amount" />
+                                    
+                                    <div class="action-buttons">
+                                        @if (Model.GameState?.Pot == 0)
+                                        {
+                                            <button class="action-btn btn-bet" asp-page-handler="Bet"
+                                                    disabled="@(!Model.CanBetOrRaise(player))">
+                                                <i class="bi bi-cash-coin"></i> Bet
+                                            </button>
+                                        }
+                                        <button class="action-btn btn-raise" asp-page-handler="Raise"
+                                                disabled="@(!Model.CanBetOrRaise(player))">
+                                            <i class="bi bi-arrow-up-circle"></i> Raise
+                                        </button>
+                                        <button class="action-btn btn-call" asp-page-handler="Call"
+                                                disabled="@(!Model.CanCall(player))">
+                                            <i class="bi bi-check-circle"></i> Call
+                                        </button>
+                                        <button class="action-btn btn-check" asp-page-handler="Check"
+                                                disabled="@(!Model.CanCheck(player))">
+                                            <i class="bi bi-dash-circle"></i> Check
+                                        </button>
+                                        <button class="action-btn btn-fold" asp-page-handler="Fold">
+                                            <i class="bi bi-x-octagon"></i> Fold
+                                        </button>
+                                        <button type="button" class="action-btn btn-allin" onclick="allIn('@player.Name', this)"
+                                                disabled="@(!Model.CanAllIn(player))">
+                                            <i class="bi bi-lightning-fill"></i> ALL-IN
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        @if (canManagePlayers)
+                        {
+                            <button class="btn-join-seat" onclick="joinSeat(@i)">
+                                <i class="bi bi-plus-circle-fill"></i>
+                                <span>JOIN</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="empty-seat">
+                                <div class="empty-seat-icon">💺</div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Winner Overlay *@
+    @if (Model.ShowdownState != null)
+    {
+        <div class="winner-overlay" onclick="closeWinnerOverlay()">
+            <div class="winner-modal" onclick="event.stopPropagation()">
+                <div class="confetti"></div>
+                <div class="winner-header">
+                    <div class="trophy-icon">🏆</div>
+                    <h2 class="winner-title">WINNER!</h2>
+                </div>
+                <div class="winner-names">
+                    @foreach (var winner in Model.ShowdownState.Winners)
+                    {
+                        <div class="winner-name">@winner</div>
+                    }
+                </div>
+                <div class="winner-hand">
+                    <span class="hand-label">Hand:</span>
+                    <span class="hand-rank">@Model.ShowdownState.HandRank</span>
+                </div>
+                <div class="winner-message">@Model.ShowdownState.Message</div>
+                <div class="close-hint">Click anywhere to close</div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    // JavaScript Card Name Converter (matches C# CardImageMapper)
+    function convertCardToFileName(apiCard) {
+        if (!apiCard || typeof apiCard !== 'string') {
+            return 'back_dark.png';
+        }
+
+        const parts = apiCard.split(' of ');
+        if (parts.length !== 2) {
+            return 'back_dark.png';
+        }
+
+        const rankMap = {
+            'Two': '2', 'Three': '3', 'Four': '4', 'Five': '5',
+            'Six': '6', 'Seven': '7', 'Eight': '8', 'Nine': '9',
+            'Ten': '10', 'Jack': 'J', 'Queen': 'Q', 'King': 'K', 'Ace': 'A'
+        };
+
+        const suitMap = {
+            'Clubs': 'clubs',
+            'Diamonds': 'diamonds',
+            'Hearts': 'hearts',
+            'Spades': 'spades'
+        };
+
+        const rank = rankMap[parts[0]];
+        const suit = suitMap[parts[1]];
+
+        if (!rank || !suit) {
+            return 'back_dark.png';
+        }
+
+        return `${suit}_${rank}.png`;
+    }
+
+    function updateCommunityCards(cards) {
+        const container = document.getElementById('community-cards');
+        if (!container) return;
+
+        container.innerHTML = '';
+        cards.forEach((card, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'card-wrapper';
+            wrapper.style.animationDelay = `${index * 0.1}s`;
+            
+            const img = document.createElement('img');
+            img.src = `/lib/cards/${convertCardToFileName(card)}`;
+            img.className = 'poker-card';
+            wrapper.appendChild(img);
+            container.appendChild(wrapper);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const container = document.getElementById('community-cards');
+        if (container) container.classList.add('visible');
+    });
+
+    async function refreshGameState() {
+        try {
+            const res = await fetch('/api/gamestate');
+            const data = await res.json();
+            if (data && data.communityCards) {
+                updateCommunityCards(data.communityCards);
+            }
+        } catch (err) {
+            console.error('Error refreshing game state:', err);
+        }
+    }
+
+    setInterval(refreshGameState, 2000);
+
+    async function allIn(playerName, btn) {
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+            const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+            if (response.ok) window.location.reload();
+            else { btn.disabled = false; btn.innerHTML = '<i class="bi bi-lightning-fill"></i> ALL-IN'; alert("Gagal All-In!"); }
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi error!");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-lightning-fill"></i> ALL-IN';
+        }
+    }
+
+    function joinSeat(seatIndex) {
+        const playerName = prompt("Enter player name:");
+        if (!playerName) return;
+
+        let chipsInput = prompt("Enter chip amount (default 1000):", "1000");
+        if (chipsInput === null) return;
+        let chips = parseInt(chipsInput);
+        if (isNaN(chips) || chips <= 0) {
+            alert("Invalid chip amount!");
+            return;
+        }
+
+        const url = `http://localhost:5175/api/GameControllerAPI/addPlayer?name=${encodeURIComponent(playerName)}&chips=${chips}&seatIndex=${seatIndex}`;
+
+        fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            })
+            .catch(err => alert("Error: " + err));
+    }
+
+    function leaveSeat(playerName) {
+        if (!playerName) return;
+        if (!confirm(`Remove player ${playerName}?`)) return;
+
+        const url = `http://localhost:5175/api/GameControllerAPI/removePlayer?name=${encodeURIComponent(playerName)}`;
+
+        fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            })
+            .catch(err => alert("Error: " + err));
+    }
+
+    document.querySelectorAll(".btn-add-chips").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const playerName = btn.getAttribute("data-player-name");
+            const input = btn.closest('.player-management').querySelector(".add-chips-input");
+            if (!input) return;
+
+            const amount = parseInt(input.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert("Chip amount must be greater than 0");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:5175/api/GameControllerAPI/addchips", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ playerName, amount })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.message || "Failed to add chips");
+                    return;
+                }
+
+                alert(data.message ?? "Chips added successfully");
+                window.location.reload();
+
+            } catch (err) {
+                console.error(err);
+                alert("Error adding chips");
+            }
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const overlay = document.querySelector('.winner-overlay');
+        if (!overlay) return;
+
+        const winners = "@string.Join(",", Model.ShowdownState?.Winners ?? new List<string>())";
+        const handRank = "@Model.ShowdownState?.HandRank";
+        const showdownKey = `showdown_${winners}_${handRank}`;
+
+        if (localStorage.getItem(showdownKey)) { overlay.remove(); return; }
+        localStorage.setItem(showdownKey, "true");
+
+        setTimeout(() => closeWinnerOverlay(), 5000);
+    });
+
+    function closeWinnerOverlay() {
+        const overlay = document.querySelector('.winner-overlay');
+        if (!overlay) return;
+        overlay.style.animation = 'fadeOut 0.5s ease forwards';
+        setTimeout(() => overlay.remove(), 500);
+    }
+</script>
+
+<style>
+    /* ==================== RESET & BASE ==================== */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html, body {
+        height: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow-x: hidden;
+        background: #0a0a0f;
+    }
+
+    /* ==================== ANIMATED BACKGROUND ==================== */
+    .animated-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        overflow: hidden;
+    }
+
+    .stars {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+            radial-gradient(2px 2px at 60px 70px, #fff, transparent),
+            radial-gradient(1px 1px at 50px 50px, #ddd, transparent),
+            radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+            radial-gradient(2px 2px at 90px 10px, #fff, transparent);
+        background-repeat: repeat;
+        background-size: 200px 200px;
+        animation: starsMove 120s linear infinite;
+        opacity: 0.5;
+    }
+
+    @@keyframes starsMove {
+        from { transform: translateY(0); }
+        to { transform: translateY(-200px); }
+    }
+
+    .gradient-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(ellipse at 50% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 70%);
+        animation: gradientPulse 8s ease-in-out infinite;
+    }
+
+    @@keyframes gradientPulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+    }
+
+    /* ==================== CONTAINER ==================== */
+    .poker-container {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .page-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(1.8rem, 5vw, 3.5rem);
+        font-weight: 900;
+        text-align: center;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #ffd700, #ffed4e, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        letter-spacing: 4px;
+        animation: titleGlow 3s ease-in-out infinite;
+    }
+
+    @@keyframes titleGlow {
+        0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+        50% { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9)); }
+    }
+
+    .title-icon {
+        font-size: 0.8em;
+        display: inline-block;
+        animation: iconSpin 4s linear infinite;
+    }
+
+    @@keyframes iconSpin {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(15deg); }
+    }
+
+    .modern-alert {
+        background: rgba(220, 53, 69, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(220, 53, 69, 0.5);
+        border-radius: 12px;
+        color: #ff6b6b;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        max-width: 600px;
+    }
+
+    /* ==================== TABLE WRAPPER ==================== */
+    .table-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        aspect-ratio: 1.2 / 1;
+        position: relative;
+        perspective: 1000px;
+    }
+
+    .table-container {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        position: relative;
+        background: linear-gradient(135deg, rgba(16, 124, 65, 0.9) 0%, rgba(10, 80, 40, 0.9) 100%);
+        backdrop-filter: blur(20px);
+        box-shadow: 
+            inset 0 0 60px rgba(0, 0, 0, 0.5),
+            0 0 80px rgba(138, 43, 226, 0.4),
+            0 0 120px rgba(0, 212, 255, 0.3);
+        border: 4px solid;
+        border-image: linear-gradient(135deg, #ffd700, #00d4ff, #8a2be2) 1;
+        animation: tablePulse 4s ease-in-out infinite;
+    }
+
+    @@keyframes tablePulse {
+        0%, 100% { 
+            box-shadow: 
+                inset 0 0 60px rgba(0, 0, 0, 0.5),
+                0 0 80px rgba(138, 43, 226, 0.4),
+                0 0 120px rgba(0, 212, 255, 0.3);
+        }
+        50% { 
+            box-shadow: 
+                inset 0 0 60px rgba(0, 0, 0, 0.5),
+                0 0 100px rgba(138, 43, 226, 0.6),
+                0 0 150px rgba(0, 212, 255, 0.5);
+        }
+    }
+
+    /* ==================== GAME INFO ==================== */
+    .game-phase {
+        position: absolute;
+        top: 35%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+
+    .phase-badge {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(1rem, 2vw, 1.5rem);
+        font-weight: 700;
+        padding: 8px 24px;
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(138, 43, 226, 0.2));
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        border-radius: 20px;
+        color: #ffd700;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        animation: phasePulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes phasePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .game-pot {
+        position: absolute;
+        bottom: 38%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+
+    .pot-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(138, 43, 226, 0.3));
+        backdrop-filter: blur(15px);
+        border: 2px solid rgba(255, 215, 0, 0.5);
+        border-radius: 30px;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        animation: potFloat 3s ease-in-out infinite;
+    }
+
+    @@keyframes potFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+    }
+
+    .pot-chip-icon {
+        width: 32px;
+        height: 32px;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+        animation: chipRotate 4s linear infinite;
+    }
+
+    @@keyframes chipRotate {
+        from { transform: rotateY(0deg); }
+        to { transform: rotateY(360deg); }
+    }
+
+    .pot-amount {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        font-weight: 700;
+        color: #ffd700;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    }
+
+    /* ==================== COMMUNITY CARDS ==================== */
+    .community-cards {
+        position: absolute;
+        top: 48%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        gap: 12px;
+        z-index: 8;
+    }
+
+    .card-wrapper {
+        animation: cardFadeIn 0.5s ease-out forwards;
+    }
+
+    @@keyframes cardFadeIn {
+        0% {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .poker-card {
+        width: clamp(50px, 8vw, 80px);
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6),
+                    0 0 20px rgba(0, 212, 255, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .poker-card:hover {
+        transform: translateY(-10px) scale(1.1);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8),
+                    0 0 30px rgba(0, 212, 255, 0.6);
+    }
+
+    /* ==================== START BUTTON ==================== */
+    .start-round-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 15;
+    }
+
+    .btn-start-round {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(1.2rem, 2.5vw, 2rem);
+        font-weight: 700;
+        padding: 18px 40px;
+        background: linear-gradient(135deg, #00d4ff, #8a2be2);
+        border: none;
+        border-radius: 50px;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.6),
+                    0 8px 25px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .btn-start-round:hover:not(:disabled) {
+        transform: scale(1.1);
+        box-shadow: 0 0 60px rgba(0, 212, 255, 0.9),
+                    0 12px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    .btn-start-round:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* ==================== PLAYER SEATS ==================== */
+    .player-seat {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: clamp(140px, 15vw, 200px);
+        text-align: center;
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .player-seat.active-turn {
+        z-index: 20;
+        transform: translate(-50%, -50%) scale(1.2);
+        animation: activePulse 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes activePulse {
+        0%, 100% {
+            filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.8));
+        }
+        50% {
+            filter: drop-shadow(0 0 30px rgba(0, 212, 255, 1));
+        }
+    }
+
+    .player-seat.winner-glow {
+        animation: winnerPulse 1s ease-in-out infinite;
+        z-index: 25;
+    }
+
+    @@keyframes winnerPulse {
+        0%, 100% {
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.9));
+        }
+        50% {
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1));
+        }
+    }
+
+    .winner-crown-float {
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 2rem;
+        animation: crownFloat 2s ease-in-out infinite;
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+    }
+
+    @@keyframes crownFloat {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-10px); }
+    }
+
+    /* ==================== PLAYER AVATAR ==================== */
+    .player-avatar {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8a2be2, #00d4ff);
+        padding: 3px;
+    }
+
+    .avatar-ring {
+        position: absolute;
+        inset: -5px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffd700, #00d4ff);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .player-seat.active-turn .avatar-ring {
+        opacity: 1;
+        animation: ringRotate 3s linear infinite;
+    }
+
+    @@keyframes ringRotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .player-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(10, 10, 15, 0.9);
+        padding: 8px;
+    }
+
+    /* ==================== PLAYER INFO ==================== */
+    .player-info {
+        margin-bottom: 8px;
+    }
+
+    .player-name {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+        margin-bottom: 4px;
+    }
+
+    .player-chips {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .chip-mini-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .chip-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffd700;
+    }
+
+    /* ==================== PLAYER HAND ==================== */
+    .player-hand-cards {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin: 8px 0;
+    }
+
+    .hand-card {
+        width: clamp(30px, 5vw, 45px);
+        height: auto;
+        border-radius: 4px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+        transition: transform 0.3s ease;
+    }
+
+    .hand-card:hover {
+        transform: translateY(-5px) scale(1.05);
+    }
+
+    /* ==================== PLAYER MANAGEMENT ==================== */
+    .player-management {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .btn-manage {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(138, 43, 226, 0.6), rgba(0, 212, 255, 0.6));
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .btn-manage:hover {
+        transform: scale(1.15);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+    }
+
+    .btn-leave {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.6), rgba(138, 43, 226, 0.6));
+    }
+
+    .btn-add-chips {
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.6), rgba(0, 212, 255, 0.6));
+    }
+
+    .add-chips-input {
+        width: 60px;
+        padding: 4px 6px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 212, 255, 0.4);
+        border-radius: 8px;
+        color: white;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    /* ==================== ACTION PANEL ==================== */
+    .action-panel {
+        position: relative;
+        margin-top: 12px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(15px);
+        border: 2px solid rgba(0, 212, 255, 0.5);
+        border-radius: 15px;
+        box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+    }
+
+    .action-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .bet-input {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 212, 255, 0.4);
+        border-radius: 8px;
+        color: white;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .bet-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .action-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-bet {
+        background: linear-gradient(135deg, #00d4ff, #0099cc);
+    }
+
+    .btn-raise {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+
+    .btn-call {
+        background: linear-gradient(135deg, #ffc107, #ff9800);
+    }
+
+    .btn-check {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+
+    .btn-fold {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+
+    .btn-allin {
+        grid-column: 1 / -1;
+        background: linear-gradient(135deg, #ff6b00, #ffd700);
+        font-size: 0.85rem;
+        font-weight: 700;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+
+    .action-btn:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .action-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    /* ==================== JOIN SEAT ==================== */
+    .btn-join-seat {
+        padding: 12px 20px;
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.7), rgba(0, 212, 255, 0.7));
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.6);
+        border-radius: 20px;
+        color: white;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-join-seat:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.7);
+    }
+
+    .empty-seat {
+        padding: 20px;
+        opacity: 0.3;
+    }
+
+    .empty-seat-icon {
+        font-size: 2rem;
+    }
+
+    /* ==================== WINNER OVERLAY ==================== */
+    .winner-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
+    .winner-modal {
+        position: relative;
+        padding: 40px;
+        background: linear-gradient(135deg, rgba(20, 20, 30, 0.95), rgba(60, 20, 80, 0.95));
+        backdrop-filter: blur(20px);
+        border: 3px solid #ffd700;
+        border-radius: 25px;
+        text-align: center;
+        max-width: 500px;
+        box-shadow: 
+            0 0 60px rgba(255, 215, 0, 0.8),
+            inset 0 0 40px rgba(138, 43, 226, 0.3);
+        animation: modalPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @@keyframes modalPop {
+        0% {
+            opacity: 0;
+            transform: scale(0.3) rotate(-10deg);
+        }
+        80% {
+            transform: scale(1.05) rotate(2deg);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+    }
+
+    .confetti {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 215, 0, 0.1) 10px,
+            rgba(255, 215, 0, 0.1) 20px
+        );
+        animation: confettiMove 20s linear infinite;
+    }
+
+    @@keyframes confettiMove {
+        from { background-position: 0 0; }
+        to { background-position: 100px 100px; }
+    }
+
+    .trophy-icon {
+        font-size: 4rem;
+        animation: trophyBounce 1s ease-in-out infinite;
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+    }
+
+    @@keyframes trophyBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
+    }
+
+    .winner-header {
+        margin-bottom: 20px;
+    }
+
+    .winner-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        margin-top: 10px;
+    }
+
+    .winner-names {
+        margin: 20px 0;
+    }
+
+    .winner-name {
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+        margin: 8px 0;
+    }
+
+    .winner-hand {
+        margin: 15px 0;
+        padding: 12px 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .hand-label {
+        color: rgba(255, 255, 255, 0.7);
+        margin-right: 8px;
+    }
+
+    .hand-rank {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+
+    .winner-message {
+        color: #00d4ff;
+        font-size: 1.1rem;
+        margin: 15px 0;
+        font-style: italic;
+    }
+
+    .close-hint {
+        margin-top: 20px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+    }
+
+    /* ==================== RESPONSIVE ==================== */
+    @@media (max-width: 768px) {
+        .player-seat {
+            width: clamp(100px, 18vw, 140px);
+        }
+
+        .poker-card {
+            width: clamp(40px, 10vw, 60px);
+        }
+
+        .hand-card {
+            width: clamp(25px, 7vw, 35px);
+        }
+
+        .action-buttons {
+            grid-template-columns: 1fr;
+        }
+
+        .action-btn {
+            font-size: 0.7rem;
+            padding: 6px 10px;
+        }
+    }
+</style>
+
+</body>
+</html>
+
+
