@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
+    "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
+    "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "projectUniqueName": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
         "projectName": "PokerAPI",
-        "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "projectPath": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
         "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\obj\\",
+        "outputPath": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"

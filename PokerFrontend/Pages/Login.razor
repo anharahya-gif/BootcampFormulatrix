@@ -1,0 +1,80 @@
+@page "/login"
+@using PokerFrontend.Services
+@inject IAuthService Auth
+@inject NavigationManager Nav
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Poker Game</h2>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" @bind="username" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" @bind="password" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" @onclick="LoginAsync">Login</button>
+                        <button class="btn btn-outline-primary" @onclick="RegisterAsync">Register</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string error = "";
+
+    private async Task LoginAsync()
+    {
+        error = "";
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            error = "Username and password required";
+            return;
+        }
+
+        if (await Auth.LoginAsync(username, password))
+        {
+            Nav.NavigateTo("/tables");
+        }
+        else
+        {
+            error = "Login failed";
+        }
+    }
+
+    private async Task RegisterAsync()
+    {
+        error = "";
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            error = "Username and password required";
+            return;
+        }
+
+        if (await Auth.RegisterAsync(username, password))
+        {
+            error = "Registered! Now login.";
+        }
+        else
+        {
+            error = "Registration failed";
+        }
+    }
+}

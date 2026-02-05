@@ -141,5 +141,17 @@ namespace PokerAPI.Services.Interfaces
         // Event
         // ======================
         event Action? RoundStarted;
+
+        // Fired when community cards change (flop/turn/river)
+        event Action? CommunityCardsUpdated;
+
+        // Fired when showdown completes
+        event Action? ShowdownCompleted;
+
+        // Per-player visible evaluation (their hand + community cards)
+        object? EvaluateVisibleForPlayer(string playerName);
+
+        // Full showdown details (all players' hands and ranks)
+        object GetShowdownDetails();
     }
 }

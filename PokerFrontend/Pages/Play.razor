@@ -1,0 +1,177 @@
+@page "/play/{TableId:int}"
+@using PokerFrontend.Models
+@using PokerFrontend.Services
+@inject IPokerApiService PokerApi
+@inject NavigationManager Nav
+
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Table @TableId</h2>
+        </div>
+        <div class="col text-end">
+            <button class="btn btn-danger" @onclick="LeaveGameAsync">Leave</button>
+        </div>
+    </div>
+
+    @if (gameState == null)
+    {
+        <p>Loading game...</p>
+        <button class="btn btn-primary" @onclick="StartGameAsync">Start Game</button>
+    }
+    else
+    {
+        <!-- Game Board -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div style="border: 2px solid #2d5016; border-radius: 50%; width: 500px; height: 500px; background-color: #1a5f3f; margin: 0 auto; position: relative;">
+                    <!-- Community Cards -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div style="margin-bottom: 10px;"><strong>Community Cards</strong></div>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            @foreach (var card in gameState.CommunityCards)
+                            {
+                                <div style="width: 60px; height: 90px; background: white; border: 1px solid black; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                    @card.ToString()
+                                </div>
+                            }
+                        </div>
+                        <div style="margin-top: 15px; font-size: 18px; color: white;">
+                            <strong>Pot: @gameState.Pot</strong> | Current Bet: @gameState.CurrentBet
+                        </div>
+                    </div>
+
+                    <!-- Seats (10 around the table) -->
+                    @for (int i = 0; i < 10; i++)
+                    {
+                        var angle = (i * 36) * Math.PI / 180;
+                        var x = 250 + 200 * Math.Cos(angle);
+                        var y = 250 + 200 * Math.Sin(angle);
+                        var player = gameState.Players.FirstOrDefault(p => p.SeatNumber == i + 1);
+
+                        <div style="position: absolute; left: @(x)px; top: @(y)px; transform: translate(-50%, -50%); text-align: center; font-size: 12px; color: white;">
+                            <div style="width: 80px; padding: 5px; background-color: @(player != null ? "#4a90e2" : "#666"); border-radius: 5px;">
+                                <strong>Seat @(i+1)</strong><br />
+                                @if (player != null)
+                                {
+                                    <span>@player.Username</span><br />
+                                    <small>@player.ChipStack 🪙</small><br />
+                                    <small>Bet: @player.CurrentBet</small><br />
+                                    @if (player.HasFolded) { <span style="color: red;">FOLDED</span> }
+                                    @if (player.IsAllIn) { <span style="color: gold;">ALL-IN</span> }
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Player and Actions -->
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Current Turn: Seat @gameState.CurrentPlayerSeatNumber</h5>
+                        <p class="card-text">Phase: <strong>@gameState.Phase</strong></p>
+
+                        <!-- Action Buttons -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-danger" @onclick="() => PostActionAsync(\"fold\")">Fold</button>
+                            <button class="btn btn-outline-secondary" @onclick="() => PostActionAsync(\"check\")">Check</button>
+                            <button class="btn btn-outline-primary" @onclick="() => PostActionAsync(\"call\")">Call</button>
+                            <button class="btn btn-primary" @onclick="ShowBetModal">Bet/Raise</button>
+                            <button class="btn btn-warning" @onclick="() => PostActionAsync(\"allin\")">All-In</button>
+                        </div>
+
+                        <div class="mt-3">
+                            <button class="btn btn-info" @onclick="RefreshAsync">Refresh Status</button>
+                            <button class="btn btn-secondary" @onclick="() => PostActionAsync(\"nextphase\")">Next Phase</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Bet/Raise Modal -->
+<div class="modal" style="display: @(showBetModal ? "block" : "none")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bet/Raise</h5>
+                <button class="btn-close" @onclick="HideBetModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Amount:</label>
+                    <input type="number" class="form-control" @bind="betAmount" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="HideBetModal">Cancel</button>
+                <button class="btn btn-primary" @onclick="PostBetAsync">Bet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int TableId { get; set; }
+
+    private GameState? gameState;
+    private bool showBetModal = false;
+    private long betAmount = 100;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        gameState = await PokerApi.GetGameStatusAsync(TableId);
+        StateHasChanged();
+    }
+
+    private async Task StartGameAsync()
+    {
+        if (await PokerApi.StartGameAsync(TableId))
+        {
+            await RefreshAsync();
+        }
+    }
+
+    private async Task PostActionAsync(string action)
+    {
+        if (action == "nextphase")
+        {
+            await PokerApi.NextPhaseAsync(TableId);
+        }
+        else
+        {
+            await PokerApi.PostActionAsync(TableId, action, null);
+        }
+        await Task.Delay(500);
+        await RefreshAsync();
+    }
+
+    private void ShowBetModal() => showBetModal = true;
+    private void HideBetModal() => showBetModal = false;
+
+    private async Task PostBetAsync()
+    {
+        await PokerApi.PostActionAsync(TableId, "bet", betAmount);
+        HideBetModal();
+        await Task.Delay(500);
+        await RefreshAsync();
+    }
+
+    private async Task LeaveGameAsync()
+    {
+        await PokerApi.LeaveTableAsync(TableId);
+        Nav.NavigateTo("/tables");
+    }
+}

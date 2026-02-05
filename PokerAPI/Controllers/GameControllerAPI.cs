@@ -526,6 +526,21 @@ namespace PokerAPI.Controllers
         {
             _game = game;
             _hub = hub;
+
+            // Subscribe to game events to broadcast updates via SignalR
+            _game.CommunityCardsUpdated += () =>
+            {
+                _ = _hub.Clients.All.SendAsync("CommunityCardsUpdated", new
+                {
+                    communityCards = _game.CommunityCards.Select(c => $"{c.Rank} of {c.Suit}")
+                });
+            };
+
+            _game.ShowdownCompleted += () =>
+            {
+                var details = _game.GetShowdownDetails();
+                _ = _hub.Clients.All.SendAsync("ShowdownCompleted", details);
+            };
         }
         private void AdvanceTurnIfNeeded()
         {

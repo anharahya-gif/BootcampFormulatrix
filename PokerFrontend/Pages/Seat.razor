@@ -1,0 +1,68 @@
+@page "/seat/{TableId:int}"
+@using PokerFrontend.Models
+@using PokerFrontend.Services
+@inject IPokerApiService PokerApi
+@inject NavigationManager Nav
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Select Seat</h2>
+        </div>
+        <div class="col text-end">
+            <button class="btn btn-outline-secondary" @onclick="BackAsync">Back</button>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Chip Deposit:</label>
+        <input type="number" class="form-control" @bind="chipDeposit" style="max-width: 200px;" />
+    </div>
+
+    <div class="row">
+        @for (int seat = 1; seat <= 10; seat++)
+        {
+            <div class="col-md-2 mb-3" style="text-align: center;">
+                <button class="btn btn-outline-primary" style="width: 100%; height: 100px;" @onclick="() => JoinSeatAsync(seat)">
+                    Seat @seat
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-info">@message</div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int TableId { get; set; }
+
+    private long chipDeposit = 500;
+    private string message = "";
+
+    private async Task JoinSeatAsync(int seatNumber)
+    {
+        if (chipDeposit <= 0)
+        {
+            message = "Chip deposit must be greater than 0";
+            return;
+        }
+
+        if (await PokerApi.JoinTableAsync(TableId, seatNumber, chipDeposit))
+        {
+            Nav.NavigateTo($"/play/{TableId}");
+        }
+        else
+        {
+            message = "Failed to join seat. Try another.";
+        }
+    }
+
+    private async Task BackAsync()
+    {
+        Nav.NavigateTo("/tables");
+    }
+}

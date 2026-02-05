@@ -41,9 +41,64 @@ namespace PokerAPI.Services
                     ChipStack = player.ChipStack,
                     State = status.State.ToString(),
                     CurrentBet = status.CurrentBet,
-                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList()
+                    // Do NOT expose other players' cards in public state
+                    Hand = new List<string>()
                 };
             });
+        }
+
+        // Event fired when community cards are exposed/changed (flop/turn/river)
+        public event Action? CommunityCardsUpdated;
+
+        // Event fired when showdown completes
+        public event Action? ShowdownCompleted;
+
+        // Return visible info for a specific player (their own hand + evaluated rank)
+        public object? EvaluateVisibleForPlayer(string playerName)
+        {
+            var kv = PlayerMap.FirstOrDefault(k => k.Key.Name == playerName);
+            if (kv.Key == null) return null;
+
+            var player = kv.Key;
+            var status = kv.Value;
+
+            var combined = status.Hand.Concat(CommunityCards).ToList();
+            var rank = EvaluateHand(combined);
+
+            return new
+            {
+                Player = player.Name,
+                SeatIndex = player.SeatIndex,
+                Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                CommunityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                Rank = rank.ToString()
+            };
+        }
+
+        // Return full showdown details (all player cards and ranks) - only valid at showdown
+        public object GetShowdownDetails()
+        {
+            var details = PlayerMap.Select(kv =>
+            {
+                var player = kv.Key;
+                var status = kv.Value;
+                var combined = status.Hand.Concat(CommunityCards).ToList();
+                var rank = EvaluateHand(combined);
+                return new
+                {
+                    Player = player.Name,
+                    SeatIndex = player.SeatIndex,
+                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                    Rank = rank.ToString()
+                };
+            }).ToList();
+
+            return new
+            {
+                CommunityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                Players = details,
+                Winners = DetermineWinners().Select(p => p.Name).ToList()
+            };
         }
         public int GetTotalPot()
         {
@@ -214,19 +269,26 @@ namespace PokerAPI.Services
                 CommunityCards.Add(Deck.Draw());
                 CommunityCards.Add(Deck.Draw());
                 CommunityCards.Add(Deck.Draw());
+                CommunityCardsUpdated?.Invoke();
             }
         }
 
         private void DealTurn()
         {
             if (Deck.RemainingCards() >= 1)
+            {
                 CommunityCards.Add(Deck.Draw());
+                CommunityCardsUpdated?.Invoke();
+            }
         }
 
         private void DealRiver()
         {
             if (Deck.RemainingCards() >= 1)
+            {
                 CommunityCards.Add(Deck.Draw());
+                CommunityCardsUpdated?.Invoke();
+            }
         }
 
         public void NextPhase()
@@ -626,6 +688,8 @@ namespace PokerAPI.Services
 
             _hasRoundStarted = false;
             Phase = GamePhase.PreFlop;
+
+            ShowdownCompleted?.Invoke();
 
             return (winners, bestRank);
         }

@@ -1,164 +1,125 @@
 classDiagram
-    class Suit {
-        <<enumeration>>
-        Hearts
-        Diamonds
-        Clubs
-        Spades
-    }
-    class Rank {
-        <<enumeration>>
-        Two
-        Three
-        Four
-        Five
-        Six
-        Seven
-        Eight
-        Nine
-        Ten
-        Jack
-        Queen
-        King
-        Ace
-    }
-    class HandRank {
-        <<enumeration>>
-        HighCard
-        Pair
-        TwoPair
-        ThreeOfAKind
-        Straight
-        Flush
-        FullHouse
-        FourOfAKind
-        StraightFlush
-    }
-    class GamePhase {
-        <<enumeration>>
-        PreFlop
-        Flop
-        Turn
-        River
-        Showdown
-    }
-    class PlayerState {
-        <<enumeration>>
-        Active
-        Folded
-        AllIn
-        Eliminated
-    }
-    class GameState {
-        <<enumeration>>
-        WaitingForPlayers
-        InProgress
-        Completed
+    namespace Models {
+        class Card {
+            +Rank Rank
+            +Suit Suit
+            +ToString() string
+        }
+        class Player {
+            +string Name
+            +int ChipStack
+            +PlayerState State
+            +bool IsAllIn
+            +int SeatIndex
+            +Player(string name, int startingChips, int seatIndex)
+        }
+        class PlayerStatus {
+            +List~Card~ Hand
+            +PlayerState State
+            +int CurrentBet
+            +bool HasActed
+            +ResetStatus()
+        }
+        class Pot {
+            +int TotalChips
+            +AddChips(int amount)
+            +Reset()
+        }
+        class Deck {
+            -Stack~Card~ _cards
+            +Shuffle()
+            +Draw() Card
+            +RemainingCards() int
+        }
+        class ShowdownResult {
+            +List~Player~ Winners
+            +HandRank Rank
+            +List~PlayerShowdownDetail~ Details
+        }
     }
 
-    class Card {
-        +Rank Rank
-        +Suit Suit
-        +ToString() string
+    namespace Enums {
+        class Suit {
+            <<enumeration>>
+            Hearts, Diamonds, Clubs, Spades
+        }
+        class Rank {
+            <<enumeration>>
+            Two ... Ace
+        }
+        class HandRank {
+            <<enumeration>>
+            HighCard ... StraightFlush
+        }
+        class GamePhase {
+            <<enumeration>>
+            PreFlop, Flop, Turn, River, Showdown
+        }
+        class PlayerState {
+            <<enumeration>>
+            Active, Folded, AllIn, Eliminated
+        }
+        class GameState {
+            <<enumeration>>
+            WaitingForPlayers, InProgress, Completed
+        }
     }
 
-    class Deck {
-        -Stack~Card~ _cards
-        +Shuffle()
-        +Draw() Card
-        +RemainingCards() int
+    namespace Interfaces {
+        class IGameController {
+            <<interface>>
+            +GetGameState() string
+            +GetTotalPot() int
+            +AddPlayer(string name, int chips, int seatIndex)
+            +StartRound()
+            +HandleBet(IPlayer player, int amount) bool
+            +ResolveShowdown() List~IPlayer~
+        }
+        class IDeck { <<interface>> }
+        class IPlayer { <<interface>> }
+        class IPot { <<interface>> }
     }
 
-    class Player {
-        +string Name
-        +int ChipStack
-        +PlayerState State
-        +bool IsAllIn
-        +int SeatIndex
+    namespace Services {
+        class GameController {
+            -IDeck _deck
+            -IPot _pot
+            -Dictionary~IPlayer, PlayerStatus~ PlayerMap
+            +StartRound()
+            +NextPhase()
+            +HandleBet(...)
+            -EvaluateHand(...)
+            -TryAutoAdvance(...)
+        }
     }
 
-    class PlayerStatus {
-        +List~Card~ Hand
-        +PlayerState State
-        +int CurrentBet
-        +bool HasActed
-        +ResetStatus()
+    namespace Hubs {
+        class PokerHub {
+            +SendGameState(object gameState)
+            +SendMessage(string message)
+        }
     }
 
-    class Pot {
-        +int TotalChips
-        +AddChips(int amount)
-        +Reset()
-    }
+    %% Relationships
+    Player ..|> IPlayer : implements
+    Deck ..|> IDeck : implements
+    Pot ..|> IPot : implements
+    GameController ..|> IGameController : implements
 
-    class ShowdownResult {
-        +List~Player~ Winners
-        +HandRank HandRank
-        +string Message
-    }
-
-    class AddChipsRequest {
-        +string PlayerName
-        +int Amount
-    }
-
-    class GameController {
-        -bool _hasRoundStarted
-        -const int MaxPlayers
-        +Deck Deck
-        +Pot Pot
-        +Dictionary~Player, PlayerStatus~ PlayerMap
-        +List~Card~ CommunityCards
-        +int CurrentPlayerIndex
-        +int CurrentBet
-        +GamePhase Phase
-        +ShowdownResult? LastShowdown
-        +GetGameState() string
-        +CanStartRound() bool
-        +AddPlayer(Player player)
-        +RemovePlayer(Player player)
-        +ActivePlayers() List~Player~
-        +StartRound()
-        +NextPhase()
-        +GetCurrentPlayer() Player
-        +GetNextActivePlayer() Player
-        +IsBettingRoundOver() bool
-        +HandleBet(Player player, int amount) bool
-        +HandleCall(Player player) bool
-        +HandleRaise(Player player, int raiseAmount) bool
-        +HandleFold(Player player)
-        +HandleCheck(Player player)
-        +HandleAllIn(string playerName) bool
-        +EvaluateHands() Dictionary~Player, HandRank~
-        +DetermineWinners() List~Player~
-        +ResolveShowdownDetailed() (List~Player~, HandRank)
-    }
-
-    class GameControllerAPI {
-        -GameController _game
-        +AddPlayer(string name, int chips, int seatIndex) IActionResult
-        +AddChips(AddChipsRequest request) IActionResult
-        +RemovePlayer(string name) IActionResult
-        +StartRound() IActionResult
-        +NextPhase() IActionResult
-        +Bet(string name, int amount) IActionResult
-        +Call(string name) IActionResult
-        +Raise(string name, int amount) IActionResult
-        +Check(string name) IActionResult
-        +Fold(string name) IActionResult
-        +Showdown() IActionResult
-        +AllIn(string name) IActionResult
-        +State() IActionResult
-    }
-
-    GameController --> Deck
-    GameController --> Pot
-    GameController --> Player
-    GameController --> PlayerStatus
-    GameController --> Card
-    GameController --> ShowdownResult
-    GameControllerAPI --> GameController
-    GameControllerAPI ..> AddChipsRequest
-    Deck --> Card
-    PlayerStatus --> Card
-    ShowdownResult --> Player
+    GameController "1" *-- "1" IDeck : uses
+    GameController "1" *-- "1" IPot : uses
+    GameController "1" o-- "*" IPlayer : manages
+    GameController "1" o-- "*" PlayerStatus : tracks state for players
+    
+    PlayerStatus "1" o-- "*" Card : contains
+    Deck "1" o-- "52" Card : contains
+    Card --> Rank : has
+    Card --> Suit : has
+    
+    Player --> PlayerState : has
+    PlayerStatus --> PlayerState : has
+    GameController --> GamePhase : tracks
+    GameController --> GameState : tracks
+    
+    ShowdownResult --> HandRank : has
+    ShowdownResult o-- "*" Player : winners

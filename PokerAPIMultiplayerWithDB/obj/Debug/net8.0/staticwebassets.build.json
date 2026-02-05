@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "DjNB0oKuj5hG8G9PsiuYQauJG8XInWCMHJ5zOfA45z8=",
+  "Source": "PokerAPIMultiplayerWithDB",
+  "BasePath": "_content/PokerAPIMultiplayerWithDB",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
