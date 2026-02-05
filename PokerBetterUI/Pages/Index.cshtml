@@ -87,9 +87,9 @@
             Model.ShowdownState?.Winners?.Contains(player.Name) == true;
 
             <div class="player-container
-                                                                                                                                    @(isCurrent ? "current-turn" : "")
-                                                                                                                                    @(isWinner ? "winner-player" : "")"
-                data-seat="@i" style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+                                                                                                                @(isCurrent ? "current-turn" : "")
+                                                                                                                @(isWinner ? "winner-player" : "")"
+                style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
 
                 @* Jika ada player *@
                 @if (player != null)
@@ -201,68 +201,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
 <script>
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("http://localhost:5175/pokerHub", {
-            withCredentials: true
-        })
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-    connection.on("ReceiveGameState", (state) => {
-        console.log("🎲 GameState received:", state);
+  const connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:5175/pokerHub", { withCredentials: true })
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
 
-        updateTableInfo(state);
-        updateCommunityCards(state.communityCards);
-        updatePlayers(state);
-    });
+  connection.start()
+      .then(() => console.log("✅ SignalR connected"))
+      .catch(err => console.error("❌ SignalR connection error:", err));
 
-
-    connection.start()
-        .then(() => console.log("✅ SignalR connected"))
-        .catch(err => console.error("❌ SignalR error:", err));
-
-    function updateTableInfo(state) {
-        const phaseEl = document.querySelector(".game-phase");
-        if (phaseEl) phaseEl.textContent = state.phase;
-
-        const potEl = document.querySelector(".game-pot");
-        if (potEl) potEl.childNodes[1].nodeValue = ` ${state.pot}`;
-    }
-
-    function updatePlayers(state) {
-        document.querySelectorAll(".player-container").forEach(seat => {
-            const seatIndex = parseInt(seat.dataset.seat);
-            const player = state.players.find(p => p.seatIndex === seatIndex);
-
-            if (!player) return; // struktur sudah handle empty seat
-
-            // name
-            seat.querySelector(".player-name").textContent = player.name;
-
-            // chips
-            seat.querySelector(".chip-count").textContent = player.chipStack;
-
-            // current turn
-            seat.classList.toggle("current-turn", state.currentPlayer === player.name);
-
-            // cards
-            const cards = seat.querySelectorAll(".player-card");
-            cards.forEach((img, i) => {
-                if (!player.hand || !player.hand[i]) {
-                    img.src = "/lib/cards/back_dark.png";
-                    return;
-                }
-
-                const canReveal =
-                    state.phase === "Showdown" ||
-                    state.currentPlayer === player.name;
-
-                img.src = `/lib/cards/${convertCardToFileName(
-                    canReveal ? player.hand[i] : null
-                )}`;
-            });
-        });
-    }
-
+  // Contoh menerima pesan
+  connection.on("ReceiveMessage", (user, message) => {
+      console.log(`${user}: ${message}`);
+  });
 
 
     // JavaScript Card Name Converter (matches C# CardImageMapper)
@@ -332,22 +283,22 @@
         } catch (err) {
             console.error('Error refreshing game state:', err);
         }
-    } *@
+    }
 
-        @* setInterval(refreshGameState, 2000); *@
-        async function allIn(playerName, btn) {
-            try {
-                btn.disabled = true;
-                const originalText = btn.textContent;
-                btn.textContent = "Processing...";
-                const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
-                if (response.ok) window.location.reload();
-                else { btn.disabled = false; btn.textContent = originalText; alert("Gagal All-In!"); }
-            } catch (err) {
-                console.error(err);
-                alert("Terjadi error!"); btn.disabled = false; btn.textContent = originalText;
-            }
+    setInterval(refreshGameState, 2000); *@
+    async function allIn(playerName, btn) {
+        try {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "Processing...";
+            const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+            if (response.ok) window.location.reload();
+            else { btn.disabled = false; btn.textContent = originalText; alert("Gagal All-In!"); }
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi error!"); btn.disabled = false; btn.textContent = originalText;
         }
+    }
 
     function joinSeat(seatIndex) {
         const playerName = prompt("Masukkan nama player:");
@@ -367,11 +318,10 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) location.reload();
-                else alert(data.message); // misal "Seat already occupied"
+                else alert(data.message);
             })
-            .catch(err => alert("Error: " + err.message));
+            .catch(err => alert("Error: " + err));
     }
-
     function leaveSeat(playerName) {
         if (!playerName) return;
         if (!confirm(`Apakah kamu yakin ingin menghapus player ${playerName}?`)) return;
@@ -480,9 +430,6 @@
                 canStart = false;
             }
         });
-        if (chipSpans.length < 2) { // minimal 2 player untuk mulai
-            canStart = false;
-        }
 
         // Disable atau enable tombol Start Round
         startBtn.disabled = !canStart;

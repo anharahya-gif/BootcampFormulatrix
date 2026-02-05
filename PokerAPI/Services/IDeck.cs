@@ -14,7 +14,7 @@ namespace PokerAPI.Services.Interfaces
         /// Ambil 1 kartu dari deck
         /// </summary>
         /// <returns>Card yang diambil, atau null jika habis</returns>
-        Card Draw();
+        ICard Draw();
 
         /// <summary>
         /// Jumlah kartu tersisa di deck

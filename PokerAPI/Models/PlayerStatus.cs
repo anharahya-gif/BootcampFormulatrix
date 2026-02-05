@@ -1,8 +1,9 @@
+using PokerAPI.Services.Interfaces;
 namespace PokerAPI.Models
 {
     public class PlayerStatus
     {
-        public List<Card> Hand { get; set; } = new List<Card>();
+        public List<ICard> Hand { get; set; } = new List<ICard>();
         public PlayerState State { get; set; } = PlayerState.Active;
         public int CurrentBet { get; set; } = 0;
         public bool HasActed { get; set; }

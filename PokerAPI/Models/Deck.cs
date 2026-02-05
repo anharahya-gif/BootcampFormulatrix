@@ -5,16 +5,16 @@ namespace PokerAPI.Models
 {
     public class Deck : IDeck
     {
-        private Stack<Card> _cards;
+        private Stack<ICard> _cards;
 
         public Deck()
         {
-            _cards = new Stack<Card>(CreateDeck());
+            _cards = new Stack<ICard>(CreateDeck());
         }
 
-        private List<Card> CreateDeck()
+        private List<ICard> CreateDeck()
         {
-            var deck = new List<Card>();
+            var deck = new List<ICard>();
 
             foreach (Suit suit in Enum.GetValues(typeof(Suit)))
             {
@@ -30,10 +30,10 @@ namespace PokerAPI.Models
         public void Shuffle()
         {
             var rnd = Random.Shared;
-            _cards = new Stack<Card>(_cards.OrderBy(c => rnd.Next()));
+            _cards = new Stack<ICard>(_cards.OrderBy(c => rnd.Next()));
         }
 
-        public Card Draw()
+        public ICard Draw()
         {
             return _cards.Count > 0 ? _cards.Pop() : null;
         }

@@ -1,6 +1,7 @@
+using PokerAPI.Services.Interfaces;
 namespace PokerAPI.Models
 {
-    public class Card
+    public class Card : ICard
     {
         public Rank Rank { get; }
         public Suit Suit { get; }
