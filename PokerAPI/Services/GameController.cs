@@ -1,4 +1,5 @@
 using PokerAPI.Models;
+using PokerAPI.Models.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -26,6 +27,39 @@ namespace PokerAPI.Services
 
         public ShowdownResult? LastShowdown { get; private set; }
 
+        public IEnumerable<PlayerPublicState> GetPlayersPublicState()
+        {
+            return PlayerMap.Select(kv =>
+            {
+                var player = kv.Key;
+                var status = kv.Value;
+
+                return new PlayerPublicState
+                {
+                    SeatIndex = player.SeatIndex,
+                    Name = player.Name,
+                    ChipStack = player.ChipStack,
+                    State = status.State.ToString(),
+                    CurrentBet = status.CurrentBet,
+                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList()
+                };
+            });
+        }
+        public int GetTotalPot()
+        {
+            return Pot.TotalChips;
+        }
+
+        public IPlayer? GetPlayerByName(string name)
+        {
+            return PlayerMap.Keys.FirstOrDefault(p => p.Name == name);
+        }
+
+        public int GetTotalPlayers()
+        {
+            return PlayerMap.Count;
+        }
+
         public string GetGameState()
         {
             if (PlayerMap.Count < 2)
@@ -52,40 +86,84 @@ namespace PokerAPI.Services
             return Phase == GamePhase.Showdown;
         }
 
+
+
         // ======================
         // Player Management
         // ======================
-        public void AddPlayer(IPlayer player)
+        // public void AddPlayer(IPlayer player)
+        // {
+        //     if (PlayerMap.Count >= MaxPlayers)
+        //         throw new InvalidOperationException($"Table is full (max {MaxPlayers} players)");
+
+        //     if (PlayerMap.ContainsKey(player))
+        //         throw new InvalidOperationException("Player already exists");
+
+        //     // ============================
+        //     // Tentukan seat index dari frontend
+        //     // ============================
+        //     var occupiedSeats = PlayerMap.Keys.Select(p => p.SeatIndex).ToList();
+
+        //     if (player.SeatIndex < 0 || player.SeatIndex >= MaxPlayers)
+        //         throw new InvalidOperationException("Seat index invalid");
+
+        //     if (occupiedSeats.Contains(player.SeatIndex))
+        //         throw new InvalidOperationException("Seat already occupied");
+
+        //     // ============================
+        //     // Tambahkan player ke map
+        //     // ============================
+        //     PlayerMap[player] = new PlayerStatus();
+        // }
+        public void AddPlayer(string name, int chips, int seatIndex)
         {
             if (PlayerMap.Count >= MaxPlayers)
                 throw new InvalidOperationException($"Table is full (max {MaxPlayers} players)");
 
-            if (PlayerMap.ContainsKey(player))
+            if (PlayerMap.Keys.Any(p => p.Name == name))
                 throw new InvalidOperationException("Player already exists");
 
-            // ============================
-            // Tentukan seat index dari frontend
-            // ============================
+            var player = new Player(name, chips)
+            {
+                SeatIndex = seatIndex
+            };
+
             var occupiedSeats = PlayerMap.Keys.Select(p => p.SeatIndex).ToList();
 
-            if (player.SeatIndex < 0 || player.SeatIndex >= MaxPlayers)
+            if (seatIndex < 0 || seatIndex >= MaxPlayers)
                 throw new InvalidOperationException("Seat index invalid");
 
-            if (occupiedSeats.Contains(player.SeatIndex))
+            if (occupiedSeats.Contains(seatIndex))
                 throw new InvalidOperationException("Seat already occupied");
 
-            // ============================
-            // Tambahkan player ke map
-            // ============================
             PlayerMap[player] = new PlayerStatus();
         }
 
 
+
+
         public void RemovePlayer(IPlayer player)
         {
-            if (PlayerMap.ContainsKey(player))
-                PlayerMap.Remove(player);
+            if (!PlayerMap.ContainsKey(player)) return;
+
+            int removedIndex = PlayerMap.Keys.ToList().IndexOf(player);
+            PlayerMap.Remove(player);
+
+            // Sesuaikan CurrentPlayerIndex
+            if (PlayerMap.Count == 0)
+            {
+                CurrentPlayerIndex = 0;
+                _hasRoundStarted = false;
+                Phase = GamePhase.PreFlop;
+            }
+            else if (removedIndex <= CurrentPlayerIndex)
+            {
+                CurrentPlayerIndex--;
+                if (CurrentPlayerIndex < 0)
+                    CurrentPlayerIndex = 0;
+            }
         }
+
 
         public List<IPlayer> ActivePlayers()
         {
@@ -195,23 +273,30 @@ namespace PokerAPI.Services
         // ======================
         // Player Turn Management
         // ======================
-        public IPlayer GetCurrentPlayer()
+        public IPlayer? GetCurrentPlayer()
         {
             var activePlayers = ActivePlayers();
             if (!activePlayers.Any()) return null;
 
+            // Pastikan CurrentPlayerIndex valid
             var playerList = PlayerMap.Keys.ToList();
-            var player = playerList[CurrentPlayerIndex];
-            if (PlayerMap[player].State != PlayerState.Active)
+            if (CurrentPlayerIndex < 0 || CurrentPlayerIndex >= playerList.Count)
+                CurrentPlayerIndex = 0;
+
+            var currentPlayer = playerList[CurrentPlayerIndex];
+
+            // Jika player ini sudah tidak aktif, ambil player aktif berikutnya
+            if (PlayerMap[currentPlayer].State != PlayerState.Active)
                 return GetNextActivePlayer();
 
-            return player;
+            return currentPlayer;
         }
-
-        public IPlayer GetNextActivePlayer()
+        public IPlayer? GetNextActivePlayer()
         {
             var playerList = PlayerMap.Keys.ToList();
             int count = playerList.Count;
+            if (count == 0) return null;
+
             for (int i = 1; i <= count; i++)
             {
                 int nextIndex = (CurrentPlayerIndex + i) % count;
@@ -222,8 +307,10 @@ namespace PokerAPI.Services
                     return nextPlayer;
                 }
             }
+
             return null; // semua pemain fold/all-in
         }
+
 
         public bool IsBettingRoundOver()
         {
@@ -583,8 +670,10 @@ namespace PokerAPI.Services
 
         private void TryAutoAdvance()
         {
-            // 1️⃣ Tinggal 1 player → langsung menang
-            if (ActivePlayers().Count == 1)
+            var active = ActivePlayers();
+
+            // 1️⃣ Hanya 1 player tersisa → langsung menang
+            if (active.Count == 1)
             {
                 Phase = GamePhase.Showdown;
                 ResolveShowdownDetailed();
@@ -605,9 +694,7 @@ namespace PokerAPI.Services
             {
                 NextPhase();
                 if (Phase == GamePhase.Showdown)
-                {
                     ResolveShowdownDetailed();
-                }
             }
         }
 
@@ -629,13 +716,5 @@ namespace PokerAPI.Services
                 DealRiver();
             }
         }
-
-
-
-
-
-
-
-
     }
 }

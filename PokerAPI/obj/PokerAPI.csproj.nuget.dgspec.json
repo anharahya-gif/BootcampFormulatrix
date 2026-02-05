@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {}
   },
   "projects": {
-    "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
         "projectName": "PokerAPI",
-        "projectPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
-        "packagesPath": "C:\\Users\\AnharAhya\\.nuget\\packages\\",
-        "outputPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerAPI\\obj\\",
+        "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\PokerAPI.csproj",
+        "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\AnharAhya\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -75,7 +75,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

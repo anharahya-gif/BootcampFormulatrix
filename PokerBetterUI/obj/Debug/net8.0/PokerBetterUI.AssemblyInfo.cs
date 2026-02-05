@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PokerBetterUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c4ac8a3d34970bafe0e6c2be9fa2d1f89cac4d8b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+087940b1e84e3f7667b08d71331d701efbbb2648")]
 [assembly: System.Reflection.AssemblyProductAttribute("PokerBetterUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PokerBetterUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

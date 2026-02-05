@@ -74,3 +74,11 @@ D:\Bootcamp\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.O
 D:\Bootcamp\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
 D:\Bootcamp\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Newtonsoft.Json.dll
 D:\Bootcamp\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\System.Net.WebSockets.WebSocketProtocol.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.Hosting.Abstractions.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.ObjectPool.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\Newtonsoft.Json.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI\bin\Debug\net8.0\System.Net.WebSockets.WebSocketProtocol.dll

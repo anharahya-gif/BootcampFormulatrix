@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Bootcamp\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj": {}
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj": {}
   },
   "projects": {
-    "D:\\Bootcamp\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj": {
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Bootcamp\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj",
+        "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj",
         "projectName": "PokerBetterUI",
-        "projectPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj",
-        "packagesPath": "C:\\Users\\AnharAhya\\.nuget\\packages\\",
-        "outputPath": "D:\\Bootcamp\\BootcampFormulatrix\\PokerBetterUI\\obj\\",
+        "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\PokerBetterUI.csproj",
+        "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerBetterUI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\AnharAhya\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -61,7 +61,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

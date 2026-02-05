@@ -1,4 +1,5 @@
 using PokerAPI.Services;
+using PokerAPI.Services.Interfaces;
 using PokerAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Services
 // =======================
 builder.Services.AddControllers();
-builder.Services.AddSingleton<GameController>();
+builder.Services.AddSingleton<IGameController, GameController>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();  
 builder.Services.AddSignalR(); 
