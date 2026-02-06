@@ -4297,11 +4297,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\PokerAPIMultiplayerWithDB.csproj",
+      "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\PokerAPIMultiplayerWithDB.csproj",
       "projectName": "PokerAPIMultiplayerWithDB",
-      "projectPath": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\PokerAPIMultiplayerWithDB.csproj",
+      "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\PokerAPIMultiplayerWithDB.csproj",
       "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\obj\\",
+      "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMultiplayerWithDB\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"

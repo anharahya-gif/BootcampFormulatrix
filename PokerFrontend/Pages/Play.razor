@@ -31,7 +31,7 @@
                         <div style="display: flex; gap: 10px; justify-content: center;">
                             @foreach (var card in gameState.CommunityCards)
                             {
-                                <div style="width: 60px; height: 90px; background: white; border: 1px solid black; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 60px; height: 90px; background: white; border: 1px solid black; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px;">
                                     @card.ToString()
                                 </div>
                             }
@@ -77,16 +77,16 @@
 
                         <!-- Action Buttons -->
                         <div class="btn-group" role="group">
-                            <button class="btn btn-outline-danger" @onclick="() => PostActionAsync(\"fold\")">Fold</button>
-                            <button class="btn btn-outline-secondary" @onclick="() => PostActionAsync(\"check\")">Check</button>
-                            <button class="btn btn-outline-primary" @onclick="() => PostActionAsync(\"call\")">Call</button>
-                            <button class="btn btn-primary" @onclick="ShowBetModal">Bet/Raise</button>
-                            <button class="btn btn-warning" @onclick="() => PostActionAsync(\"allin\")">All-In</button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="FoldAsync">Fold</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CheckAsync">Check</button>
+                            <button type="button" class="btn btn-outline-primary" @onclick="CallAsync">Call</button>
+                            <button type="button" class="btn btn-primary" @onclick="ShowBetModal">Bet/Raise</button>
+                            <button type="button" class="btn btn-warning" @onclick="AllInAsync">All-In</button>
                         </div>
 
                         <div class="mt-3">
-                            <button class="btn btn-info" @onclick="RefreshAsync">Refresh Status</button>
-                            <button class="btn btn-secondary" @onclick="() => PostActionAsync(\"nextphase\")">Next Phase</button>
+                            <button type="button" class="btn btn-info" @onclick="RefreshAsync">Refresh Status</button>
+                            <button type="button" class="btn btn-secondary" @onclick="NextPhaseAsync">Next Phase</button>
                         </div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Bet/Raise</h5>
-                <button class="btn-close" @onclick="HideBetModal"></button>
+                <button type="button" class="btn-close" @onclick="HideBetModal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -110,8 +110,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="HideBetModal">Cancel</button>
-                <button class="btn btn-primary" @onclick="PostBetAsync">Bet</button>
+                <button type="button" class="btn btn-secondary" @onclick="HideBetModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="PostBetAsync">Bet</button>
             </div>
         </div>
     </div>
@@ -157,6 +157,12 @@
         await Task.Delay(500);
         await RefreshAsync();
     }
+
+    private async Task FoldAsync() => await PostActionAsync("fold");
+    private async Task CheckAsync() => await PostActionAsync("check");
+    private async Task CallAsync() => await PostActionAsync("call");
+    private async Task AllInAsync() => await PostActionAsync("allin");
+    private async Task NextPhaseAsync() => await PostActionAsync("nextphase");
 
     private void ShowBetModal() => showBetModal = true;
     private void HideBetModal() => showBetModal = false;

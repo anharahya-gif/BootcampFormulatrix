@@ -1,10 +1,12 @@
 using PokerFrontend.Models;
+using System.Net.Http.Json;
+using System.Net.Http.Headers;
 
 namespace PokerFrontend.Services;
 
 public interface IPokerApiService
 {
-    Task<List<Table>> GetTablesAsync();
+    Task<List<Table>?> GetTablesAsync();
     Task<int?> CreateTableAsync(string name, long minBuyIn, long maxBuyIn);
     Task<bool> JoinTableAsync(int tableId, int seatNumber, long chipDeposit);
     Task<bool> LeaveTableAsync(int tableId);
@@ -17,44 +19,38 @@ public interface IPokerApiService
 public class PokerApiService : IPokerApiService
 {
     private readonly HttpClient _http;
-    private readonly IAuthService _auth;
 
-    public PokerApiService(HttpClient http, IAuthService auth)
+    public PokerApiService(HttpClient http)
     {
         _http = http;
-        _auth = auth;
     }
 
-    private void AddAuthHeader()
+    public void SetAuthToken(string? token)
     {
-        var token = _auth.GetToken();
-        if (!string.IsNullOrEmpty(token))
-        {
-            _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        }
+        if (string.IsNullOrEmpty(token))
+            _http.DefaultRequestHeaders.Authorization = null;
+        else
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
-    public async Task<List<Table>> GetTablesAsync()
+    public async Task<List<Table>?> GetTablesAsync()
     {
         try
         {
-            AddAuthHeader();
-            var response = await _http.GetFromJsonAsync<List<Table>>("api/table/tables");
-            return response ?? new();
+            return await _http.GetFromJsonAsync<List<Table>>("api/table/tables");
         }
-        catch { return new(); }
+        catch { return null; }
     }
 
     public async Task<int?> CreateTableAsync(string name, long minBuyIn, long maxBuyIn)
     {
         try
         {
-            AddAuthHeader();
             var response = await _http.PostAsJsonAsync("api/table/create", new { TableName = name, MinBuyIn = minBuyIn, MaxBuyIn = maxBuyIn });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsAsync<dynamic>();
-                return result?.table?.Id ?? result?.tableId;
+                var tableId = await response.Content.ReadFromJsonAsync<int>();
+                return tableId;
             }
             return null;
         }
@@ -65,7 +61,6 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
             var response = await _http.PostAsJsonAsync("api/table/join", new { TableId = tableId, SeatNumber = seatNumber, ChipDeposit = chipDeposit });
             return response.IsSuccessStatusCode;
         }
@@ -76,7 +71,6 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
             var response = await _http.PostAsJsonAsync("api/table/leave", new { TableId = tableId });
             return response.IsSuccessStatusCode;
         }
@@ -87,8 +81,8 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
-            var response = await _http.PostAsync($"api/game/start/{tableId}", null);
+            var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync($"api/game/start/{tableId}", content);
             return response.IsSuccessStatusCode;
         }
         catch { return false; }
@@ -98,7 +92,6 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
             var response = await _http.PostAsJsonAsync($"api/game/action/{tableId}", new PlayerActionRequest { Action = action, Amount = amount });
             return response.IsSuccessStatusCode;
         }
@@ -109,9 +102,7 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
-            var response = await _http.GetFromJsonAsync<GameState>($"api/game/status/{tableId}");
-            return response;
+            return await _http.GetFromJsonAsync<GameState>($"api/game/status/{tableId}");
         }
         catch { return null; }
     }
@@ -120,8 +111,8 @@ public class PokerApiService : IPokerApiService
     {
         try
         {
-            AddAuthHeader();
-            var response = await _http.PostAsync($"api/game/next-phase/{tableId}", null);
+            var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync($"api/game/next-phase/{tableId}", content);
             return response.IsSuccessStatusCode;
         }
         catch { return false; }

@@ -2,8 +2,8 @@
 @using PokerFrontend.Models
 @using PokerFrontend.Services
 @inject IPokerApiService PokerApi
-@inject NavigationManager Nav
 @inject IAuthService Auth
+@inject NavigationManager Nav
 
 <div class="container mt-4">
     <div class="row mb-4">
@@ -16,11 +16,11 @@
         </div>
     </div>
 
-    @if (tables == null)
+    @if (loading)
     {
         <p>Loading tables...</p>
     }
-    else if (tables.Count == 0)
+    else if (tables == null || tables.Count == 0)
     {
         <p>No tables available. Create one!</p>
     }
@@ -54,7 +54,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Table</h5>
-                <button class="btn-close" @onclick="HideCreateModal"></button>
+                <button type="button" class="btn-close" @onclick="HideCreateModal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -71,8 +71,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="HideCreateModal">Cancel</button>
-                <button class="btn btn-primary" @onclick="CreateTableAsync">Create</button>
+                <button type="button" class="btn btn-secondary" @onclick="HideCreateModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="CreateTableAsync">Create</button>
             </div>
         </div>
     </div>
@@ -81,6 +81,7 @@
 @code {
     private List<Table>? tables;
     private bool showCreate = false;
+    private bool loading = true;
     private string newTableName = "";
     private long newTableMinBuyIn = 100;
     private long newTableMaxBuyIn = 10000;
@@ -92,7 +93,9 @@
 
     private async Task LoadTablesAsync()
     {
+        loading = true;
         tables = await PokerApi.GetTablesAsync();
+        loading = false;
     }
 
     private void ShowCreateModal() => showCreate = true;
@@ -114,6 +117,7 @@
     private async Task SelectTableAsync(int tableId)
     {
         Nav.NavigateTo($"/seat/{tableId}");
+        await Task.CompletedTask;
     }
 
     private async Task LogoutAsync()

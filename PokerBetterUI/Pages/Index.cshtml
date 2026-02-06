@@ -72,7 +72,7 @@
             <div class="start-round-center">
                 <form method="post">
                     <button class="btn btn-primary btn-lg" asp-page-handler="StartRound"
-                        disabled="@(!Model.CanStartRound())">
+                            disabled="@(!Model.CanStartRound())">
                         Start Round
                     </button>
                 </form>
@@ -87,9 +87,8 @@
             Model.ShowdownState?.Winners?.Contains(player.Name) == true;
 
             <div class="player-container
-                                                                                                                @(isCurrent ? "current-turn" : "")
-                                                                                                                @(isWinner ? "winner-player" : "")"
-                style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+                @(isCurrent ? "current-turn" : "")
+                @(isWinner ? "winner-player" : "")" style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
 
                 @* Jika ada player *@
                 @if (player != null)
@@ -102,178 +101,199 @@
                     <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
                     <div class="player-name">@player.Name</div>
                     <div class="chips"><img src="~/lib/icons/chip.png" class="chip-icon" /> <span
-                            class="chip-count">@player.ChipStack</span></div>
+                        class="chip-count">@player.ChipStack</span></div>
 
-                    <div class="player-hand">
-                        @foreach (var card in player.Hand ?? new())
+                        <div class="player-hand">
+                            @foreach (var card in player.Hand ?? new())
+                            {
+                                var img = (player.Hand.Count == 2 &&
+                                (Model.GameState.CurrentPlayer == player.Name ||
+                                (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
+                                ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
+                                : "back_dark.png";
+                                <img src="~/lib/cards/@img" class="player-card" />
+                            }
+                        </div>
+
+                        @* Tombol Leave / Add Chips hanya saat game belum InProgress *@
+                        @if (canManagePlayers)
                         {
-                            var img = (player.Hand.Count == 2 &&
-                            (Model.GameState.CurrentPlayer == player.Name ||
-                            (Model.GameState.Phase == "Showdown" && !player.IsFolded)))
-                            ? PokerBetterUI.Pages.IndexModel.CardImageMapper.ToImageFile(card)
-                            : "back_dark.png";
-                            <img src="~/lib/cards/@img" class="player-card" />
+                            <div class="player-controls d-flex gap-1 justify-content-center mt-2">
+                                <button class="btn btn-sm btn-danger" onclick="leaveSeat('@player.Name')">
+                                    <i class="bi bi-x-circle"></i> Leave
+                                </button>
+
+                                <input type="number" min="1" value="100" class="form-control form-control-sm add-chips-amount"
+                                       style="width: 70px;" title="Jumlah chip" />
+
+                                <button class="btn btn-sm btn-success btn-add-chips" data-player-name="@player.Name">
+                                    <i class="bi bi-plus-circle"></i> +Chips
+                                </button>
+                            </div>
+                        }
+
+                        @* Player Actions saat ronde berjalan *@
+                        @if (isCurrent && Model.GameState?.gameState == "InProgress")
+                        {
+                            <div class="player-actions">
+                                <form method="post">
+                                    <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                                    <input asp-for="Amount" class="form-control form-control-sm mb-1" placeholder="Bet" value=100 />
+                                    <div class="btn-group" role="group">
+                                        @if (Model.GameState?.Pot == 0)
+                                        {
+                                            <button class="btn btn-primary btn-sm" asp-page-handler="Bet"
+                                                    disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
+                                        }
+                                        <button class="btn btn-success btn-sm" asp-page-handler="Raise"
+                                                disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
+                                        <button class="btn btn-info btn-sm" asp-page-handler="Call"
+                                                disabled="@(!Model.CanCall(player))">Call</button>
+                                        <button class="btn btn-secondary btn-sm" asp-page-handler="Check"
+                                                disabled="@(!Model.CanCheck(player))">Check</button>
+                                        <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
+                                        <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name', this)"
+                                                disabled="@(!Model.CanAllIn(player))">All-In</button>
+                                    </div>
+                                </form>
+                            </div>
+                        }
+                    }
+                else
+                    {
+                        @* Jika kursi kosong, tampilkan tombol Join hanya saat game belum InProgress *@
+                        @if (canManagePlayers)
+                        {
+                            <button class="btn btn-success btn-sm" onclick="joinSeat(@i)">Join</button>
+                        }
+                        else
+                        {
+                            <div class="player-pic empty-pic"></div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        Winner Overlay
+        @if (Model.ShowdownState != null && Model.GameState?.gameState == "WaitingForPlayers")
+        {
+            <div class="winner-overlay" onclick="closeWinnerOverlay()">
+                <div class="winner-box" onclick="event.stopPropagation()">
+                    <div class="winner-title">🏆 WINNER 🏆</div>
+                    <div class="winner-names">
+                        @foreach (var winner in Model.ShowdownState.Winners)
+                        {
+                            <span>@winner</span>
                         }
                     </div>
-
-                    @* Tombol Leave / Add Chips hanya saat game belum InProgress *@
-                    @if (canManagePlayers)
-                    {
-                        <div class="player-controls d-flex gap-1 justify-content-center mt-2">
-                            <button class="btn btn-sm btn-danger" onclick="leaveSeat('@player.Name')">
-                                <i class="bi bi-x-circle"></i> Leave
-                            </button>
-
-                            <input type="number" min="1" value="100" class="form-control form-control-sm add-chips-amount"
-                                style="width: 70px;" title="Jumlah chip" />
-
-                            <button class="btn btn-sm btn-success btn-add-chips" data-player-name="@player.Name">
-                                <i class="bi bi-plus-circle"></i> +Chips
-                            </button>
-                        </div>
-                    }
-
-                    @* Player Actions saat ronde berjalan *@
-                    @if (isCurrent && Model.GameState?.gameState == "InProgress")
-                    {
-                        <div class="player-actions">
-                            <form method="post">
-                                <input type="hidden" name="ActionPlayer" value="@player.Name" />
-                                <input asp-for="Amount" class="form-control form-control-sm mb-1" placeholder="Bet" value=100 />
-                                <div class="btn-group" role="group">
-                                    @if (Model.GameState?.Pot == 0)
-                                    {
-                                        <button class="btn btn-primary btn-sm" asp-page-handler="Bet"
-                                            disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
-                                    }
-                                    <button class="btn btn-success btn-sm" asp-page-handler="Raise"
-                                        disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
-                                    <button class="btn btn-info btn-sm" asp-page-handler="Call"
-                                        disabled="@(!Model.CanCall(player))">Call</button>
-                                    <button class="btn btn-secondary btn-sm" asp-page-handler="Check"
-                                        disabled="@(!Model.CanCheck(player))">Check</button>
-                                    <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
-                                    <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name', this)"
-                                        disabled="@(!Model.CanAllIn(player))">All-In</button>
-                                </div>
-                            </form>
-                        </div>
-                    }
-                }
-                else
-                {
-                    @* Jika kursi kosong, tampilkan tombol Join hanya saat game belum InProgress *@
-                    @if (canManagePlayers)
-                    {
-                        <button class="btn btn-success btn-sm" onclick="joinSeat(@i)">Join</button>
-                    }
-                    else
-                    {
-                        <div class="player-pic empty-pic"></div>
-                    }
-                }
+                    <div class="winner-rank">
+                        Hand: <strong>@Model.ShowdownState.HandRank</strong>
+                    </div>
+                    <div class="winner-message">@Model.ShowdownState.Message</div>
+                </div>
             </div>
         }
+
     </div>
+    <!-- Letakkan sebelum script yang pakai signalR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
-    @* Winner Overlay *@
-    @if (Model.ShowdownState != null)
-    {
-        <div class="winner-overlay" onclick="closeWinnerOverlay()">
-            <div class="winner-box" onclick="event.stopPropagation()">
-                <div class="winner-title">🏆 WINNER 🏆</div>
-                <div class="winner-names">
-                    @foreach (var winner in Model.ShowdownState.Winners)
-                    {
-                        <span>@winner</span>
-                    }
-                </div>
-                <div class="winner-rank">
-                    Hand: <strong>@Model.ShowdownState.HandRank</strong>
-                </div>
-                <div class="winner-message">@Model.ShowdownState.Message</div>
-            </div>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+        .withUrl("http://localhost:5175/pokerHub", { withCredentials: true })
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+        connection.start()
+        .then(() => console.log("✅ SignalR connected"))
+        .catch(err => console.error("❌ SignalR connection error:", err));
+
+        // Contoh menerima pesan
+        connection.on("ReceiveMessage", (user, message) => {
+        console.log(`${user}: ${message}`);
+        });
+        @* 
+        connection.on("ShowdownStateUpdated", (showdownState) => {
+        if (!showdownState) return;
+
+        // Inject overlay HTML dynamically
+        const overlay = document.createElement("div");
+        overlay.className = "winner-overlay";
+        overlay.innerHTML = `
+        <div class="winner-box">
+        <div class="winner-title">🏆 WINNER 🏆</div>
+        <div class="winner-names">${showdownState.Winners.map(w => `<span>${w}</span>`).join("")}</div>
+        <div class="winner-rank">Hand: <strong>${showdownState.HandRank}</strong></div>
+        <div class="winner-message">${showdownState.Message}</div>
         </div>
-    }
+        `;
+        overlay.onclick = () => closeWinnerOverlay();
+        document.body.appendChild(overlay);
 
-</div>
-<!-- Letakkan sebelum script yang pakai signalR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-
-<script>
-  const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5175/pokerHub", { withCredentials: true })
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
-
-  connection.start()
-      .then(() => console.log("✅ SignalR connected"))
-      .catch(err => console.error("❌ SignalR connection error:", err));
-
-  // Contoh menerima pesan
-  connection.on("ReceiveMessage", (user, message) => {
-      console.log(`${user}: ${message}`);
-  });
+        setTimeout(() => closeWinnerOverlay(), 3000);
+        }); *@
 
 
-    // JavaScript Card Name Converter (matches C# CardImageMapper)
-    function convertCardToFileName(apiCard) {
+
+        // JavaScript Card Name Converter (matches C# CardImageMapper)
+        function convertCardToFileName(apiCard) {
         if (!apiCard || typeof apiCard !== 'string') {
-            return 'back_dark.png';
+        return 'back_dark.png';
         }
 
         const parts = apiCard.split(' of ');
         if (parts.length !== 2) {
-            return 'back_dark.png';
+        return 'back_dark.png';
         }
 
         const rankMap = {
-            'Two': '2', 'Three': '3', 'Four': '4', 'Five': '5',
-            'Six': '6', 'Seven': '7', 'Eight': '8', 'Nine': '9',
-            'Ten': '10', 'Jack': 'J', 'Queen': 'Q', 'King': 'K', 'Ace': 'A'
+        'Two': '2', 'Three': '3', 'Four': '4', 'Five': '5',
+        'Six': '6', 'Seven': '7', 'Eight': '8', 'Nine': '9',
+        'Ten': '10', 'Jack': 'J', 'Queen': 'Q', 'King': 'K', 'Ace': 'A'
         };
 
         const suitMap = {
-            'Clubs': 'clubs',
-            'Diamonds': 'diamonds',
-            'Hearts': 'hearts',
-            'Spades': 'spades'
+        'Clubs': 'clubs',
+        'Diamonds': 'diamonds',
+        'Hearts': 'hearts',
+        'Spades': 'spades'
         };
 
         const rank = rankMap[parts[0]];
         const suit = suitMap[parts[1]];
 
         if (!rank || !suit) {
-            return 'back_dark.png';
+        return 'back_dark.png';
         }
 
         return `${suit}_${rank}.png`;
-    }
+        }
 
-    function updateCommunityCards(cards) {
+        function updateCommunityCards(cards) {
         const container = document.getElementById('community-cards');
         if (!container) return;
 
         container.innerHTML = '';
         cards.forEach((card, index) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'card-wrapper';
-            wrapper.style.animationDelay = `${index * 0.1}s`;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        wrapper.style.animationDelay = `${index * 0.1}s`;
 
-            const img = document.createElement('img');
-            img.src = `/lib/cards/${encodeURIComponent(convertCardToFileName(card))}`;
-            img.className = 'poker-card';
-            wrapper.appendChild(img);;
-            container.appendChild(wrapper);
+        const img = document.createElement('img');
+        img.src = `/lib/cards/${encodeURIComponent(convertCardToFileName(card))}`;
+        img.className = 'poker-card';
+        wrapper.appendChild(img);;
+        container.appendChild(wrapper);
         });
-    }
+        }
 
-    document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById('community-cards');
         if (container) container.classList.add('visible');
-    });
+        });
 
-    @* async function refreshGameState() {
+        @* async function refreshGameState() {
         try {
             const res = await fetch('/api/gamestate');
             const data = await res.json();
@@ -286,21 +306,21 @@
     }
 
     setInterval(refreshGameState, 2000); *@
-    async function allIn(playerName, btn) {
+        async function allIn(playerName, btn) {
         try {
-            btn.disabled = true;
-            const originalText = btn.textContent;
-            btn.textContent = "Processing...";
-            const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
-            if (response.ok) window.location.reload();
-            else { btn.disabled = false; btn.textContent = originalText; alert("Gagal All-In!"); }
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Processing...";
+        const response = await fetch(`http://localhost:5175/api/GameControllerAPI/allin?name=${encodeURIComponent(playerName)}`, { method: 'POST' });
+        if (response.ok) window.location.reload();
+        else { btn.disabled = false; btn.textContent = originalText; alert("Gagal All-In!"); }
         } catch (err) {
-            console.error(err);
-            alert("Terjadi error!"); btn.disabled = false; btn.textContent = originalText;
+        console.error(err);
+        alert("Terjadi error!"); btn.disabled = false; btn.textContent = originalText;
         }
-    }
+        }
 
-    function joinSeat(seatIndex) {
+        function joinSeat(seatIndex) {
         const playerName = prompt("Masukkan nama player:");
         if (!playerName) return;
 
@@ -308,96 +328,116 @@
         if (chipsInput === null) return; // user cancel
         let chips = parseInt(chipsInput);
         if (isNaN(chips) || chips <= 0) {
-            alert("Jumlah chip tidak valid! Gunakan nilai positif.");
-            return;
+        alert("Jumlah chip tidak valid! Gunakan nilai positif.");
+        return;
         }
 
         const url = `http://localhost:5175/api/GameControllerAPI/addPlayer?name=${encodeURIComponent(playerName)}&chips=${chips}&seatIndex=${seatIndex}`;
 
         fetch(url, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) location.reload();
-                else alert(data.message);
-            })
-            .catch(err => alert("Error: " + err));
-    }
-    function leaveSeat(playerName) {
+        .then(res => res.json())
+        .then(data => {
+        if (data.success) location.reload();
+        else alert(data.message);
+        })
+        .catch(err => alert("Error: " + err));
+        }
+        function leaveSeat(playerName) {
         if (!playerName) return;
         if (!confirm(`Apakah kamu yakin ingin menghapus player ${playerName}?`)) return;
 
         const url = `http://localhost:5175/api/GameControllerAPI/removePlayer?name=${encodeURIComponent(playerName)}`;
 
         fetch(url, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) location.reload();
-                else alert(data.message);
-            })
-            .catch(err => alert("Error: " + err));
-    }
+        .then(res => res.json())
+        .then(data => {
+        if (data.success) location.reload();
+        else alert(data.message);
+        })
+        .catch(err => alert("Error: " + err));
+        }
 
-    document.querySelectorAll(".btn-add-chips").forEach(btn => {
+        document.querySelectorAll(".btn-add-chips").forEach(btn => {
         btn.addEventListener("click", async () => {
-            const playerName = btn.getAttribute("data-player-name");
+        const playerName = btn.getAttribute("data-player-name");
 
-            const input = btn.parentElement.querySelector(".add-chips-amount");
-            if (!input) return;
+        const input = btn.parentElement.querySelector(".add-chips-amount");
+        if (!input) return;
 
-            const amount = parseInt(input.value);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Jumlah chip harus lebih dari 0");
-                return;
-            }
+        const amount = parseInt(input.value);
+        if (isNaN(amount) || amount <= 0) {
+        alert("Jumlah chip harus lebih dari 0");
+        return;
+        }
 
-            try {
-                const response = await fetch("http://localhost:5175/api/GameControllerAPI/addchips", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ playerName, amount })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    alert(data.message || "Gagal menambahkan chip");
-                    return;
-                }
-
-                const playerContainer = btn.closest(".player-container");
-                if (playerContainer) {
-                    // Update span chip
-                    let chipSpan = playerContainer.querySelector(".chip-count");
-                    if (!chipSpan) {
-                        const chipsDiv = playerContainer.querySelector(".chips");
-                        if (chipsDiv) {
-                            chipSpan = document.createElement("span");
-                            chipSpan.classList.add("chip-count");
-                            chipsDiv.appendChild(chipSpan);
-                        }
-                    }
-                    if (chipSpan) chipSpan.textContent = data.NewChips ?? chipSpan.textContent;
-
-                    // Update hidden input supaya form submit ikut benar
-                    const hiddenInput = playerContainer.querySelector(".player-chip-hidden");
-                    if (hiddenInput) hiddenInput.value = data.NewChips ?? hiddenInput.value;
-                }
-
-                alert(data.message ?? "Berhasil menambahkan chip");
-                window.location.reload();
-
-            } catch (err) {
-                console.error(err);
-                alert("Terjadi kesalahan saat menambahkan chip");
-            }
+        try {
+        const response = await fetch("http://localhost:5175/api/GameControllerAPI/addchips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerName, amount })
         });
-    });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+        alert(data.message || "Gagal menambahkan chip");
+        return;
+        }
+
+        const playerContainer = btn.closest(".player-container");
+        if (playerContainer) {
+        // Update span chip
+        let chipSpan = playerContainer.querySelector(".chip-count");
+        if (!chipSpan) {
+        const chipsDiv = playerContainer.querySelector(".chips");
+        if (chipsDiv) {
+        chipSpan = document.createElement("span");
+        chipSpan.classList.add("chip-count");
+        chipsDiv.appendChild(chipSpan);
+        }
+        }
+        if (chipSpan) chipSpan.textContent = data.NewChips ?? chipSpan.textContent;
+
+        // Update hidden input supaya form submit ikut benar
+        const hiddenInput = playerContainer.querySelector(".player-chip-hidden");
+        if (hiddenInput) hiddenInput.value = data.NewChips ?? hiddenInput.value;
+        }
+
+        alert(data.message ?? "Berhasil menambahkan chip");
+        window.location.reload();
+
+        } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan saat menambahkan chip");
+        }
+        });
+        });
 
 
+        /* ===============================
+        CONFIG & HELPERS
+        ================================ */
+        const GAME_PHASE = "@Model.GameState?.Phase";
+        const HAS_SHOWDOWN = "@(Model.ShowdownState != null)".toLowerCase() === "true";
 
+        function closeWinnerOverlay() {
+        const overlay = document.querySelector('.winner-overlay');
+        if (!overlay) return;
 
+        overlay.style.animation = 'fadeOut .4s ease forwards';
+        setTimeout(() => overlay.remove(), 400);
+        }
 
-    document.addEventListener("DOMContentLoaded", () => {
+        /* ===============================
+        WINNER OVERLAY LOGIC (FIXED)
+        ================================ */
+        document.addEventListener("DOMContentLoaded", () => {
+        // ❌ bukan showdown → pastikan overlay tidak ada
+        if (GAME_PHASE !== "Showdown" || !HAS_SHOWDOWN) {
+        document.querySelector('.winner-overlay')?.remove();
+        return;
+        }
+
         const overlay = document.querySelector('.winner-overlay');
         if (!overlay) return;
 
@@ -405,19 +445,20 @@
         const handRank = "@Model.ShowdownState?.HandRank";
         const showdownKey = `showdown_${winners}_${handRank}`;
 
-        if (localStorage.getItem(showdownKey)) { overlay.remove(); return; }
+        // ❌ sudah pernah tampil → hapus
+        if (localStorage.getItem(showdownKey)) {
+        overlay.remove();
+        return;
+        }
+
+        // ✅ tandai sudah tampil
         localStorage.setItem(showdownKey, "true");
 
-        setTimeout(() => closeWinnerOverlay(), 3000);
-    });
+        // ⏱ auto close
+        setTimeout(closeWinnerOverlay, 3000);
+        });
 
-    function closeWinnerOverlay() {
-        const overlay = document.querySelector('.winner-overlay');
-        if (!overlay) return;
-        overlay.style.animation = 'fadeOut .4s ease forwards';
-        setTimeout(() => overlay.remove(), 400);
-    }
-    function checkPlayersChips() {
+        function checkPlayersChips() {
         const startBtn = document.querySelector(".start-round-center button");
         if (!startBtn) return;
 
@@ -425,10 +466,10 @@
         const chipSpans = document.querySelectorAll(".player-container .chip-count");
 
         chipSpans.forEach(span => {
-            const chips = parseInt(span.textContent);
-            if (isNaN(chips) || chips <= 0) {
-                canStart = false;
-            }
+        const chips = parseInt(span.textContent);
+        if (isNaN(chips) || chips <= 0) {
+        canStart = false;
+        }
         });
 
         // Disable atau enable tombol Start Round
@@ -436,39 +477,39 @@
 
         // Opsional: tampilkan alert jika ada player chip 0
         if (!canStart) {
-            startBtn.title = "Tidak bisa mulai: ada player dengan chip 0!";
+        startBtn.title = "Tidak bisa mulai: ada player dengan chip 0!";
         } else {
-            startBtn.title = "";
+        startBtn.title = "";
         }
-    }
+        }
 
-    // Panggil saat halaman load
-    document.addEventListener("DOMContentLoaded", () => {
+        // Panggil saat halaman load
+        document.addEventListener("DOMContentLoaded", () => {
         checkPlayersChips();
-    });
-
-    // Panggil setiap kali ada perubahan chip (misal add-chips)
-    document.querySelectorAll(".btn-add-chips").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            // kode add chips sudah ada...
-            // setelah update chip, cek lagi
-            setTimeout(checkPlayersChips, 500); // delay supaya DOM update dulu
         });
-    });
-</script>
+
+        // Panggil setiap kali ada perubahan chip (misal add-chips)
+        document.querySelectorAll(".btn-add-chips").forEach(btn => {
+        btn.addEventListener("click", async () => {
+        // kode add chips sudah ada...
+        // setelah update chip, cek lagi
+        setTimeout(checkPlayersChips, 500); // delay supaya DOM update dulu
+        });
+        });
+    </script>
 
 
-<style>
-    /* ================= BASE ================= */
-    html,
-    body {
+    <style>
+        /* ================= BASE ================= */
+        html,
+        body {
         margin: 0;
         padding: 0;
         height: 100%;
         font-family: Arial, sans-serif;
-    }
+        }
 
-    .poker-background {
+        .poker-background {
         width: 100%;
         min-height: 100vh;
         background: url('/lib/bg/bg.jpg') no-repeat center center;
@@ -477,29 +518,29 @@
         top: 0;
         left: 0;
         z-index: -1;
-    }
+        }
 
-    .poker-table {
+        .poker-table {
         width: 90%;
         max-width: 1000px;
         margin: auto;
         position: relative;
         padding-top: 20px;
         z-index: 1;
-    }
+        }
 
-    .title {
+        .title {
         color: gold;
         text-align: center;
         margin-bottom: 10px;
-    }
+        }
 
-    .alert {
+        .alert {
         margin-bottom: 10px;
-    }
+        }
 
-    /* ================= TABLE ================= */
-    .table-center {
+        /* ================= TABLE ================= */
+        .table-center {
         width: 90%;
         max-width: 1000px;
         aspect-ratio: 1/1;
@@ -510,19 +551,19 @@
         border: 20px solid #8B5A2B;
         position: relative;
         box-sizing: border-box;
-    }
+        }
 
-    .table-center::before {
+        .table-center::before {
         content: "";
         position: absolute;
         inset: -20px;
         border-radius: 50%;
         background: linear-gradient(135deg, #6b3e1e, #8b5a2b, #6b3e1e);
         z-index: -1;
-    }
+        }
 
-    /* ================= GAME INFO ================= */
-    .game-phase {
+        /* ================= GAME INFO ================= */
+        .game-phase {
         position: absolute;
         top: 38%;
         left: 50%;
@@ -534,9 +575,9 @@
         letter-spacing: 1px;
         pointer-events: none;
         z-index: 5;
-    }
+        }
 
-    .game-pot {
+        .game-pot {
         position: absolute;
         top: 58%;
         left: 50%;
@@ -549,46 +590,46 @@
         text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
         pointer-events: none;
         z-index: 5;
-    }
+        }
 
-    .game-pot img {
+        .game-pot img {
         width: 26px;
         height: 26px;
-    }
+        }
 
-    @@keyframes potPulse {
+        @@keyframes potPulse {
         0% {
-            transform: translate(-50%, 0) scale(1);
+        transform: translate(-50%, 0) scale(1);
         }
 
         50% {
-            transform: translate(-50%, 0) scale(1.1);
+        transform: translate(-50%, 0) scale(1.1);
         }
 
         100% {
-            transform: translate(-50%, 0) scale(1);
+        transform: translate(-50%, 0) scale(1);
         }
-    }
+        }
 
-    .game-pot {
+        .game-pot {
         animation: potPulse 1.5s infinite ease-in-out;
-    }
+        }
 
-    .start-round-center {
+        .start-round-center {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: 10;
-    }
+        }
 
-    .start-round-center .btn-lg {
+        .start-round-center .btn-lg {
         font-size: 1.5rem;
         padding: 12px 24px;
-    }
+        }
 
-    /* ================= COMMUNITY CARDS ================= */
-    .community-cards {
+        /* ================= COMMUNITY CARDS ================= */
+        .community-cards {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -598,132 +639,132 @@
         justify-content: center;
         opacity: 1;
         transition: opacity 0.3s ease;
-    }
+        }
 
-    .community-cards.hidden {
+        .community-cards.hidden {
         opacity: 0;
-    }
+        }
 
-    .community-cards img {
+        .community-cards img {
         width: 8vw;
         max-width: 70px;
-    }
+        }
 
-    /* ================= PLAYERS ================= */
-    .player-container {
+        /* ================= PLAYERS ================= */
+        .player-container {
         position: absolute;
         width: 18%;
         min-width: 100px;
         text-align: center;
         color: white;
         transition: transform .5s ease, z-index .5s ease, box-shadow .5s ease;
-    }
+        }
 
-    @@keyframes glowPulse {
+        @@keyframes glowPulse {
         0% {
-            box-shadow: 0 0 5px silver;
+        box-shadow: 0 0 5px silver;
         }
 
         50% {
-            box-shadow: 0 0 20px silver;
+        box-shadow: 0 0 20px silver;
         }
 
         100% {
-            box-shadow: 0 0 5px silver;
+        box-shadow: 0 0 5px silver;
         }
-    }
+        }
 
-    .player-container.current-turn {
+        .player-container.current-turn {
         transform: translate(-50%, -50%) scale(1.25);
         z-index: 15;
         animation: glowPulse 1.2s infinite ease-in-out;
-    }
+        }
 
-    .player-container:not(.current-turn) {
+        .player-container:not(.current-turn) {
         transform: translate(-50%, -50%);
         z-index: 1;
-    }
+        }
 
-    .player-pic img {
+        .player-pic img {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-    }
+        }
 
-    .player-name {
+        .player-name {
         font-weight: bold;
-    }
+        }
 
-    .chips {
+        .chips {
         font-size: 12px;
         opacity: .9;
-    }
+        }
 
-    .chip-icon {
+        .chip-icon {
         width: 30px;
         height: 30px;
         margin-right: 4px;
-    }
+        }
 
-    .player-hand img {
+        .player-hand img {
         width: 6vw;
         max-width: 45px;
         margin: 2px;
         transition: transform .5s ease;
-    }
+        }
 
-    /* ================= PLAYER ACTIONS (FIXED) ================= */
-    .player-actions {
+        /* ================= PLAYER ACTIONS (FIXED) ================= */
+        .player-actions {
         position: relative;
         z-index: 20;
         margin-top: 6px;
         background: rgba(0, 0, 0, 0.65);
         padding: 6px;
         border-radius: 8px;
-    }
+        }
 
-    /* FLEX GRID DI FORM */
-    .player-actions form {
+        /* FLEX GRID DI FORM */
+        .player-actions form {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
         justify-content: center;
-    }
+        }
 
-    /* BET INPUT */
-    .player-actions input.form-control-sm {
+        /* BET INPUT */
+        .player-actions input.form-control-sm {
         flex: 1 1 100%;
-    }
+        }
 
-    /* BUTTON DEFAULT */
-    .player-actions .btn {
+        /* BUTTON DEFAULT */
+        .player-actions .btn {
         flex: 1 1 45%;
         min-width: 48px;
         font-size: .7rem;
         padding: 3px 6px;
-    }
+        }
 
-    /* FORCE BOTTOM ROW */
-    .player-actions .btn-danger,
-    .player-actions .btn-warning {
+        /* FORCE BOTTOM ROW */
+        .player-actions .btn-danger,
+        .player-actions .btn-warning {
         flex: 1 1 100%;
-    }
+        }
 
-    /* ALL-IN STYLE */
-    .player-actions .btn-warning {
+        /* ALL-IN STYLE */
+        .player-actions .btn-warning {
         background: linear-gradient(135deg, #ff9800, #ff5722);
         color: black;
         font-weight: bold;
         border: none;
         box-shadow: 0 0 10px rgba(255, 120, 0, .9);
-    }
+        }
 
-    .player-actions .btn-warning:hover {
+        .player-actions .btn-warning:hover {
         transform: scale(1.05);
-    }
+        }
 
-    /* ================= WINNER OVERLAY ================= */
-    .winner-overlay {
+        /* ================= WINNER OVERLAY ================= */
+        .winner-overlay {
         position: absolute;
         inset: 0;
         background: rgba(0, 0, 0, .6);
@@ -732,9 +773,9 @@
         justify-content: center;
         z-index: 50;
         animation: fadeIn .6s ease forwards;
-    }
+        }
 
-    .winner-box {
+        .winner-box {
         background: radial-gradient(circle, #2c7a3f, #0b3d1f);
         border: 4px solid gold;
         padding: 24px 36px;
@@ -743,94 +784,94 @@
         color: gold;
         box-shadow: 0 0 40px rgba(255, 215, 0, .9);
         animation: popWinner .6s ease forwards;
-    }
+        }
 
-    .winner-title {
+        .winner-title {
         font-size: 2rem;
         font-weight: bold;
         margin-bottom: 12px;
         text-shadow: 0 0 12px gold;
-    }
+        }
 
-    .winner-names span {
+        .winner-names span {
         display: block;
         font-size: 1.5rem;
         color: white;
         margin-bottom: 6px;
-    }
+        }
 
-    .winner-rank {
+        .winner-rank {
         margin-top: 10px;
         font-size: 1.1rem;
-    }
+        }
 
-    .winner-message {
+        .winner-message {
         margin-top: 8px;
         font-style: italic;
         color: #ffd700;
-    }
+        }
 
-    .winner-player {
+        .winner-player {
         transform: translate(-50%, -50%) scale(1.35);
         z-index: 20;
         box-shadow: 0 0 35px gold;
-    }
+        }
 
 
-    /* ================= ANIMATIONS WINNER ================= */
-    @@keyframes popWinner {
+        /* ================= ANIMATIONS WINNER ================= */
+        @@keyframes popWinner {
         0% {
-            transform: scale(.5);
-            opacity: 0;
+        transform: scale(.5);
+        opacity: 0;
         }
 
         80% {
-            transform: scale(1.1);
+        transform: scale(1.1);
         }
 
         100% {
-            transform: scale(1);
-            opacity: 1;
+        transform: scale(1);
+        opacity: 1;
         }
-    }
+        }
 
-    @@keyframes fadeIn {
+        @@keyframes fadeIn {
         from {
-            opacity: 0;
+        opacity: 0;
         }
 
         to {
-            opacity: 1;
+        opacity: 1;
         }
-    }
+        }
 
-    @@keyframes fadeOut {
+        @@keyframes fadeOut {
         from {
-            opacity: 1;
+        opacity: 1;
         }
 
         to {
-            opacity: 0;
+        opacity: 0;
         }
-    }
+        }
 
 
 
-    /* ================= RESPONSIVE ================= */
-    @@media (max-width:768px) {
+        /* ================= RESPONSIVE ================= */
+        @@media (max-width:768px) {
         .player-container {
-            width: 20%;
-            font-size: 2.5vw;
+        width: 20%;
+        font-size: 2.5vw;
         }
 
         .player-hand img {
-            width: 10vw;
-            max-width: 35px;
+        width: 10vw;
+        max-width: 35px;
         }
 
         .community-cards img {
-            width: 12vw;
-            max-width: 50px;
+        width: 12vw;
+        max-width: 50px;
         }
-    }
-</style>
+        }
+    </style>

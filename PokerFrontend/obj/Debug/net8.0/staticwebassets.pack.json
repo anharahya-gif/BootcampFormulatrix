@@ -1,0 +1,37 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerFrontend\\bin\\Debug\\net8.0\\wwwroot\\_framework\\blazor.webassembly.js",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerFrontend\\obj\\Debug\\net8.0\\compressed\\x3y5z8y0i2.gz",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js.gz"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerFrontend\\wwwroot\\css\\app.css",
+      "PackagePath": "staticwebassets\\css\\app.css"
+    },
+    {
+      "Id": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerFrontend\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.PokerFrontend.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.PokerFrontend.props",
+      "PackagePath": "build\\PokerFrontend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.PokerFrontend.props",
+      "PackagePath": "buildMultiTargeting\\PokerFrontend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.PokerFrontend.props",
+      "PackagePath": "buildTransitive\\PokerFrontend.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using PokerFrontend;
 using PokerFrontend.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Add HttpClient
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5100") });
+var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5100") };
+httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+builder.Services.AddScoped(sp => httpClient);
 
 // Add custom services
 builder.Services.AddScoped<IAuthService, AuthService>();

@@ -1,4 +1,5 @@
 using PokerFrontend.Models;
+using System.Net.Http.Json;
 
 namespace PokerFrontend.Services;
 
@@ -21,6 +22,8 @@ public class AuthService : IAuthService
     public AuthService(HttpClient http)
     {
         _http = http;
+        // Load token from session if exists
+        // In Blazor WASM, you'd use localStorage or sessionStorage via JS interop
     }
 
     public async Task<bool> RegisterAsync(string username, string password)
@@ -40,9 +43,14 @@ public class AuthService : IAuthService
             var response = await _http.PostAsJsonAsync("api/auth/login", new { username, password });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsAsync<AuthResponse>();
-                _token = result.Token;
-                return true;
+                var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                if (result != null)
+                {
+                    _token = result.Token;
+                    // Update HttpClient with auth header
+                    _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
+                    return true;
+                }
             }
             return false;
         }
@@ -52,6 +60,7 @@ public class AuthService : IAuthService
     public Task LogoutAsync()
     {
         _token = null;
+        _http.DefaultRequestHeaders.Authorization = null;
         return Task.CompletedTask;
     }
 
