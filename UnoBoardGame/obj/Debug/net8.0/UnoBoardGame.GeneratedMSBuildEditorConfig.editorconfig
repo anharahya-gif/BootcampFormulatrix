@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = UnoBoardGame
-build_property.ProjectDir = C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\UnoBoardGame\
+build_property.ProjectDir = E:\BootcampFormulatrix\BootcampFormulatrix\UnoBoardGame\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
