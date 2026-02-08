@@ -64,6 +64,10 @@ const apiService = {
 
     showdown: async () => {
         return axios.post(`${API_BASE_URL}/showdown`);
+    },
+
+    resetGame: async () => {
+        return axios.post(`${API_BASE_URL}/reset`);
     }
 };
 

@@ -9,6 +9,9 @@ const StartPage = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    /**
+     * handleSubmit: Registers the player and initializes their chip stack before entering the table.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);

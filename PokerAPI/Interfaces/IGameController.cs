@@ -89,7 +89,12 @@ namespace PokerAPI.Services.Interfaces
         // Per-player visible evaluation (their hand + community cards)
         object? EvaluateVisibleForPlayer(string playerName);
 
-        // Full showdown details (all players' hands and ranks)
+        // Full showdown details (all player's hands and ranks)
         object GetShowdownDetails();
+
+        /// <summary>
+        /// Resets the game to its initial state, clearing all players and cards.
+        /// </summary>
+        void ResetGame();
     }
 }

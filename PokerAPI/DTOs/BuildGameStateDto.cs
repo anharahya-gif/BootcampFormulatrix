@@ -24,6 +24,7 @@ namespace PokerAPI.DTOs
         public int SeatIndex { get; set; }
         public string State { get; set; } = string.Empty;
         public List<string> Hand { get; set; } = new();
+        public string PossibleHandRank { get; set; } = string.Empty;
     }
 
     // DTO untuk showdown terakhir

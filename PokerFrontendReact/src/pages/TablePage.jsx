@@ -13,6 +13,11 @@ const TablePage = () => {
     const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState([]);
 
+    // UI State for Modal
+    const [showStandUpModal, setShowStandUpModal] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
     // Sound effects
     const cardAudio = useRef(new Audio('/bgm/card-bgm.mp3'));
     const chipAudio = useRef(new Audio('/bgm/chip-bgm.mp3'));
@@ -69,6 +74,15 @@ const TablePage = () => {
 
                     setGameState(state);
                     setLoading(false);
+
+                    // Auto-redirect if server has been reset (no players left)
+                    if (state && state.players && state.players.length === 0 && !loading) {
+                        const amIInList = state.players.some(p => (p.name || p.Name) === playerName);
+                        if (!amIInList && playerName) {
+                            console.log("Server reset detected or player removed. Redirecting...");
+                            navigate('/');
+                        }
+                    }
                 });
 
                 signalrService.on('CommunityCardsUpdated', (d) => {
@@ -79,10 +93,9 @@ const TablePage = () => {
 
                 signalrService.on('ShowdownCompleted', (details) => {
                     console.log("Showdown!", details);
-                    // Reset community count ref so next round starts fresh
-                    prevCommunityCount.current = 0;
+                    prevCommunityCount.current = 0; // Reset for next round
 
-                    // Navigate to winner page after a short delay
+                    // Navigate after a delay to ensure players see the final community cards
                     setTimeout(() => {
                         const winnerNames = details.winners || details.Winners || [];
                         const rawPlayers = details.players || details.Players || [];
@@ -121,7 +134,7 @@ const TablePage = () => {
                     // Let's assume response.data IS the state object.
 
                     // Logic to join if not present
-                    const amIInGame = initialState.players?.some(p => p.name === playerName);
+                    const amIInGame = initialState.players?.some(p => (p.name || p.Name) === playerName);
                     if (!amIInGame) {
                         try {
                             // Try to join at a random seat or just use joinSeat endpoint
@@ -167,6 +180,11 @@ const TablePage = () => {
         };
     }, []);
 
+    /**
+     * handleAction: Dispatcher for all player actions (Bet, Call, Fold, etc.)
+     * @param {string} action - The type of action to perform
+     * @param {number} amount - Optional amount for bets/raises
+     */
     const handleAction = async (action, amount) => {
         try {
             switch (action) {
@@ -180,26 +198,47 @@ const TablePage = () => {
             }
         } catch (err) {
             console.error("Action failed:", err);
+            // We could use a custom alert here too in the future
             alert("Action failed: " + (err.response?.data?.message || err.message));
         }
     };
 
-    const handleStandUp = async () => {
-        if (!window.confirm("Are you sure you want to stand up?")) return;
+    /**
+     * executeStandUp: Triggers the actual API call to remove the player from the table
+     */
+    const executeStandUp = async () => {
+        setIsProcessing(true);
         try {
             await apiService.removePlayer(playerName);
+
+            // Optimistic update
             setGameState(prev => ({
                 ...prev,
-                players: prev.players.filter(p => p.name !== playerName)
+                players: prev.players.filter(p => (p.name || p.Name) !== playerName)
             }));
-            navigate('/'); // or stay and watch? User request implies just stand up.
-            // Requirement: "jika current player standup maka current player akan otomatis ke player selanjutnya"
-            // This is backend logic, but we trigger it here.
+
+            // Navigate back to the start page
+            navigate('/');
         } catch (err) {
-            alert("Stand up failed: " + (err.response?.data?.message || err.message));
+            console.error("Stand up failed:", err);
+            setShowStandUpModal(false);
+            alert("Stand up failed. Please try again.");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
+    /**
+     * handleStandUp: Opens the premium confirmation modal
+     */
+    const handleStandUp = () => {
+        setShowStandUpModal(true);
+    };
+
+    /**
+     * handleAddChips: Request additional chips from the backend
+     * @param {number} amount - Amount to add
+     */
     const handleAddChips = async (amount) => {
         try {
             await apiService.addChips(playerName, amount);
@@ -208,6 +247,9 @@ const TablePage = () => {
         }
     };
 
+    /**
+     * handleStartGame: Triggers the round start from the first player
+     */
     const handleStartGame = async () => {
         try {
             await apiService.startRound();
@@ -216,6 +258,29 @@ const TablePage = () => {
         }
     };
 
+    /**
+     * executeResetServer: Completely wipes the backend state and kicks all players
+     */
+    const executeResetServer = async () => {
+        setIsProcessing(true);
+        try {
+            await apiService.resetGame();
+            setShowResetModal(false);
+            // After reset, we navigate away since our player object is gone
+            navigate('/');
+        } catch (err) {
+            console.error("Reset failed:", err);
+            setShowResetModal(false);
+            alert("Reset failed. Please check server logs.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    /**
+     * handleJoinSeat: Join a specific seat at the table
+     * @param {number} seatIndex - Index of the seat (0-7)
+     */
     const handleJoinSeat = async (seatIndex) => {
         try {
             const result = await apiService.joinSeat(playerName, seatIndex);
@@ -229,16 +294,16 @@ const TablePage = () => {
 
     if (loading) return <div className="min-h-screen bg-poker-dark flex items-center justify-center"><Loader text="Connecting to Table..." /></div>;
 
-    // Fixed 8 seats layout
+    // Floating seats layout - Pushed to Absolute margins and centered top/bottom
     const seatPositions = [
-        "bottom-10 right-1/3 translate-x-12", // Seat 0 (Bottom Right)
-        "bottom-10 left-1/3 -translate-x-12", // Seat 1 (Bottom Left)
-        "left-4 top-1/2 translate-y-20",      // Seat 2 (Left Bottom)
-        "left-4 top-1/2 -translate-y-20",     // Seat 3 (Left Top)
-        "top-10 left-1/3 -translate-x-12",    // Seat 4 (Top Left)
-        "top-10 right-1/3 translate-x-12",    // Seat 5 (Top Right)
-        "right-4 top-1/2 -translate-y-20",    // Seat 6 (Right Top)
-        "right-4 top-1/2 translate-y-20",     // Seat 7 (Right Bottom)
+        "bottom-[12%] right-[25%] translate-x-0",  // Seat 0 (Bottom Right)
+        "bottom-[12%] left-[25%] -translate-x-0",   // Seat 1 (Bottom Left)
+        "left-[2%] top-1/2 translate-y-40",        // Seat 2 (Far Left Bottom)
+        "left-[2%] top-1/2 -translate-y-40",       // Seat 3 (Far Left Top)
+        "top-[12%] left-[25%] -translate-x-0",      // Seat 4 (Top Left)
+        "top-[12%] right-[25%] translate-x-0",     // Seat 5 (Top Right)
+        "right-[2%] top-1/2 -translate-y-40",      // Seat 6 (Far Right Top)
+        "right-[2%] top-1/2 translate-y-40",       // Seat 7 (Far Right Bottom)
     ];
 
     const seatCardPositions = [
@@ -251,8 +316,8 @@ const TablePage = () => {
     // Just mapping index to style.
 
     // helper to find player in state
-    const getPlayerAtSeat = (idx) => gameState?.players?.find(p => p.seatIndex === idx);
-    const currentPlayer = gameState?.players?.find(p => p.name === playerName);
+    const getPlayerAtSeat = (idx) => gameState?.players?.find(p => (p.seatIndex !== undefined ? p.seatIndex : p.SeatIndex) === idx);
+    const currentPlayer = gameState?.players?.find(p => (p.name || p.Name) === playerName);
     const isMyTurn = gameState?.currentPlayer === playerName;
 
     // Show controls if my turn (and not just waiting)
@@ -266,9 +331,73 @@ const TablePage = () => {
 
     return (
         <div className="min-h-screen bg-poker-dark overflow-hidden relative">
-            {/* Table Felt */}
-            <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-[80vw] h-[60vh] bg-poker-felt rounded-[200px] border-[20px] border-poker-dark shadow-2xl relative">
+            {/* Modal Overlay for Stand Up */}
+            {showStandUpModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="w-full max-w-md bg-gradient-to-br from-poker-dark via-gray-900 to-black border-2 border-poker-gold/50 rounded-[40px] p-10 shadow-[0_0_50px_rgba(250,204,21,0.2)] transform animate-scale-up text-center">
+                        <div className="w-20 h-20 bg-poker-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-poker-gold/20">
+                            <span className="text-4xl text-poker-gold">👋</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-white mb-4 tracking-tighter">LEAVE TABLE?</h2>
+                        <p className="text-gray-400 mb-8 leading-relaxed font-medium">
+                            Are you sure you want to stand up? Your current hand will be folded and you will leave the table.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={executeStandUp}
+                                disabled={isProcessing}
+                                className="w-full py-4 bg-poker-gold text-black font-black rounded-2xl hover:bg-yellow-400 transition-all duration-300 disabled:opacity-50 shadow-lg"
+                            >
+                                {isProcessing ? "PROCESSING..." : "YES, STAND UP"}
+                            </button>
+                            <button
+                                onClick={() => setShowStandUpModal(false)}
+                                disabled={isProcessing}
+                                className="w-full py-4 bg-white/5 text-white font-black rounded-2xl hover:bg-white/10 transition-all duration-300 border border-white/10"
+                            >
+                                NO, STAY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Overlay for Server Reset */}
+            {showResetModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-md bg-gradient-to-br from-[#1a1a1a] via-[#111] to-black border-2 border-red-500/50 rounded-[40px] p-10 shadow-[0_0_60px_rgba(239,68,68,0.2)] transform animate-scale-up text-center">
+                        <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                            <span className="text-5xl">⚠️</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-white mb-4 tracking-tighter">RESET SERVER?</h2>
+                        <p className="text-gray-400 mb-10 leading-relaxed font-medium">
+                            This will <span className="text-red-400 font-bold">WIPE ALL DATA</span>, remove all players, and reset the table to its initial state. This cannot be undone.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={executeResetServer}
+                                disabled={isProcessing}
+                                className="w-full py-4 bg-red-600 text-white font-black rounded-2xl hover:bg-red-500 transition-all duration-300 disabled:opacity-50 shadow-lg shadow-red-900/20"
+                            >
+                                {isProcessing ? "RESETTING..." : "YES, RESET EVERYTHING"}
+                            </button>
+                            <button
+                                onClick={() => setShowResetModal(false)}
+                                disabled={isProcessing}
+                                className="w-full py-4 bg-white/5 text-white font-black rounded-2xl hover:bg-white/10 transition-all duration-300 border border-white/10"
+                            >
+                                CANCEL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Table Felt (Centered and Separated) */}
+            <div className="absolute inset-0 flex items-center justify-center p-20 pointer-events-none">
+                <div className="w-[75vw] h-[48vh] bg-poker-felt rounded-[180px] border-[16px] border-poker-dark shadow-[0_0_100px_rgba(0,0,0,0.8)] relative pointer-events-auto">
                     {/* Logo/Text in center */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30 pointer-events-none">
                         <h1 className="text-6xl font-black text-black tracking-widest">POKER</h1>
@@ -291,13 +420,18 @@ const TablePage = () => {
             {/* Seats */}
             {Array.from({ length: 8 }).map((_, i) => {
                 const isSeated = currentPlayer && currentPlayer.seatIndex >= 0;
+                const playerAtSeat = getPlayerAtSeat(i);
+                const playerNameAtSeat = playerAtSeat?.name || playerAtSeat?.Name;
+                const isLastWinner = gameState?.showdown?.winners?.includes(playerNameAtSeat);
+
                 return (
                     <Seat
                         key={i}
                         seatIndex={i}
-                        player={getPlayerAtSeat(i)}
-                        isCurrentUser={getPlayerAtSeat(i)?.name === playerName}
-                        isActiveTurn={gameState?.currentPlayer === getPlayerAtSeat(i)?.name}
+                        player={playerAtSeat}
+                        isCurrentUser={playerNameAtSeat === playerName}
+                        isActiveTurn={gameState?.currentPlayer === playerNameAtSeat}
+                        isLastWinner={isLastWinner}
                         positionClasses={seatPositions[i] || "hidden"}
                         cardPlacement={seatCardPositions[i] || "top"}
                         gameStatus={gameState?.gameState || gameState?.GameState}
@@ -376,6 +510,18 @@ const TablePage = () => {
                 </div>
             )}
 
+            {/* Reset Server Button - Pojok Kanan Bawah */}
+            <div className="absolute bottom-6 right-6 z-50">
+                <button
+                    onClick={() => setShowResetModal(true)}
+                    className="flex items-center space-x-2 bg-black/40 hover:bg-red-900/30 text-white/40 hover:text-red-400 px-4 py-2 rounded-xl border border-white/5 hover:border-red-500/30 transition-all duration-500 backdrop-blur-md group"
+                    title="Danger Zone: Hard Reset Server"
+                >
+                    <span className="text-sm font-black tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-500">Reset Server</span>
+                    <span className="text-xl">⚙️</span>
+                </button>
+            </div>
+
             {/* Controls */}
             {showControls && (
                 <GameControls
@@ -387,6 +533,23 @@ const TablePage = () => {
 
             {/* Turn Indicator Overlay */}
             {showControls && <div className="absolute inset-0 border-8 border-poker-gold pointer-events-none opacity-30 animate-pulse"></div>}
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleUp {
+                    from { transform: scale(0.85); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.25s ease-out forwards;
+                }
+                .animate-scale-up {
+                    animation: scaleUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                }
+            `}</style>
         </div>
     );
 };

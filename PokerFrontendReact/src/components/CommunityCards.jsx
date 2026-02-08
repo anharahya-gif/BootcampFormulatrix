@@ -13,7 +13,7 @@ const CommunityCards = ({ cards }) => {
                 return (
                     <div
                         key={index}
-                        className="w-16 h-24 border-2 border-white/10 rounded-lg flex items-center justify-center bg-black/20 shadow-inner overflow-hidden"
+                        className="w-14 h-20 border-2 border-white/10 rounded-lg flex items-center justify-center bg-black/20 shadow-inner overflow-hidden"
                     >
                         {cardString && (
                             <Card

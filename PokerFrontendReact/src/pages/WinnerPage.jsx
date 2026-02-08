@@ -64,6 +64,9 @@ const WinnerPage = () => {
 
     const winnerNames = winnersRaw.map(w => w.name || w.Name);
 
+    /**
+     * Lifecycle: Plays the victory BGM on mount and manages cleanup on unmount.
+     */
     useEffect(() => {
         const audio = new Audio('/bgm/win-bgm.mp3');
         audio.volume = 1.0;

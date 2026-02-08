@@ -60,13 +60,14 @@ namespace PokerAPI.Controllers
                 players = _game.GetPlayersPublicState()
                     .Select(p => new
                     {
-                        p.Name,
-                        p.ChipStack,
-                        p.CurrentBet,
-                        p.IsFolded,
-                        p.SeatIndex,
-                        p.State,
-                        hand = p.Hand != null ? p.Hand.ToList() : new List<string>()
+                        name = p.Name,
+                        chipStack = p.ChipStack,
+                        currentBet = p.CurrentBet,
+                        isFolded = p.IsFolded,
+                        seatIndex = p.SeatIndex,
+                        state = p.State,
+                        hand = p.Hand != null ? p.Hand.ToList() : new List<string>(),
+                        possibleHandRank = p.PossibleHandRank
                     }).ToList(),
                 showdown = _game.LastShowdown == null ? null : new
                 {
@@ -288,6 +289,14 @@ namespace PokerAPI.Controllers
             var result = _game.ResolveShowdownDetailed();
             await BroadcastGameState();
             return Ok(result);
+        }
+
+        [HttpPost("reset")]
+        public async Task<IActionResult> Reset()
+        {
+            _game.ResetGame();
+            await BroadcastGameState();
+            return Ok(ServiceResult.Success("Server reset successfully. All players kicked."));
         }
 
         // ======================

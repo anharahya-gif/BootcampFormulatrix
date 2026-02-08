@@ -101,7 +101,10 @@ namespace PokerAPI.Services
                     State = status.State.ToString(),
                     CurrentBet = status.CurrentBet,
                     IsFolded = status.State == PlayerState.Folded,
-                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList()
+                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                    PossibleHandRank = (status.Hand.Any() || CommunityCards.Any()) 
+                        ? EvaluateHand(status.Hand.Concat(CommunityCards).ToList()).ToString() 
+                        : string.Empty
                 };
             });
         }
@@ -188,9 +191,10 @@ namespace PokerAPI.Services
             return Phase == GamePhase.Showdown;
         }
 
-        // ======================
-        // Player Management
-        // ======================
+        /// <summary>
+        /// Adds a new player directly into a specific seat. 
+        /// Validates seat occupancy and max player limits.
+        /// </summary>
         public void AddPlayer(string name, int chips, int seatIndex)
         {
             if (PlayerMap.Count >= MaxPlayers)
@@ -213,6 +217,9 @@ namespace PokerAPI.Services
         // ======================
         // Register Player tanpa seat
         // ======================
+        /// <summary>
+        /// Registers a player to the game system without assigning a seat yet.
+        /// </summary>
         public void RegisterPlayer(string name, int chips)
         {
             //cuma 10 player
@@ -231,6 +238,9 @@ namespace PokerAPI.Services
             // Masukkan ke PlayerMap
             PlayerMap[player] = new PlayerStatus();
         }
+        /// <summary>
+        /// Assigns a registered player to a specific seat.
+        /// </summary>
         public void UpdatePlayerSeat(string playerName, int seatIndex)
         {
             var player = GetPlayerByName(playerName);
@@ -268,6 +278,10 @@ namespace PokerAPI.Services
             }
         }
 
+        /// <summary>
+        /// Returns a list of players eligible to continue in the current round.
+        /// Filters for Active/AllIn states and ensures they are seated.
+        /// </summary>
         public List<IPlayer> ActivePlayers()
         {
             return PlayerMap.Where(kv => (kv.Value.State == PlayerState.Active || kv.Value.State == PlayerState.AllIn) 
@@ -278,6 +292,10 @@ namespace PokerAPI.Services
         // ======================
         // Round Management
         // ======================
+        /// <summary>
+        /// Starts a new betting round (Pre-Flop, Flop, etc.).
+        /// Resets betting states and deals cards if necessary.
+        /// </summary>
         public void StartRound()
         {
             if (!CanStartRound())
@@ -434,6 +452,9 @@ namespace PokerAPI.Services
         // ======================
         // Betting Actions
         // ======================
+        /// <summary>
+        /// Processes a player's Bet action. Updates pot and advances turn.
+        /// </summary>
         public ServiceResult HandleBet(IPlayer player, int amount)
         {
             try
@@ -467,6 +488,9 @@ namespace PokerAPI.Services
             }
         }
 
+        /// <summary>
+        /// Processes a Call action. Matches the current max bet.
+        /// </summary>
         public ServiceResult HandleCall(IPlayer player)
         {
             var status = PlayerMap[player];
@@ -495,6 +519,9 @@ namespace PokerAPI.Services
             return ServiceResult.Success($"{player.Name} called {toCall} chips");
         }
 
+        /// <summary>
+        /// Processes a Raise action. Increases the current minimum bet by a specified amount.
+        /// </summary>
         public ServiceResult HandleRaise(IPlayer player, int raiseAmount)
         {
             var status = PlayerMap[player];
@@ -603,6 +630,10 @@ namespace PokerAPI.Services
             return winners;
         }
 
+        /// <summary>
+        /// Performs a comprehensive showdown: evaluates hands, identifies winners, 
+        /// distributes the pot, and triggers completion event.
+        /// </summary>
         public (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed()
         {
             if (Phase != GamePhase.Showdown)
@@ -721,7 +752,7 @@ namespace PokerAPI.Services
         // ======================
         private static HandRank EvaluateHand(List<ICard> cards)
         {
-            if (cards.Count < 5)
+            if (cards.Count == 0)
                 return HandRank.HighCard;
 
             var rankGroups = cards
@@ -784,6 +815,23 @@ namespace PokerAPI.Services
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Resets the entire game state, clearing all players, cards, and pots.
+        /// </summary>
+        public void ResetGame()
+        {
+            _hasRoundStarted = false;
+            PlayerMap.Clear();
+            CommunityCards.Clear();
+            Pot.Reset();
+            Phase = GamePhase.PreFlop;
+            CurrentBet = 0;
+            CurrentPlayerIndex = 0;
+            LastShowdown = null;
+
+            Console.WriteLine("[GameController] Game Reset performed. All players removed.");
         }
     }
 }
