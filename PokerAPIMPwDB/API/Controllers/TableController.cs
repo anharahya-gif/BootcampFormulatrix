@@ -83,7 +83,7 @@ namespace PokerAPIMPwDB.API.Controllers
                 PlayerSeats = new System.Collections.Generic.List<PlayerSeat>()
             };
 
-            var result = await _tableService.CreateTableAsync(table);
+            var result = await _tableService.CreateTableAsync(table,6);
             if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
 
             request.TableId = result.Value.Id;

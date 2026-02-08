@@ -33,18 +33,29 @@ public class TableService : ITableService
         return ServiceResult<Table>.Success(table);
     }
 
-    public async Task<ServiceResult<Table>> CreateTableAsync(Table table)
+public async Task<ServiceResult<Table>> CreateTableAsync(Table table, int seatCount = 6)
+{
+    table.Id = Guid.NewGuid();
+    table.CreatedAt = DateTime.UtcNow;
+    table.Status = TableState.Waiting;
+
+    // Generate seat otomatis
+    table.PlayerSeats = new List<PlayerSeat>();
+    for (int i = 0; i < seatCount; i++)
     {
-        table.Id = Guid.NewGuid();
-        table.CreatedAt = DateTime.UtcNow;
-        table.Status = TableState.Waiting;
-        table.PlayerSeats = new List<PlayerSeat>();
-
-        _db.Tables.Add(table);
-        await _db.SaveChangesAsync();
-
-        return ServiceResult<Table>.Success(table);
+        table.PlayerSeats.Add(new PlayerSeat
+        {
+            SeatNumber = i,
+            Player = null // kosong dulu
+        });
     }
+
+    _db.Tables.Add(table);
+    await _db.SaveChangesAsync();
+
+    return ServiceResult<Table>.Success(table, "Table created with seats");
+}
+
 
     public async Task<ServiceResult> UpdateTableAsync(Guid tableId, Table updatedTable)
     {

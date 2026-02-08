@@ -17,7 +17,7 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         List<PlayerSeat> Seats { get; }
         IPokerGameEngine Game { get; set; }
 
-        bool Join(IPlayer player);
+        bool Join(IPlayer player, int seatIndex, int chips);
         void Leave(Guid playerId);
         bool CanStart();
         void StartGame();

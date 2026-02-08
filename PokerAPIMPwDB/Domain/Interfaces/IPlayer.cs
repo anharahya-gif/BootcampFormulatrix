@@ -11,6 +11,7 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         int ChipStack { get; set; }
         int CurrentBet { get; set; }
         PlayerState State { get;set; }
+        int SeatIndex { get; set; }
         List<ICard> Cards { get; set; }
 
 

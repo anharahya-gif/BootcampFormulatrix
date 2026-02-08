@@ -1,0 +1,75 @@
+@page
+@model PokerFrontendRazor.Pages.WinnerModel
+@{
+    ViewData["Title"] = "Showdown Results";
+}
+
+<style>
+    body { background-color: #1a1a1a; color: white; text-align: center; }
+    .winner-card {
+        background: linear-gradient(135deg, #ffd700, #f39c12);
+        color: black;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        margin: 20px auto;
+        max-width: 500px;
+    }
+    .card-display { font-size: 24px; margin: 5px; display: inline-block; background: white; padding: 5px 10px; border-radius: 5px; }
+</style>
+
+<div class="container mt-5">
+    <h1 class="display-3 mb-4">🏆 Showdown! 🏆</h1>
+    
+    <div id="winnerList"></div>
+
+    <h3 class="mt-5">Community Cards</h3>
+    <div id="communityCards" class="mb-4"></div>
+
+    <a href="/Table" class="btn btn-light btn-lg mt-4">Back to Table</a>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const params = new URLSearchParams(window.location.search);
+        const dataStr = params.get("data");
+        if (dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            console.log(data);
+            
+            // Show Winners
+            const list = document.getElementById("winnerList");
+            // Assuming data.winners is list of player names, or objects?
+            // Backend `ResolveShowdownDetailed` returns { Players: [...], Winners: [names], CommunityCards: [], Rank: "..." }
+            
+            // Filter detailed players who are winners
+            const winners = data.players.filter(p => data.winners.includes(p.player));
+
+            if (winners.length > 0) {
+               winners.forEach(w => {
+                   const div = document.createElement("div");
+                   div.className = "winner-card";
+                   div.innerHTML = `
+                       <h2>${w.player}</h2>
+                       <h4>${data.rank || "Winner"}</h4>
+                       <div class="d-flex justify-content-center">
+                           ${w.hand.map(c => `<span class="card-display">${c}</span>`).join('')}
+                       </div>
+                   `;
+                   list.appendChild(div);
+               });
+            } else {
+                list.innerHTML = "<h3>No Winners?</h3>";
+            }
+
+            // Show Community Cards
+            const cc = document.getElementById("communityCards");
+            data.communityCards.forEach(c => {
+                 const span = document.createElement("span");
+                 span.className = "card-display";
+                 span.innerText = c;
+                 cc.appendChild(span);
+            });
+        }
+    });
+</script>

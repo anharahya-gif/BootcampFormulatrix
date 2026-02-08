@@ -1,0 +1,155 @@
+@page
+@using PokerUIClient.Models
+@using PokerUIClient.Services
+@model PokerUIClient.Pages.TableModel
+@{
+    ViewData["Title"] = "Poker Table";
+
+    // Posisi 10 kursi fixed (% dari center)
+    var seatPositions = new (double x, double y)[]
+    {
+        (50, 5), (75, 10), (90, 30), (90, 70), (75, 90),
+        (50, 95), (25, 90), (10, 70), (10, 30), (25, 10)
+    };
+
+    // Map pemain ke kursi
+    var playerSeatMap = new Dictionary<int, PlayerDTO>();
+    var players = Model.GameState?.Players ?? new List<PlayerDTO>();
+    for (int i = 0; i < players.Count && i < seatPositions.Length; i++)
+    {
+        playerSeatMap[players[i].SeatIndex] = players[i];
+    }
+
+    var canManagePlayers = Model.GameState?.Phase != "InProgress";
+
+    // Host / player pertama
+    var hostPlayerName = players.OrderBy(p => p.SeatIndex).FirstOrDefault()?.Name;
+}
+
+<div class="poker-background"></div>
+
+<div class="poker-table">
+    <h1 class="title">🎴 Meja Poker</h1>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger text-center">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="table-center">
+        @* Start Round → hanya untuk host & login *@
+        @if (canManagePlayers && Model.CurrentPlayerName == hostPlayerName)
+        {
+            <form method="post" asp-page-handler="StartRound">
+                <button class="btn btn-primary btn-lg" disabled="@(!Model.CanStartRound())">
+                    Start Round
+                </button>
+            </form>
+        }
+
+        @* Players *@
+        @for (int i = 0; i < seatPositions.Length; i++)
+        {
+            playerSeatMap.TryGetValue(i, out var player);
+            var isCurrent = player != null && Model.GameState?.CurrentPlayer == player.Name;
+            var isWinner = player != null && Model.ShowdownState?.Winners?.Contains(player.Name) == true;
+
+            <div class="player-container
+                @(isCurrent ? "current-turn" : "")
+                @(isWinner ? "winner-player" : "")"
+                 style="left:@seatPositions[i].x%; top:@seatPositions[i].y%;">
+                 
+                @if (player != null)
+                {
+                    @if (isWinner)
+                    {
+                        <div class="winner-crown">👑</div>
+                    }
+
+                    <div class="player-pic"><img src="~/lib/icons/user.png" /></div>
+                    <div class="player-name">@player.Name</div>
+                    <div class="chips">
+                        <img src="~/lib/icons/chip.png" class="chip-icon" />
+                        <span class="chip-count">@player.ChipStack</span>
+                    </div>
+
+                    @* Player hand *@
+                    <div class="player-hand">
+                        @foreach (var card in player.Hand ?? new())
+                        {
+                            var img = "back_dark.png";
+                            if (player.Name == Model.CurrentPlayerName ||
+                                (Model.GameState.Phase == "Showdown" && !player.IsFolded))
+                            {
+                                img = PokerUIClient.Pages.TableModel.CardImageMapper.ToImageFile(card);
+                            }
+                            <img src="~/lib/cards/@img" class="player-card" />
+                        }
+                    </div>
+
+                    @* Player controls → hanya untuk login & game belum start *@
+                    @if (canManagePlayers && player.Name == Model.CurrentPlayerName)
+                    {
+                        <div class="player-controls d-flex gap-1 justify-content-center mt-2">
+                            <form method="post" asp-page-handler="LeaveSeat">
+                                <input type="hidden" name="PlayerName" value="@player.Name" />
+                                <button class="btn btn-sm btn-danger">Leave</button>
+                            </form>
+                            <form method="post" asp-page-handler="AddChips">
+                                <input type="hidden" name="PlayerName" value="@player.Name" />
+                                <input type="number" min="1" value="100" class="form-control form-control-sm" style="width:70px;" />
+                                <button class="btn btn-sm btn-success">+Chips</button>
+                            </form>
+                        </div>
+                    }
+
+                    @* Player actions → hanya untuk login & current turn *@
+                    @if (isCurrent && player.Name == Model.CurrentPlayerName && Model.GameState?.Phase == "InProgress")
+                    {
+                        <div class="player-actions">
+                            <form method="post">
+                                <input type="hidden" name="ActionPlayer" value="@player.Name" />
+                                <input asp-for="Amount" class="form-control form-control-sm mb-1" placeholder="Bet" value="100" />
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary btn-sm" asp-page-handler="Bet" disabled="@(!Model.CanBetOrRaise(player))">Bet</button>
+                                    <button class="btn btn-success btn-sm" asp-page-handler="Raise" disabled="@(!Model.CanBetOrRaise(player))">Raise</button>
+                                    <button class="btn btn-info btn-sm" asp-page-handler="Call" disabled="@(!Model.CanCall(player))">Call</button>
+                                    <button class="btn btn-secondary btn-sm" asp-page-handler="Check" disabled="@(!Model.CanCheck(player))">Check</button>
+                                    <button class="btn btn-danger btn-sm" asp-page-handler="Fold">Fold</button>
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="allIn('@player.Name', this)" disabled="@(!Model.CanAllIn(player))">All-In</button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                }
+                else
+                {
+                    @* Kursi kosong *@
+                    @if (canManagePlayers && Model.CurrentPlayerName != null)
+                    {
+                        @* <form method="post" asp-page-handler="joinSeat">
+                            <input type="hidden" name="SeatIndex" value="@i" />
+                            <button class="btn btn-success btn-sm">Join</button>
+                        </form> *@
+                        <button type="button" class="btn btn-success btn-sm" onclick="joinSeat(@i)">Join</button>
+
+                    }
+                    else
+                    {
+                        <div class="player-pic empty-pic"></div>
+                    }
+                }
+            </div>
+        }
+    </div>
+</div>
+<script>
+    // Assign Razor property ke JS global
+    window.currentPlayerName = '@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CurrentPlayerName))';
+</script>
+
+<link rel="stylesheet" href="~/css/poker-table.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script src="~/js/poker-table.js"></script>

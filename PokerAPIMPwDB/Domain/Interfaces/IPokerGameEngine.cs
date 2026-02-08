@@ -1,10 +1,11 @@
 using PokerAPIMPwDB.Domain.Enums;
-using PokerAPIMPwDB.Domain.GameEngine;
 using PokerAPIMPwDB.DTO.Player;
 using PokerAPIMPwDB.Domain.Models;
+using PokerAPIMPwDB.DTO.Table;
 using PokerAPIMPwDB.Common.Results;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PokerAPIMPwDB.Domain.Interfaces
 {
@@ -16,6 +17,10 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         string GetGameState();
         bool CanStartRound();
         int GetTotalPot();
+        IReadOnlyList<SeatStateDto> GetSeatsState();
+        
+        public IServiceScope? Scope { get; set; }
+        
 
         IPlayer? GetPlayerByName(string name);
         int GetTotalPlayers();
@@ -28,10 +33,13 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         ShowdownResult? LastShowdown { get; }
 
         // ======================
-        // Player Management
+        // Table Join / Leave / Seat
         // ======================
-        ServiceResult AddPlayer(string name, int chips, int seatIndex,Guid PlayerId);
-        ServiceResult RemovePlayer(IPlayer player);
+        Task<ServiceResult<TableStateDto>> JoinTableAsync(Guid tableId);
+        Task<ServiceResult> SitDownAsync(Guid userId, string displayName, int seatIndex, int chips);
+        Task<ServiceResult> StandUpAsync(Guid userId);
+        Task<ServiceResult> LeaveTableAsync(Guid userId);
+
         List<IPlayer> ActivePlayers();
 
         // ======================
@@ -66,16 +74,20 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed();
 
         // ======================
-        // Event
+        // Event (async-friendly)
         // ======================
-        event Action? RoundStarted;
-        event Action? CommunityCardsUpdated;
-        event Action? ShowdownCompleted;
+        event Func<Task>? RoundStarted;
+        event Func<Task>? CommunityCardsUpdated;
+        event Func<Task>? ShowdownCompleted;
 
-        // Per-player visible evaluation (their hand + community cards)
+        // ======================
+        // Per-player visible evaluation
+        // ======================
         object? EvaluateVisibleForPlayer(string playerName);
 
-        // Full showdown details (all players' hands and ranks)
+        // ======================
+        // Full showdown details
+        // ======================
         object GetShowdownDetails();
     }
 }

@@ -10,6 +10,7 @@ namespace PokerAPIMPwDB.DTO.Player
         public int ChipStack { get; set; }
         public PlayerState State { get; set; }
         public int CurrentBet { get; set; }
+        public int SeatIndex { get; set; }
         public bool IsDealer { get; set; } = false;
     }
 }

@@ -1,0 +1,52 @@
+@page
+@model PokerFrontendRazor.Pages.TableModel
+@{
+    ViewData["Title"] = "Poker Table";
+}
+
+<link rel="stylesheet" href="~/css/poker.css" />
+
+<input type="hidden" id="sessionPlayerName" value="@Model.CurrentPlayerName" />
+
+<div class="poker-table-container">
+    
+    <!-- Community Cards -->
+    <div class="community-cards" id="communityCards">
+        <!-- JS will populate -->
+    </div>
+
+    <!-- Pot -->
+    <div class="pot-display">
+        POT: <span id="potAmount">0</span>
+    </div>
+
+    <!-- Start Button -->
+    <button id="startGameBtn" class="btn btn-warning start-btn" style="display:none;" onclick="sendAction('startRound')">START GAME</button>
+
+    <!-- Seats -->
+    @for(int i=0; i<10; i++)
+    {
+        <div id="seat-@i" class="seat empty-seat">
+            <span class="seat-num">@i</span>
+        </div>
+    }
+</div>
+
+<!-- Game Controls -->
+<div class="controls" id="controls" style="display:none;">
+    <button class="control-btn btn-fold" onclick="sendAction('fold')">FOLD</button>
+    <button class="control-btn btn-check" onclick="sendAction('check')">CHECK</button>
+    <button class="control-btn btn-call" onclick="sendAction('call')">CALL</button>
+    <div class="d-flex align-items-center">
+        <input type="number" id="betAmount" class="form-control" style="width: 80px;" value="100" />
+        <button class="control-btn btn-bet ms-2" onclick="sendAction('bet', document.getElementById('betAmount').value)">BET</button>
+    </div>
+    <button class="control-btn btn-bet" style="background:#8e44ad; color:white;" onclick="sendAction('allin')">ALL-IN</button>
+</div>
+
+<div id="gameLog" style="position:fixed; top:10px; right:10px; width:200px; height:150px; overflow-y:auto; background:rgba(0,0,0,0.7); color:white; font-size:10px; padding:5px;"></div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script src="~/js/poker.js"></script>
+}

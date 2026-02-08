@@ -1,163 +1,95 @@
 using Microsoft.AspNetCore.Mvc;
-using PokerAPIMPwDB.DTO.Player;
-using PokerAPIMPwDB.DTO.Actions;
-using PokerAPIMPwDB.Infrastructure.Persistence;
 using PokerAPIMPwDB.Services;
-using Microsoft.AspNetCore.Authorization;
+using PokerAPIMPwDB.Common.Results;
 using System;
-using System.Linq;
-using PokerAPIMPwDB.DTO.Table;
+using System.Threading.Tasks;
 
 namespace PokerAPIMPwDB.API.Controllers
 {
-    [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/poker")]
     public class PokerController : ControllerBase
     {
         private readonly GameManager _gameManager;
-        private readonly AppDbContext _db;
 
-        public PokerController(GameManager gameManager, AppDbContext db)
+        public PokerController(GameManager gameManager)
         {
             _gameManager = gameManager;
-            _db = db;
         }
 
-        #region Players
-
-        [HttpGet("table/{tableId}/players")]
-        public IActionResult GetPlayers(Guid tableId)
+        // ===========================
+        // Join Table (load table state)
+        // ===========================
+        [HttpPost("join")]
+        public async Task<ActionResult<ServiceResult>> JoinTable([FromQuery] Guid tableId)
         {
-            var players = _gameManager.GetPlayersInTable(tableId)
-                .Select(p => new PlayerPublicStateDto
-                {
-                    PlayerId = p.PlayerId,
-                    DisplayName = p.DisplayName,
-                    ChipStack = p.ChipStack,
-                    CurrentBet = p.CurrentBet,
-                    State = p.State
-                });
-            return Ok(players);
+            var result = await _gameManager.PlayerJoinTableAsync(tableId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
         }
 
-        [HttpPost("table/{tableId}/join")]
-        public IActionResult JoinTable(Guid tableId, [FromBody] JoinTableDto dto)
+        // ===========================
+        // Sit Down
+        // ===========================
+        [HttpPost("sit")]
+        public async Task<ActionResult<ServiceResult>> SitDown(
+            [FromQuery] Guid tableId,
+            [FromQuery] int seatIndex,
+            [FromQuery] int chips)
         {
-            var result = _gameManager.AddPlayerToTable(tableId, dto.DisplayName, dto.ChipStack, dto.SeatIndex, dto.PlayerId);
-            if (!result.IsSuccess) return BadRequest(result.Message);
-            return Ok(result.Message);
+            // Ambil userId & displayName dari claim (atau header)
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var displayName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Player";
+
+            var result = await _gameManager.SitPlayerAsync(tableId, userId, displayName, seatIndex, chips);
+            if (!result.IsSuccess) return BadRequest(result);
+
+            return Ok(result);
         }
 
-        [HttpDelete("table/{tableId}/players/{playerId}")]
-        public IActionResult RemovePlayer(Guid tableId, Guid playerId)
+        // ===========================
+        // Stand Up (leave seat)
+        // ===========================
+        [HttpPost("stand")]
+        public async Task<ActionResult<ServiceResult>> StandUp([FromQuery] Guid tableId)
         {
-            var result = _gameManager.RemovePlayerFromTable(tableId, playerId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+
+            var result = await _gameManager.StandPlayerAsync(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+
+            return Ok(result);
         }
 
-        #endregion
-
-        #region Round Management
-
-        [HttpPost("table/{tableId}/round/start")]
-        public IActionResult StartRound(Guid tableId)
+        // ===========================
+        // Leave Table (full leave)
+        // ===========================
+        [HttpPost("leave")]
+        public async Task<ActionResult<ServiceResult>> LeaveTable([FromQuery] Guid tableId)
         {
-            var result = _gameManager.StartRound(tableId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+
+            var result = await _gameManager.PlayerLeaveTableAsync(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+
+            return Ok(result);
         }
 
-        [HttpPost("table/{tableId}/round/next-phase")]
-        public IActionResult NextPhase(Guid tableId)
+        // ===========================
+        // Optional: get table state
+        // ===========================
+        [HttpGet("state")]
+        public async Task<ActionResult<object>> GetTableState([FromQuery] Guid tableId)
         {
-            var result = _gameManager.NextPhase(tableId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
-        }
+            var game = await _gameManager.GetOrCreateGameAsync(tableId);
 
-        [HttpGet("table/{tableId}/round/state")]
-        public IActionResult GetGameState(Guid tableId)
-        {
-            var state = new
-            {
-                Phase = _gameManager.GetGameState(tableId),
-                CurrentBet = _gameManager.GetCurrentBet(tableId)
-            };
-            return Ok(state);
-        }
-
-        #endregion
-
-        #region Player Actions
-
-        [HttpPost("table/{tableId}/action/bet")]
-        public IActionResult Bet(Guid tableId, [FromBody] PlayerActionDto dto)
-        {
-            var result = _gameManager.HandleBet(tableId, dto.PlayerId, dto.Amount);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Message);
-        }
-
-        [HttpPost("table/{tableId}/action/fold/{playerId}")]
-        public IActionResult Fold(Guid tableId, Guid playerId)
-        {
-            var result = _gameManager.HandleFold(tableId, playerId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
-        }
-
-        [HttpPost("table/{tableId}/action/check/{playerId}")]
-        public IActionResult Check(Guid tableId, Guid playerId)
-        {
-            var result = _gameManager.HandleCheck(tableId, playerId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
-        }
-
-        [HttpPost("table/{tableId}/action/call/{playerId}")]
-        public IActionResult Call(Guid tableId, Guid playerId)
-        {
-            var result = _gameManager.HandleCall(tableId, playerId);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Message);
-        }
-
-        [HttpPost("table/{tableId}/action/raise/{playerId}")]
-        public IActionResult Raise(Guid tableId, Guid playerId, [FromBody] RaiseActionDto dto)
-        {
-            var result = _gameManager.HandleRaise(tableId, playerId, dto.Amount);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Message);
-        }
-
-        [HttpPost("table/{tableId}/action/all-in/{playerId}")]
-        public IActionResult AllIn(Guid tableId, Guid playerId)
-        {
-            var result = _gameManager.HandleAllIn(tableId, playerId);
-            return result.IsSuccess ? Ok(result.Message) : BadRequest(result.Message);
-        }
-
-        #endregion
-
-        #region Showdown
-
-        [HttpPost("table/{tableId}/showdown")]
-        public IActionResult Showdown(Guid tableId)
-        {
-            var winners = _gameManager.ResolveShowdown(tableId);
             return Ok(new
             {
-                Winners = winners.Select(p => p.DisplayName),
-                Pot = _gameManager.GetAllGames()[tableId].GetTotalPot()
+                TableId = tableId,
+                Phase = game.Phase.ToString(),
+                Seats = game.GetSeatsState(),
+                CommunityCards = game.CommunityCards
             });
         }
-
-        [HttpGet("table/{tableId}/showdown/details")]
-        public IActionResult ShowdownDetails(Guid tableId)
-        {
-            var details = _gameManager.GetShowdownDetails(tableId);
-            return Ok(details);
-        }
-
-        #endregion
-    }
-
-    public class RaiseActionDto
-    {
-        public int Amount { get; set; }
     }
 }

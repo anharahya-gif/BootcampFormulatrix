@@ -3,28 +3,33 @@ using PokerAPIMPwDB.Domain.Enums;
 using PokerAPIMPwDB.Domain.Models;
 using PokerAPIMPwDB.Infrastructure.Persistence;
 using PokerAPIMPwDB.DTO.Player;
+using PokerAPIMPwDB.DTO.Table;
 using PokerAPIMPwDB.Common.Results;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using PokerAPIMPwDB.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 
 namespace PokerAPIMPwDB.Domain.GameEngine
 {
-    // PokerGameEngine per table (tidak shared antar table)
     public class PokerGameEngine : IPokerGameEngine
     {
         private readonly AppDbContext _db;
         private readonly IHubContext<PokerHub> _hub;
 
-        private List<IPlayer> _players = new();
-        private int _currentPlayerIndex = 0;
-        private int _currentBet = 0;
-        private List<ICard> _communityCards = new();
+        // =========================
+        // CORE STATE (SEAT-CENTRIC)
+        // =========================
+        private readonly List<PlayerSeat> _seats = new();
+        private int _currentPlayerIndex;
+        private int _currentBet;
+        private readonly List<ICard> _communityCards = new();
         private ShowdownResult? _lastShowdown;
+
+        private readonly List<IPlayer> _players = new();
 
         public Guid CurrentTableId { get; internal set; } = Guid.Empty;
 
@@ -33,39 +38,23 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         public int CurrentPlayerIndex => _currentPlayerIndex;
         public List<ICard> CommunityCards => _communityCards;
         public ShowdownResult? LastShowdown => _lastShowdown;
+        public IServiceScope? Scope { get; set; }
 
-        // Events untuk broadcast ke clients
-        public event Action? RoundStarted;
-        public event Action? CommunityCardsUpdated;
-        public event Action? ShowdownCompleted;
-
+        // =========================
+        // EVENTS
+        // =========================
+        public event Func<Task>? RoundStarted;
+        public event Func<Task>? CommunityCardsUpdated;
+        public event Func<Task>? ShowdownCompleted;
         public PokerGameEngine(AppDbContext db, IHubContext<PokerHub> hub)
         {
             _db = db;
             _hub = hub;
-
-            // Event bindings untuk broadcasting
-            RoundStarted += async () =>
-            {
-                await _hub.Clients.Group(CurrentTableId.ToString()).SendAsync("RoundStarted", new
-                {
-                    Phase = Phase.ToString(),
-                    Players = GetPlayersPublicState()
-                });
-            };
-
-            CommunityCardsUpdated += async () =>
-            {
-                await _hub.Clients.Group(CurrentTableId.ToString()).SendAsync("CommunityCardsUpdated", CommunityCards);
-            };
-
-            ShowdownCompleted += async () =>
-            {
-                await _hub.Clients.Group(CurrentTableId.ToString()).SendAsync("ShowdownCompleted", GetShowdownDetails());
-            };
         }
 
-        #region Load Players
+        // =========================
+        // LOAD TABLE / SEATS
+        // =========================
         public async Task LoadPlayersFromTableAsync(Guid tableId)
         {
             CurrentTableId = tableId;
@@ -75,133 +64,231 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 .ThenInclude(ps => ps.Player)
                 .FirstOrDefaultAsync(t => t.Id == tableId);
 
+            if (table == null)
+                throw new InvalidOperationException("Table not found");
+
+            _seats.Clear();
             _players.Clear();
-            foreach (var seat in table.PlayerSeats)
+
+            // Map seats + player
+            foreach (var ps in table.PlayerSeats.OrderBy(s => s.SeatNumber))
             {
-                var domainPlayer = MapToDomain(seat.Player);
-                _players.Add(domainPlayer);
-            }
-        }
-        #endregion
+                var seat = new PlayerSeat(ps.SeatNumber);
 
-        #region Game State
-        public string GetGameState() => Phase.ToString();
-        public bool CanStartRound() => _players.Count >= 2;
-        public int GetTotalPot() => _players.Sum(p => p.CurrentBet);
-        public IPlayer? GetPlayerByName(string name) => _players.FirstOrDefault(p => p.DisplayName == name);
-        public int GetTotalPlayers() => _players.Count;
-
-        public IEnumerable<PlayerPublicStateDto> GetPlayersPublicState() =>
-            _players.Select(p => new PlayerPublicStateDto
-            {
-                DisplayName = p.DisplayName,
-                ChipStack = p.ChipStack,
-                CurrentBet = p.CurrentBet,
-                State = p.State
-            });
-        #endregion
-
-        #region Player Management
-        public ServiceResult AddPlayer(string name, int chips, int seatIndex, Guid playerId)
-        {
-            try
-            {
-                if (_players.Any(p => p.DisplayName == name))
-                    return ServiceResult.Fail("Player with same name already exists");
-
-                // Tambahkan PlayerId ke domain model
-                var domainPlayer = new Domain.Models.Player
+                if (ps.Player != null)
                 {
-                    PlayerId = playerId,        // pakai parameter
-                    DisplayName = name,
-                    ChipStack = chips,
-                    CurrentBet = 0,
-                    State = PlayerState.Active,
-                    SeatIndex = seatIndex
-                };
-
-                _players.Add(domainPlayer);
-
-                // Simpan ke DB, gunakan PlayerId juga
-                var entityPlayer = new Infrastructure.Persistence.Entities.Player
-                {
-                    UserId = playerId,            // pakai parameter
-                    DisplayName = domainPlayer.DisplayName,
-                    ChipStack = domainPlayer.ChipStack,
-                    State = domainPlayer.State,
-                    PlayerSeat = new Infrastructure.Persistence.Entities.PlayerSeat
-                    {
-                        Id = Guid.NewGuid(),
-                        SeatNumber = domainPlayer.SeatIndex
-                    }
-                };
-
-                _db.Players.Add(entityPlayer);
-                _db.SaveChanges();
-
-                return ServiceResult.Success("Player added successfully");
-            }
-            catch (Exception ex)
-            {
-                return ServiceResult.Fail($"Error adding player: {ex.Message}");
-            }
-        }
-
-
-        public ServiceResult RemovePlayer(IPlayer player)
-        {
-            try
-            {
-                if (!_players.Contains(player))
-                    return ServiceResult.Fail("Player not found in game");
-
-                _players.Remove(player);
-
-                var dbPlayer = _db.Players
-                    .Include(p => p.PlayerSeat)
-                    .FirstOrDefault(p => p.UserId == ((Domain.Models.Player)player).PlayerId);
-
-                if (dbPlayer != null)
-                {
-                    if (dbPlayer.PlayerSeat != null)
-                        _db.PlayerSeats.Remove(dbPlayer.PlayerSeat);
-                    _db.Players.Remove(dbPlayer);
+                    var domainPlayer = MapToDomain(ps.Player);
+                    seat.SitDown(domainPlayer, domainPlayer.ChipStack);
+                    _players.Add(domainPlayer);
                 }
 
-                _db.SaveChanges();
-                return ServiceResult.Success("Player removed successfully");
+                _seats.Add(seat);
             }
-            catch (Exception ex)
-            {
-                return ServiceResult.Fail($"Error removing player: {ex.Message}");
-            }
+
+            // Debug: tampilkan seat yang tersedia
+            Console.WriteLine("Loaded seats: " + string.Join(", ", _seats.Select(s => s.SeatIndex)));
         }
 
-        public List<IPlayer> ActivePlayers() => _players.Where(p => p.State == PlayerState.Active).ToList();
-        #endregion
 
-        #region Round Management
+        // =========================
+        // HELPERS
+        // =========================
+
+        private PlayerSeat? FindSeat(Guid playerId) =>
+            _seats.FirstOrDefault(s => s.IsOccupied && s.Player!.PlayerId == playerId);
+
+        private IEnumerable<PlayerSeat> ActiveSeats() =>
+            _seats.Where(s => s.IsOccupied && s.Player!.State == PlayerState.Active);
+
+        public IReadOnlyList<SeatStateDto> GetSeatsState()
+        {
+            return _seats.Select(seat => new SeatStateDto
+            {
+                SeatIndex = seat.SeatIndex,
+                IsOccupied = seat.IsOccupied,
+                PlayerId = seat.Player?.PlayerId,
+                PlayerName = seat.Player?.DisplayName,
+                Chips = seat.Player?.ChipStack ?? 0,
+                IsFolded = seat.Player?.State == PlayerState.Folded,
+                IsAllIn = seat.Player?.State == PlayerState.AllIn
+            }).ToList();
+        }
+
+        public IEnumerable<PlayerPublicStateDto> GetPlayersPublicState() =>
+            _seats.Where(s => s.IsOccupied)
+                  .Select(s => s.Player!)
+                  .Select(p => new PlayerPublicStateDto
+                  {
+                      DisplayName = p.DisplayName,
+                      ChipStack = p.ChipStack,
+                      CurrentBet = p.CurrentBet,
+                      State = p.State
+                  });
+        // =========================
+        // PLAYER MANAGEMENT (Async DB-backed)
+        // =========================
+
+        // =========================
+        // LOBBY / JOIN TABLE
+        // =========================
+        public async Task<ServiceResult<TableStateDto>> JoinTableAsync(Guid tableId)
+        {
+            // Load state table & seats
+            await LoadPlayersFromTableAsync(tableId);
+
+            var tableState = new TableStateDto
+            {
+                TableId = tableId,
+                Phase = Phase,
+                CurrentBet = CurrentBet,
+                CommunityCards = CommunityCards
+                            .Select(c => new Card(c.Rank, c.Suit)) // fix constructor
+                            .ToList(),
+                // Masukkan seat state
+                Seats = GetSeatsState()
+            };
+
+
+            // Map each seat
+            foreach (var seat in _seats.OrderBy(s => s.SeatIndex))
+            {
+                tableState.Players.Add(new PlayerPublicStateDto
+                {
+                    PlayerId = seat.Player?.PlayerId ?? Guid.Empty,
+                    DisplayName = seat.Player?.DisplayName ?? "",
+                    ChipStack = seat.Player?.ChipStack ?? 0,
+                    CurrentBet = seat.Player?.CurrentBet ?? 0,
+                    State = seat.Player?.State ?? PlayerState.Waiting,
+                    SeatIndex = seat.SeatIndex
+                });
+            }
+
+            return ServiceResult<TableStateDto>.Success(tableState, "Table loaded");
+        }
+        // SitDown 
+
+        public async Task<ServiceResult> SitDownAsync(Guid userId, string displayName, int seatIndex, int chips)
+        {
+            if (chips <= 0) return ServiceResult.Fail("Chip amount must be positive");
+
+            // Cari seat
+            var seat = _seats.FirstOrDefault(s => s.SeatIndex == seatIndex);
+            if (seat == null) return ServiceResult.Fail("Seat does not exist");
+            if (seat.IsOccupied) return ServiceResult.Fail("Seat is already occupied");
+
+            // Buat player baru
+            var player = new Domain.Models.Player
+            {
+                PlayerId = userId,
+                DisplayName = displayName,
+                ChipStack = chips,
+                CurrentBet = 0,
+                State = PlayerState.Active,
+                SeatIndex = seatIndex
+            };
+
+            // Tambahkan ke memory game
+            seat.SitDown(player, chips);
+            _players.Add(player);
+
+            // Tambahkan ke DB
+            var dbPlayer = new Infrastructure.Persistence.Entities.Player
+            {
+                UserId = userId,
+                DisplayName = displayName,
+                ChipStack = chips,
+                State = PlayerState.Active
+            };
+            _db.Players.Add(dbPlayer);
+
+            // Update PlayerSeat di DB
+            var dbSeat = await _db.PlayerSeats.FirstOrDefaultAsync(ps => ps.SeatNumber == seatIndex && ps.TableId == CurrentTableId);
+            if (dbSeat != null)
+            {
+                dbSeat.PlayerId = userId; // Assign seat ke player baru
+            }
+
+            await _db.SaveChangesAsync();
+
+            // Trigger event agar UI update
+            if (RoundStarted != null) await RoundStarted.Invoke();
+
+            return ServiceResult.Success("Player sat down successfully");
+        }
+
+        // StandUp / leave seat (tetap di table)
+        public async Task<ServiceResult> StandUpAsync(Guid userId)
+        {
+            var seat = _seats.FirstOrDefault(s => s.IsOccupied && s.Player!.PlayerId == userId);
+            if (seat == null)
+                return ServiceResult.Fail("Player is not seated");
+
+            var player = seat.Player!;
+
+            // Lepas seat di memory
+            seat.Leave();
+            _players.Remove(player);
+
+            // Hapus player dari DB
+            var dbPlayer = await _db.Players.FindAsync(userId);
+            if (dbPlayer != null)
+                _db.Players.Remove(dbPlayer);
+
+            // Hapus seat dari DB
+            var dbSeat = await _db.PlayerSeats
+                .FirstOrDefaultAsync(ps => ps.PlayerId == userId && ps.TableId == CurrentTableId);
+            if (dbSeat != null)
+                _db.PlayerSeats.Remove(dbSeat);
+
+            await _db.SaveChangesAsync();
+
+            // Push update via SignalR
+            if (RoundStarted != null)
+                await RoundStarted.Invoke();
+
+            return ServiceResult.Success("Player stood up and removed from table");
+        }
+        // =========================
+        // LEAVE TABLE
+        // =========================
+        public async Task<ServiceResult> LeaveTableAsync(Guid userId)
+        {
+            // Stand up dulu jika player duduk
+            var player = _players.FirstOrDefault(p => p.PlayerId == userId);
+            if (player != null)
+            {
+                var standResult = await StandUpAsync(userId);
+                if (!standResult.IsSuccess)
+                    return standResult;
+            }
+
+            // Hanya unload dari memory, player sudah dihapus via StandUpAsync
+            return ServiceResult.Success("Player left table");
+        }
+
+
+        public List<IPlayer> ActivePlayers() => ActiveSeats().Select(s => s.Player!).ToList();
+        // =========================
+        // ROUND MANAGEMENT
+        // =========================
         public ServiceResult StartRound()
         {
-            if (!CanStartRound())
+            if (_seats.Count(s => s.IsOccupied) < 2)
                 return ServiceResult.Fail("Not enough players to start round");
 
             Phase = GamePhase.PreFlop;
-            _currentPlayerIndex = 0;
             _currentBet = 0;
+            _currentPlayerIndex = 0;
             _communityCards.Clear();
 
-            foreach (var p in _players)
+            foreach (var seat in ActiveSeats())
             {
-                p.CurrentBet = 0;
-                p.State = PlayerState.Active;
-
-                var dbPlayer = _db.Players.FirstOrDefault(x => x.UserId == ((Domain.Models.Player)p).PlayerId);
-                if (dbPlayer != null)
-                    dbPlayer.State = PlayerState.Active;
+                seat.Player!.CurrentBet = 0;
+                seat.Player.State = PlayerState.Active;
             }
 
             _db.SaveChanges();
+
             RoundStarted?.Invoke();
             return ServiceResult.Success("Round started");
         }
@@ -221,40 +308,45 @@ namespace PokerAPIMPwDB.Domain.GameEngine
             CommunityCardsUpdated?.Invoke();
             return ServiceResult.Success("Phase advanced");
         }
-        #endregion
 
-        #region Player Actions
-        public IPlayer GetCurrentPlayer() => _players[_currentPlayerIndex];
+        // =========================
+        // PLAYER TURN MANAGEMENT
+        // =========================
+        public IPlayer GetCurrentPlayer() => _seats[_currentPlayerIndex].Player!;
 
         public IPlayer GetNextActivePlayer()
         {
-            int start = _currentPlayerIndex;
+            int startIndex = _currentPlayerIndex;
             do
             {
-                _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.Count;
-                if (_players[_currentPlayerIndex].State == PlayerState.Active)
-                    return _players[_currentPlayerIndex];
-            } while (_currentPlayerIndex != start);
+                _currentPlayerIndex = (_currentPlayerIndex + 1) % _seats.Count;
+            } while (!_seats[_currentPlayerIndex].IsOccupied || _seats[_currentPlayerIndex].Player!.State != PlayerState.Active);
 
-            return _players[_currentPlayerIndex];
+            return _seats[_currentPlayerIndex].Player!;
         }
 
-        public bool IsBettingRoundOver() => _players.All(p => p.CurrentBet == _currentBet || p.State != PlayerState.Active);
+        public bool IsBettingRoundOver()
+        {
+            var activePlayers = ActiveSeats().Select(s => s.Player!).ToList();
+            return activePlayers.All(p => p.CurrentBet == _currentBet || p.State != PlayerState.Active);
+        }
 
+        // =========================
+        // BETTING ACTIONS
+        // =========================
         public ServiceResult<int> HandleBet(IPlayer player, int amount)
         {
-            if (player == null) return ServiceResult<int>.Fail("Player not found");
-            if (player.ChipStack < amount) return ServiceResult<int>.Fail("Not enough chips");
+            if (player.ChipStack < amount)
+                return ServiceResult<int>.Fail("Not enough chips");
 
             player.ChipStack -= amount;
             player.CurrentBet += amount;
-            if (player.CurrentBet > _currentBet) _currentBet = player.CurrentBet;
 
-            var dbPlayer = _db.Players.FirstOrDefault(p => p.UserId == ((Domain.Models.Player)player).PlayerId);
-            if (dbPlayer != null) dbPlayer.ChipStack = player.ChipStack;
+            if (player.CurrentBet > _currentBet)
+                _currentBet = player.CurrentBet;
 
             _db.SaveChanges();
-            return ServiceResult<int>.Success(_currentBet, "Bet accepted");
+            return ServiceResult<int>.Success(_currentBet);
         }
 
         public ServiceResult<int> HandleCall(IPlayer player) => HandleBet(player, _currentBet - player.CurrentBet);
@@ -263,191 +355,137 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         {
             var callResult = HandleCall(player);
             if (!callResult.IsSuccess) return ServiceResult<int>.Fail(callResult.Message);
-
             return HandleBet(player, raiseAmount);
         }
 
         public ServiceResult HandleFold(IPlayer player)
         {
             player.State = PlayerState.Folded;
-
-            var dbPlayer = _db.Players.FirstOrDefault(p => p.UserId == ((Domain.Models.Player)player).PlayerId);
-            if (dbPlayer != null) dbPlayer.State = player.State;
-
             _db.SaveChanges();
-            return ServiceResult.Success("Player folded");
+            return ServiceResult.Success("Folded");
         }
 
-        public ServiceResult HandleCheck(IPlayer player)
-        {
-            player.State = PlayerState.Active; // tetap aktif
-            return ServiceResult.Success("Player checked");
-        }
+        public ServiceResult HandleCheck(IPlayer player) => ServiceResult.Success("Checked");
 
         public ServiceResult HandleAllIn(string playerName)
         {
-            var player = GetPlayerByName(playerName);
+            var player = _players.FirstOrDefault(p => p.DisplayName == playerName);
             if (player == null) return ServiceResult.Fail("Player not found");
-            if (player.ChipStack <= 0) return ServiceResult.Fail("No chips left");
 
-            int allInAmount = player.ChipStack;
-            player.CurrentBet += allInAmount;
+            int amount = player.ChipStack;
             player.ChipStack = 0;
+            player.CurrentBet += amount;
             player.State = PlayerState.AllIn;
 
             if (player.CurrentBet > _currentBet)
                 _currentBet = player.CurrentBet;
 
-            var dbPlayer = _db.Players.FirstOrDefault(p => p.UserId == ((Domain.Models.Player)player).PlayerId);
-            if (dbPlayer != null)
-            {
-                dbPlayer.ChipStack = player.ChipStack;
-                dbPlayer.State = player.State;
-            }
-
             _db.SaveChanges();
-            return ServiceResult.Success("Player is all-in");
+            return ServiceResult.Success("All-in");
         }
-        #endregion
 
-        #region Showdown & Hand Evaluation
+        // =========================
+        // SHOWDOWN
+        // =========================
         public Dictionary<IPlayer, HandRank> EvaluateHands()
         {
             var result = new Dictionary<IPlayer, HandRank>();
-            foreach (var player in _players.Where(p => p.State != PlayerState.Folded))
+            foreach (var player in ActivePlayers())
             {
-                var fullHand = player.Cards.Concat(_communityCards).ToList();
-                result[player] = EvaluateHand(fullHand);
+                var combined = new List<ICard>();
+                combined.AddRange(player.Cards);
+                combined.AddRange(_communityCards);
+                result[player] = EvaluateHand(combined);
             }
             return result;
         }
 
+
         public List<IPlayer> DetermineWinners()
         {
-            var hands = EvaluateHands();
-            if (!hands.Any()) return new List<IPlayer>();
+            var evaluated = EvaluateHands();
+            if (!evaluated.Any()) return new List<IPlayer>();
 
-            var bestRankValue = hands.Max(h => (int)h.Value);
-            return hands.Where(h => (int)h.Value == bestRankValue).Select(h => h.Key).ToList();
+            var maxRank = evaluated.Max(kv => kv.Value);
+            return evaluated.Where(kv => kv.Value == maxRank).Select(kv => kv.Key).ToList();
         }
 
         public List<IPlayer> ResolveShowdown()
         {
             var winners = DetermineWinners();
-            int totalPot = GetTotalPot();
-            int share = totalPot / Math.Max(1, winners.Count);
-
             foreach (var winner in winners)
             {
-                winner.ChipStack += share;
-                var dbPlayer = _db.Players.FirstOrDefault(p => p.UserId == ((Domain.Models.Player)winner).PlayerId);
-                if (dbPlayer != null) dbPlayer.ChipStack = winner.ChipStack;
+                winner.ChipStack += GetTotalPot() / winners.Count;
             }
 
-            _db.SaveChanges();
+            _lastShowdown = new ShowdownResult
+            {
+                Winners = winners,
+                CommunityCards = _communityCards.ToList(),
+                PlayerHands = _players.ToDictionary(p => p, p => p.Cards.ToList())
+            };
+
             ShowdownCompleted?.Invoke();
             return winners;
         }
 
         public (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed()
         {
-            var winners = DetermineWinners();
             var hands = EvaluateHands();
-            HandRank bestRank = winners.Any() ? hands[winners.First()] : HandRank.HighCard;
-            return (winners, bestRank);
+            if (!hands.Any()) return (new List<IPlayer>(), HandRank.HighCard);
+
+            var maxRank = hands.Max(kv => kv.Value);
+            var winners = hands.Where(kv => kv.Value == maxRank).Select(kv => kv.Key).ToList();
+            return (winners, maxRank);
         }
+
+        public int GetTotalPot() => _players.Sum(p => p.CurrentBet);
 
         public object? EvaluateVisibleForPlayer(string playerName)
         {
-            var player = GetPlayerByName(playerName);
+            var player = _players.FirstOrDefault(p => p.DisplayName == playerName);
             if (player == null) return null;
+
+            // Combine hole cards + community cards
+            var combined = player.Cards.Concat(_communityCards).ToList();
+
+            // Gunakan evaluator internal
+            var rank = EvaluateHand(combined);
 
             return new
             {
                 Player = player.DisplayName,
-                Hand = player.Cards.ToList(),
+                HandRank = rank,
+                HoleCards = player.Cards,
                 CommunityCards = _communityCards
             };
         }
 
-        public object GetShowdownDetails()
+
+        public object GetShowdownDetails() => (object)(_lastShowdown ?? new ShowdownResult
         {
-            var hands = EvaluateHands();
-            return new
-            {
-                CommunityCards = _communityCards.Select(c => new { c.Rank, c.Suit }).ToList(),
-                Players = _players.Select(p => new
-                {
-                    Player = p.DisplayName,
-                    State = p.State,
-                    ChipStack = p.ChipStack,
-                    HoleCards = p.Cards.Select(c => new { c.Rank, c.Suit }).ToList(),
-                    HandRank = hands.ContainsKey(p) ? (HandRank?)hands[p] : null
-                }).ToList()
-            };
-        }
+            Winners = new List<IPlayer>(),
+            BestHandRank = HandRank.HighCard
+        });
 
-        private HandRank EvaluateHand(List<ICard> cards)
-        {
-            if (cards == null || cards.Count == 0)
-                return HandRank.HighCard;
 
-            var rankGroups = cards.GroupBy(c => c.Rank)
-                                  .Select(g => new { Rank = g.Key, Count = g.Count() })
-                                  .OrderByDescending(g => g.Count)
-                                  .ThenByDescending(g => g.Rank)
-                                  .ToList();
+        // =========================
+        // PLAYER LOOKUP
+        // =========================
+        public IPlayer? GetPlayerByName(string name) => _players.FirstOrDefault(p => p.DisplayName == name);
+        public int GetTotalPlayers() => _players.Count;
 
-            var suitGroups = cards.GroupBy(c => c.Suit)
-                                  .Where(g => g.Count() >= 5)
-                                  .ToList();
-            bool isFlush = suitGroups.Any();
+        // =========================
+        // GAME STATE STRING
+        // =========================
+        public string GetGameState() =>
+            $"Phase: {Phase}, CurrentBet: {_currentBet}, TotalPlayers: {_players.Count}, Pot: {GetTotalPot()}";
 
-            var orderedRanks = cards.Select(c => (int)c.Rank).Distinct().OrderBy(r => r).ToList();
-            bool isStraight = false;
-            for (int i = 0; i <= orderedRanks.Count - 5; i++)
-            {
-                if (orderedRanks[i + 4] - orderedRanks[i] == 4)
-                {
-                    isStraight = true;
-                    break;
-                }
-            }
+        public bool CanStartRound() => _seats.Count(s => s.IsOccupied) >= 2;
 
-            if (isFlush && isStraight)
-            {
-                var flushCards = suitGroups.First().Select(c => (int)c.Rank).Distinct().OrderBy(r => r).ToList();
-                for (int i = 0; i <= flushCards.Count - 5; i++)
-                {
-                    if (flushCards[i + 4] - flushCards[i] == 4)
-                    {
-                        if (flushCards[i + 4] == (int)Rank.Ace)
-                            return HandRank.RoyalFlush;
-                        return HandRank.StraightFlush;
-                    }
-                }
-            }
-
-            if (rankGroups[0].Count == 4)
-                return HandRank.FourOfAKind;
-            if (rankGroups[0].Count == 3 && rankGroups.Count > 1 && rankGroups[1].Count >= 2)
-                return HandRank.FullHouse;
-            if (isFlush)
-                return HandRank.Flush;
-            if (isStraight)
-                return HandRank.Straight;
-            if (rankGroups[0].Count == 3)
-                return HandRank.ThreeOfAKind;
-            if (rankGroups[0].Count == 2 && rankGroups.Count > 1 && rankGroups[1].Count == 2)
-                return HandRank.TwoPair;
-            if (rankGroups[0].Count == 2)
-                return HandRank.OnePair;
-
-            return HandRank.HighCard;
-        }
-        #endregion
-
-        #region Mapping Helpers
+        // =========================
+        // MAPPING
+        // =========================
         public static Domain.Models.Player MapToDomain(Infrastructure.Persistence.Entities.Player entity)
         {
             return new Domain.Models.Player
@@ -455,11 +493,52 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 PlayerId = entity.UserId,
                 DisplayName = entity.DisplayName,
                 ChipStack = entity.ChipStack,
+                CurrentBet = 0,
                 State = entity.State,
-                SeatIndex = entity.PlayerSeat?.SeatNumber ?? -1,
-                CurrentBet = 0
+                SeatIndex = 0, // nanti diassign dari seat
+                Cards = new List<ICard>() // kosong dulu
             };
         }
-        #endregion
+        // =========================
+        // HAND EVALUATOR (INTERNAL)
+        // =========================
+        // internal evaluator untuk list card arbitrary
+        private HandRank EvaluateHand(List<ICard> cards)
+        {
+            if (cards.Count < 5) return HandRank.HighCard;
+
+            var rankGroups = cards.GroupBy(c => c.Rank)
+                                  .OrderByDescending(g => g.Count())
+                                  .ToList();
+
+            var suitGroups = cards.GroupBy(c => c.Suit)
+                                  .OrderByDescending(g => g.Count())
+                                  .ToList();
+
+            bool isFlush = suitGroups[0].Count() >= 5;
+
+            var orderedRanks = cards.Select(c => (int)c.Rank).Distinct().OrderBy(r => r).ToList();
+            bool isStraight = false;
+            for (int i = 0; i <= orderedRanks.Count - 5; i++)
+                if (orderedRanks[i + 4] - orderedRanks[i] == 4) isStraight = true;
+
+            if (isFlush && isStraight)
+                return orderedRanks.Contains((int)Rank.Ace) && orderedRanks.Contains((int)Rank.King)
+                    ? HandRank.RoyalFlush
+                    : HandRank.StraightFlush;
+
+            if (rankGroups[0].Count() == 4) return HandRank.FourOfAKind;
+            if (rankGroups[0].Count() == 3 && rankGroups.Count > 1 && rankGroups[1].Count() >= 2)
+                return HandRank.FullHouse;
+            if (isFlush) return HandRank.Flush;
+            if (isStraight) return HandRank.Straight;
+            if (rankGroups[0].Count() == 3) return HandRank.ThreeOfAKind;
+            if (rankGroups.Count(g => g.Count() == 2) >= 2) return HandRank.TwoPair;
+            if (rankGroups.Count(g => g.Count() == 2) == 1) return HandRank.OnePair;
+
+            return HandRank.HighCard;
+        }
+
+
     }
 }

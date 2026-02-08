@@ -12,5 +12,6 @@ namespace PokerAPIMPwDB.DTO.Table
         public int CurrentBet { get; set; }
         public List<Card> CommunityCards { get; set; } = new List<Card>();
         public List<PlayerPublicStateDto> Players { get; set; } = new List<PlayerPublicStateDto>();
+        public IReadOnlyList<SeatStateDto> Seats { get; set; } = new List<SeatStateDto>();
     }
 }

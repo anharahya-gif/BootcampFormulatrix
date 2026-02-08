@@ -49,7 +49,7 @@ namespace PokerAPIMPwDB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("PlayerId")
+                    b.Property<Guid?>("PlayerId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SeatNumber")
@@ -133,8 +133,7 @@ namespace PokerAPIMPwDB.Migrations
                     b.HasOne("PokerAPIMPwDB.Infrastructure.Persistence.Entities.Player", "Player")
                         .WithOne("PlayerSeat")
                         .HasForeignKey("PokerAPIMPwDB.Infrastructure.Persistence.Entities.PlayerSeat", "PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("PokerAPIMPwDB.Infrastructure.Persistence.Entities.Table", "Table")
                         .WithMany("PlayerSeats")

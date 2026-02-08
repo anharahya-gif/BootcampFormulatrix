@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-poker-dark text-gray-100;
+  }
+}
+
+/* Custom scrollbar for better look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-poker-dark;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-poker-felt rounded hover:bg-poker-green;
+}

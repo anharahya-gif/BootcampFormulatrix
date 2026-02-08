@@ -1,0 +1,27 @@
+﻿@page
+@model PokerFrontendRazor.Pages.IndexModel
+@{
+    ViewData["Title"] = "Start Game";
+}
+
+<div class="text-center mt-5">
+    <h1 class="display-4 text-warning">♠ Poker API Razor ♥</h1>
+    <p class="lead">Texas Hold'em Multiplayer</p>
+
+    <div class="card bg-dark text-white mx-auto" style="max-width: 400px; margin-top: 50px;">
+        <div class="card-body">
+            <h5 class="card-title">Join Table</h5>
+            <form method="post">
+                <div class="mb-3 text-start">
+                    <label class="form-label">Player Name</label>
+                    <input type="text" class="form-control" asp-for="PlayerName" placeholder="Enter name" required />
+                </div>
+                <div class="mb-3 text-start">
+                    <label class="form-label">Initial Chips</label>
+                    <input type="number" class="form-control" asp-for="InitialChips" value="1000" min="100" />
+                </div>
+                <button type="submit" class="btn btn-warning w-100">Start Game</button>
+            </form>
+        </div>
+    </div>
+</div>

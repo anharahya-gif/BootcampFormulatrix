@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using PokerAPI.Hubs;
 using PokerAPI.Services.Interfaces;
+using PokerAPI.DTOs;
+using PokerAPI.Services; // <-- untuk ServiceResult
+using System.Linq;
 
 namespace PokerAPI.Controllers
 {
@@ -12,17 +15,11 @@ namespace PokerAPI.Controllers
         private readonly IGameController _game;
         private readonly IHubContext<PokerHub> _hub;
 
-        // ======================
-        // Constructor
-        // ======================
-        public GameControllerAPI(
-            IGameController game,
-            IHubContext<PokerHub> hub)
+        public GameControllerAPI(IGameController game, IHubContext<PokerHub> hub)
         {
             _game = game;
             _hub = hub;
 
-            // Subscribe to game events to broadcast updates via SignalR
             _game.CommunityCardsUpdated += () =>
             {
                 _ = _hub.Clients.All.SendAsync("CommunityCardsUpdated", new
@@ -46,12 +43,9 @@ namespace PokerAPI.Controllers
             if (_game.IsBettingRoundOver())
                 _game.NextPhase();
             else
-                _game.GetNextActivePlayer(); // pindah ke pemain aktif berikutnya
+                _game.GetNextActivePlayer();
         }
 
-        // ======================
-        // DTO Builder
-        // ======================
         private object BuildGameStateDto()
         {
             return new
@@ -83,27 +77,51 @@ namespace PokerAPI.Controllers
             };
         }
 
+        private object BuildAddChipsResponse(string playerName, int newChips, int addedAmount)
+        {
+            return new
+            {
+                PlayerName = playerName,
+                NewChips = newChips,
+                Message = $"{addedAmount} chip berhasil ditambahkan."
+            };
+        }
+
         private async Task BroadcastGameState()
         {
-            await _hub.Clients.All.SendAsync(
-                "ReceiveGameState",
-                BuildGameStateDto());
+            await _hub.Clients.All.SendAsync("ReceiveGameState", BuildGameStateDto());
         }
 
         // ======================
         // Player Management
         // ======================
         [HttpPost("addPlayer")]
-        public async Task<IActionResult> AddPlayer(
-            [FromQuery] string name,
-            [FromQuery] int chips = 1000,
-            [FromQuery] int seatIndex = -1)
+        public async Task<IActionResult> AddPlayer([FromQuery] string name, [FromQuery] int chips = 1000, [FromQuery] int seatIndex = -1)
         {
             try
             {
                 _game.AddPlayer(name, chips, seatIndex);
                 await BroadcastGameState();
-                return Ok(new { success = true, message = "Player added" });
+                return Ok(ServiceResult.Success("Player added"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ServiceResult.Failure(ex.Message));
+            }
+            catch
+            {
+                return StatusCode(500, ServiceResult.Failure("Internal server error"));
+            }
+        }
+        [HttpPost("registerPlayer")]
+        public async Task<IActionResult> RegisterPlayer([FromQuery] string playerName, [FromQuery] int chipStack)
+        {
+            try
+            {
+                // pakai RegisterPlayer bukan AddPlayer
+                _game.RegisterPlayer(playerName, chipStack);
+                await BroadcastGameState();
+                return Ok(new { success = true, message = "Player registered" });
             }
             catch (InvalidOperationException ex)
             {
@@ -115,23 +133,35 @@ namespace PokerAPI.Controllers
             }
         }
 
-        [HttpPost("removePlayer")]
-        public async Task<IActionResult> RemovePlayer([FromQuery] string name)
+        [HttpPost("joinSeat")]
+        public async Task<IActionResult> JoinSeat([FromQuery] string playerName, [FromQuery] int seatIndex)
         {
+            var player = _game.GetPlayerByName(playerName);
+            if (player == null)
+                return NotFound(ServiceResult.Failure("Player belum terdaftar"));
+
             try
             {
-                var player = _game.GetPlayerByName(name);
-                if (player == null)
-                    return NotFound(new { success = false, message = "Player not found" });
-
-                _game.RemovePlayer(player);
+                _game.UpdatePlayerSeat(playerName, seatIndex); // method baru untuk update seat
                 await BroadcastGameState();
-                return Ok(new { success = true, message = "Player removed" });
+                return Ok(ServiceResult.Success($"Player {playerName} menempati seat {seatIndex}"));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return BadRequest(ServiceResult.Failure(ex.Message));
             }
+        }
+
+        [HttpPost("removePlayer")]
+        public async Task<IActionResult> RemovePlayer([FromQuery] string name)
+        {
+            var player = _game.GetPlayerByName(name);
+            if (player == null)
+                return NotFound(ServiceResult.Failure("Player not found"));
+
+            _game.RemovePlayer(player);
+            await BroadcastGameState();
+            return Ok(ServiceResult.Success("Player removed"));
         }
 
         // ======================
@@ -142,20 +172,17 @@ namespace PokerAPI.Controllers
         {
             var player = _game.GetPlayerByName(request.PlayerName);
             if (player == null)
-                return NotFound("Player not found");
+                return NotFound(ServiceResult.Failure("Player not found"));
 
             if (request.Amount <= 0)
-                return BadRequest("Amount must be greater than 0");
+                return BadRequest(ServiceResult.Failure("Amount must be greater than 0"));
 
             player.ChipStack += request.Amount;
             await BroadcastGameState();
 
-            return Ok(new
-            {
-                PlayerName = player.Name,
-                NewChips = player.ChipStack,
-                Message = $"{request.Amount} chip berhasil ditambahkan."
-            });
+            var response = BuildAddChipsResponse(player.Name, player.ChipStack, request.Amount);
+            return Ok(ServiceResult.Success("Chips added successfully"));
+
         }
 
         // ======================
@@ -166,7 +193,7 @@ namespace PokerAPI.Controllers
         {
             _game.StartRound();
             await BroadcastGameState();
-            return Ok();
+            return Ok(ServiceResult.Success("Round started"));
         }
 
         [HttpPost("nextPhase")]
@@ -174,96 +201,82 @@ namespace PokerAPI.Controllers
         {
             _game.NextPhase();
             await BroadcastGameState();
-            return Ok();
+            return Ok(ServiceResult.Success("Phase advanced"));
         }
 
         // ======================
         // Betting Actions
         // ======================
         [HttpPost("bet")]
-        public async Task<IActionResult> Bet(
-            [FromQuery] string name,
-            [FromQuery] int amount)
+        public async Task<IActionResult> Bet([FromQuery] string name, [FromQuery] int amount)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
-            var success = _game.HandleBet(player, amount);
-            if (success) AdvanceTurnIfNeeded();
+            var result = _game.HandleBet(player, amount);
+            if (result.IsSuccess) AdvanceTurnIfNeeded();
             await BroadcastGameState();
-            return Ok(new { success });
+            return Ok(result);
         }
 
         [HttpPost("call")]
         public async Task<IActionResult> Call([FromQuery] string name)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
-            var success = _game.HandleCall(player);
-            if (success) AdvanceTurnIfNeeded();
+            var result = _game.HandleCall(player);
+            if (result.IsSuccess) AdvanceTurnIfNeeded();
             await BroadcastGameState();
-            return Ok(new { success });
+            return Ok(result);
         }
 
         [HttpPost("raise")]
-        public async Task<IActionResult> Raise(
-            [FromQuery] string name,
-            [FromQuery] int amount)
+        public async Task<IActionResult> Raise([FromQuery] string name, [FromQuery] int amount)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
-            var success = _game.HandleRaise(player, amount);
-            if (success) AdvanceTurnIfNeeded();
+            var result = _game.HandleRaise(player, amount);
+            if (result.IsSuccess) AdvanceTurnIfNeeded();
             await BroadcastGameState();
-            return Ok(new { success });
+            return Ok(result);
         }
 
         [HttpPost("check")]
         public async Task<IActionResult> Check([FromQuery] string name)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
             _game.HandleCheck(player);
             AdvanceTurnIfNeeded();
             await BroadcastGameState();
-            return Ok();
+            return Ok(ServiceResult.Success("Check performed"));
         }
 
         [HttpPost("fold")]
         public async Task<IActionResult> Fold([FromQuery] string name)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
             _game.HandleFold(player);
             AdvanceTurnIfNeeded();
             await BroadcastGameState();
-            return Ok();
+            return Ok(ServiceResult.Success("Folded"));
         }
 
         [HttpPost("allin")]
         public async Task<IActionResult> AllIn([FromQuery] string name)
         {
             var player = _game.GetPlayerByName(name);
-            if (player == null)
-                return NotFound();
+            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
 
-            bool success = _game.HandleAllIn(player.Name);
-            if (!success)
-                return BadRequest("Player tidak bisa all-in");
-
-            AdvanceTurnIfNeeded();
+            var result = _game.HandleAllIn(player.Name);
+            if (result.IsSuccess) AdvanceTurnIfNeeded();
             await BroadcastGameState();
-
-            return Ok(new { success = true });
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         // ======================
