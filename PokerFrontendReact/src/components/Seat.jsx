@@ -2,7 +2,7 @@ import React from 'react';
 import Card from './Card';
 import { clsx } from 'clsx';
 
-const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0, isDealingInProgress = false }) => {
+const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0 }) => {
     // 1. Handle Empty Seat
     if (!player) {
         return (
@@ -167,7 +167,6 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                     style={getCardContainerStyle()}
                 >
                     {isCurrentUser ? (
-                        // Current user sees their cards (face-down during dealing, then flip)
                         Array.isArray(hand) && hand.length > 0 ? (
                             <div className="flex space-x-2">
                                 {hand.map((card, idx) => (
@@ -175,23 +174,10 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                                         key={idx}
                                         className={clsx(
                                             "transform transition-all duration-500",
-                                            idx === 1 ? "rotate-6" : "-rotate-6",
-                                            isDealingInProgress ? "" : "animate-card-flip"
+                                            idx === 1 ? "rotate-6" : "-rotate-6"
                                         )}
-                                        style={{
-                                            perspective: '1000px',
-                                            animationDelay: isDealingInProgress ? '0s' : `${idx * 0.2}s`
-                                        }}
                                     >
-                                        {isDealingInProgress ? (
-                                            <img
-                                                src="/cards/back_dark.png"
-                                                alt="Card Back"
-                                                className="w-16 h-24 rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10"
-                                            />
-                                        ) : (
-                                            <Card cardString={card} className="w-16 h-24 text-[0.85rem] shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10 rounded-xl" />
-                                        )}
+                                        <Card cardString={card} className="w-16 h-24 text-[0.85rem] shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10 rounded-xl" />
                                     </div>
                                 ))}
                             </div>

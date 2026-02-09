@@ -6,8 +6,7 @@ import GameControls from '../components/GameControls';
 import Loader from '../components/Loader';
 import apiService from '../services/apiService';
 import signalrService from '../services/signalrService';
-import ShuffleDeck from '../components/ShuffleDeck';
-import DealingCard from '../components/DealingCard';
+import CustomAlert from '../components/CustomAlert';
 
 const TablePage = () => {
     const navigate = useNavigate();
@@ -15,10 +14,7 @@ const TablePage = () => {
     const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState([]);
 
-    // Animation States
-    const [isShuffling, setIsShuffling] = useState(false);
-    const [dealtCards, setDealtCards] = useState([]); // List of { seatIndex, cardIndex, delay }
-    const [isDealingInProgress, setIsDealingInProgress] = useState(false);
+
 
     const prevPhase = useRef(null);
 
@@ -26,6 +22,13 @@ const TablePage = () => {
     const [showStandUpModal, setShowStandUpModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Alert State
+    const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '', type: 'error' });
+
+    const showAlert = (message, type = 'error') => {
+        setAlertConfig({ isOpen: true, message, type });
+    };
 
     // Sound effects
     const cardAudio = useRef(new Audio('/bgm/card-bgm.mp3'));
@@ -73,59 +76,7 @@ const TablePage = () => {
 
                     const phase = state?.Phase || state?.phase;
 
-                    // TRIGGER ANIMATION when phase becomes PreFlop
-                    // Works on first round too (when prevPhase is null)
-                    if (phase === 'PreFlop' && prevPhase.current !== 'PreFlop') {
-                        console.log("🎴 TRIGGERING ANIMATION - Phase:", phase, "PrevPhase:", prevPhase.current);
 
-                        // Full animation sequence
-                        const players = state?.Players || state?.players || [];
-
-                        // 1. Start shuffle animation
-                        setIsShuffling(true);
-                        setIsDealingInProgress(true);
-
-                        // Play shuffle sound
-                        const shuffleAudio = new Audio('/bgm/shuffle.mp3');
-                        shuffleAudio.play().catch(e => console.log("Shuffle audio blocked:", e));
-
-                        // 2. After shuffle (1.5s), start dealing
-                        setTimeout(() => {
-                            setIsShuffling(false);
-
-                            // Calculate deal animations
-                            const seatedPlayers = players.filter(p => {
-                                const sIdx = p.SeatIndex !== undefined ? p.SeatIndex : p.seatIndex;
-                                return sIdx >= 0 && !(p.IsFolded || p.isFolded);
-                            });
-
-                            let animations = [];
-                            for (let cardIdx = 0; cardIdx < 2; cardIdx++) {
-                                seatedPlayers.forEach((player, pIdx) => {
-                                    const sIdx = player.SeatIndex !== undefined ? player.SeatIndex : player.seatIndex;
-                                    animations.push({
-                                        seatIndex: sIdx,
-                                        cardIndex: cardIdx,
-                                        delay: (cardIdx * seatedPlayers.length + pIdx) * 0.2
-                                    });
-                                });
-                            }
-
-                            setDealtCards(animations);
-
-                            // Play dealing sound
-                            const dealAudio = new Audio('/bgm/card-bgm.mp3');
-                            dealAudio.play().catch(e => console.log("Deal audio blocked:", e));
-
-                            // 3. End animation after all cards dealt + flip delay
-                            const totalDuration = (animations.length * 0.2 + 1.0) * 1000;
-                            setTimeout(() => {
-                                setIsDealingInProgress(false);
-                                setDealtCards([]);
-                            }, totalDuration);
-
-                        }, 1500);
-                    }
                     prevPhase.current = phase;
 
                     if (newCount > prevCommunityCount.current) {
@@ -293,8 +244,7 @@ const TablePage = () => {
             }
         } catch (err) {
             console.error("Action failed:", err);
-            // We could use a custom alert here too in the future
-            alert("Action failed: " + (err.response?.data?.message || err.message));
+            showAlert("Action failed: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -317,7 +267,7 @@ const TablePage = () => {
         } catch (err) {
             console.error("Stand up failed:", err);
             setShowStandUpModal(false);
-            alert("Stand up failed. Please try again.");
+            showAlert("Stand up failed. Please try again.");
         } finally {
             setIsProcessing(false);
         }
@@ -338,70 +288,18 @@ const TablePage = () => {
         try {
             await apiService.addChips(playerName, amount);
         } catch (err) {
-            alert("Add chips failed: " + (err.response?.data?.message || err.message));
+            showAlert("Add chips failed: " + (err.response?.data?.message || err.message));
         }
     };
 
     /**
      * handleStartGame: Triggers the round start from the first player
-     * Animation is triggered immediately for the clicker, other clients see it via SignalR
      */
     const handleStartGame = async () => {
         try {
-            // Trigger animation immediately for this client
-            console.log("🎴 START GAME clicked - triggering animation");
-            setIsShuffling(true);
-            setIsDealingInProgress(true);
-
-            // Play shuffle sound
-            const shuffleAudio = new Audio('/bgm/shuffle.mp3');
-            shuffleAudio.play().catch(e => console.log("Shuffle audio blocked:", e));
-
-            // Call API to start round
             await apiService.startRound();
-
-            // After shuffle (1.5s), start dealing
-            setTimeout(() => {
-                setIsShuffling(false);
-
-                // Get current players from gameState
-                const players = gameState?.Players || gameState?.players || [];
-                const seatedPlayers = players.filter(p => {
-                    const sIdx = p.SeatIndex !== undefined ? p.SeatIndex : p.seatIndex;
-                    return sIdx >= 0 && !(p.IsFolded || p.isFolded);
-                });
-
-                let animations = [];
-                for (let cardIdx = 0; cardIdx < 2; cardIdx++) {
-                    seatedPlayers.forEach((player, pIdx) => {
-                        const sIdx = player.SeatIndex !== undefined ? player.SeatIndex : player.seatIndex;
-                        animations.push({
-                            seatIndex: sIdx,
-                            cardIndex: cardIdx,
-                            delay: (cardIdx * seatedPlayers.length + pIdx) * 0.2
-                        });
-                    });
-                }
-
-                setDealtCards(animations);
-
-                // Play dealing sound
-                const dealAudio = new Audio('/bgm/card-bgm.mp3');
-                dealAudio.play().catch(e => console.log("Deal audio blocked:", e));
-
-                // End animation after all cards dealt
-                const totalDuration = (animations.length * 0.2 + 1.0) * 1000;
-                setTimeout(() => {
-                    setIsDealingInProgress(false);
-                    setDealtCards([]);
-                }, totalDuration);
-
-            }, 1500);
-
         } catch (err) {
-            setIsShuffling(false);
-            setIsDealingInProgress(false);
-            alert("Start failed: " + (err.response?.data?.message || err.message));
+            showAlert("Start failed: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -418,48 +316,13 @@ const TablePage = () => {
         } catch (err) {
             console.error("Reset failed:", err);
             setShowResetModal(false);
-            alert("Reset failed. Please check server logs.");
+            showAlert("Reset failed. Please check server logs.");
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const triggerStartRoundAnimation = (newState) => {
-        setIsShuffling(true);
-        setIsDealingInProgress(true);
 
-        // 1. Shuffle duration (1.5s)
-        setTimeout(() => {
-            setIsShuffling(false);
-
-            // 2. Start Dealing
-            const players = newState?.Players || newState?.players || [];
-            const seatedPlayers = players.filter(p => (p.SeatIndex !== -1 || p.seatIndex !== -1) && !(p.IsFolded || p.isFolded));
-
-            let animations = [];
-            // Two cards per player
-            for (let cardIdx = 0; cardIdx < 2; cardIdx++) {
-                seatedPlayers.forEach((player, pIdx) => {
-                    const sIdx = player.SeatIndex !== undefined ? player.SeatIndex : player.seatIndex;
-                    animations.push({
-                        seatIndex: sIdx,
-                        cardIndex: cardIdx,
-                        delay: (cardIdx * seatedPlayers.length + pIdx) * 0.15
-                    });
-                });
-            }
-
-            setDealtCards(animations);
-
-            // 3. End animation state after all cards should have arrived
-            const totalDuration = (animations.length * 0.15 + 0.6) * 1000;
-            setTimeout(() => {
-                setIsDealingInProgress(false);
-                setDealtCards([]);
-            }, totalDuration);
-
-        }, 1500);
-    };
 
     /**
      * handleJoinSeat: Join a specific seat at the table
@@ -469,10 +332,10 @@ const TablePage = () => {
         try {
             const result = await apiService.joinSeat(playerName, seatIndex);
             if (result.data && !result.data.isSuccess) {
-                alert(result.data.message);
+                showAlert(result.data.message);
             }
         } catch (err) {
-            alert("Join seat failed: " + (err.response?.data?.message || err.message));
+            showAlert("Join seat failed: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -778,38 +641,13 @@ const TablePage = () => {
                 }
             `}</style>
 
-            {/* ANIMATION OVERLAYS */}
-            {isShuffling && <ShuffleDeck />}
-
-            {dealtCards.map((anim, idx) => {
-                const centerX = window.innerWidth / 2;
-                const centerY = window.innerHeight / 2;
-
-                const seatCoords = [
-                    { x: centerX, y: 150 },                 // Top
-                    { x: centerX + 350, y: 250 },           // Top Right
-                    { x: centerX + 450, y: centerY },       // Right Side
-                    { x: centerX + 350, y: centerY + 250 }, // Bottom Right
-                    { x: centerX, y: window.innerHeight - 150 }, // Bottom Center
-                    { x: centerX - 350, y: centerY + 250 }, // Bottom Left
-                    { x: centerX - 450, y: centerY },       // Left Side
-                    { x: centerX - 350, y: 250 },           // Top Left
-                ];
-
-                const target = seatCoords[anim.seatIndex] || { x: centerX, y: centerY };
-
-                return (
-                    <DealingCard
-                        key={`${anim.seatIndex}-${anim.cardIndex}`}
-                        startX={centerX - 24} // Offset by half card width
-                        startY={centerY - 32}
-                        deltaX={target.x - centerX}
-                        deltaY={target.y - centerY}
-                        targetRot={anim.cardIndex === 0 ? -10 : 10}
-                        delay={anim.delay}
-                    />
-                );
-            })}
+            {/* CUSTOM ALERT MODAL */}
+            <CustomAlert
+                isOpen={alertConfig.isOpen}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+            />
         </div>
     );
 };
