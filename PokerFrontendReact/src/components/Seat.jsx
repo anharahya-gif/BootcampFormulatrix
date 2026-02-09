@@ -2,7 +2,7 @@ import React from 'react';
 import Card from './Card';
 import { clsx } from 'clsx';
 
-const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0 }) => {
+const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0, isDealingInProgress = false }) => {
     // 1. Handle Empty Seat
     if (!player) {
         return (
@@ -52,7 +52,8 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
         }
     };
 
-    const hasRank = possibleRank && !isFolded && (gameStatus === 'InProgress' || gameStatus === 'Showdown' || gameStatus === 'Completed');
+    const canShowRank = isCurrentUser || gameStatus === 'Showdown' || gameStatus === 'Completed';
+    const hasRank = possibleRank && !isFolded && canShowRank;
 
     // Clean Rank Text (Removing "You Have")
     const displayRank = hasRank
@@ -130,7 +131,7 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                 </div>
 
                 {/* PREMIUM RIBBON BADGE (At bottom) */}
-                {(isCurrentUser || isLastWinner) && (
+                {(isCurrentUser || (isLastWinner && (gameStatus === 'Showdown' || gameStatus === 'Completed' || gameStatus === 'WaitingForStartRound'))) && (
                     <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none w-[130px] flex justify-center">
                         <div
                             className={clsx(
@@ -162,15 +163,35 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
             {/* Hole Cards - Forced onto Table Felt */}
             {(gameStatus === 'InProgress' || gameStatus === 'Showdown' || gameStatus === 'Completed') && (
                 <div
-                    className="absolute flex space-x-1 transition-all z-[40] animate-pop-in pointer-events-none"
+                    className="absolute flex space-x-1 transition-all z-[40] pointer-events-none"
                     style={getCardContainerStyle()}
                 >
                     {isCurrentUser ? (
+                        // Current user sees their cards (face-down during dealing, then flip)
                         Array.isArray(hand) && hand.length > 0 ? (
                             <div className="flex space-x-2">
                                 {hand.map((card, idx) => (
-                                    <div key={idx} className={clsx("transform transition-transform", idx === 1 ? "rotate-6" : "-rotate-6")}>
-                                        <Card cardString={card} className="w-16 h-24 text-[0.85rem] shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10 rounded-xl" />
+                                    <div
+                                        key={idx}
+                                        className={clsx(
+                                            "transform transition-all duration-500",
+                                            idx === 1 ? "rotate-6" : "-rotate-6",
+                                            isDealingInProgress ? "" : "animate-card-flip"
+                                        )}
+                                        style={{
+                                            perspective: '1000px',
+                                            animationDelay: isDealingInProgress ? '0s' : `${idx * 0.2}s`
+                                        }}
+                                    >
+                                        {isDealingInProgress ? (
+                                            <img
+                                                src="/cards/back_dark.png"
+                                                alt="Card Back"
+                                                className="w-16 h-24 rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10"
+                                            />
+                                        ) : (
+                                            <Card cardString={card} className="w-16 h-24 text-[0.85rem] shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-4 ring-white/10 rounded-xl" />
+                                        )}
                                     </div>
                                 ))}
                             </div>

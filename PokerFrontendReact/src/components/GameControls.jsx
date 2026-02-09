@@ -42,7 +42,7 @@ const GameControls = ({ onAction, currentBet, playerChips }) => {
                 </button>
 
                 <button
-                    onClick={() => onAction('bet', raiseAmount)}
+                    onClick={() => onAction(currentBet > 0 ? 'raise' : 'bet', raiseAmount)}
                     className="px-6 py-2 bg-poker-gold hover:bg-yellow-400 text-black font-bold rounded shadow border border-yellow-600"
                 >
                     {currentBet > 0 ? 'RAISE' : 'BET'}
