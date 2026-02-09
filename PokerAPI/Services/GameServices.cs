@@ -807,7 +807,7 @@ namespace PokerAPI.Services
             CurrentPlayerIndex = 0;
             LastShowdown = null;
 
-            Console.WriteLine("[GameController] Game Reset performed. All players removed.");
+           // Console.WriteLine("[GameController] Game Reset performed. All players removed.");
         }
     }
 }

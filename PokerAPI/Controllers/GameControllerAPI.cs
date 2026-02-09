@@ -47,6 +47,13 @@ namespace PokerAPI.Controllers
         }
 
         private object BuildGameStateDto()
+        // ini masukan ke method 
+        // return di masukin var
+        // ui di ganti ganti aset biar ga keliatan ai
+        // var pake intended typenya
+        // dto dipisah tiap class
+        // apply serviceresultpattern di metod metod yg belum
+
         {
             return new
             {
@@ -90,6 +97,7 @@ namespace PokerAPI.Controllers
 
         private async Task BroadcastGameState()
         {
+
             await _hub.Clients.All.SendAsync("ReceiveGameState", BuildGameStateDto());
         }
 

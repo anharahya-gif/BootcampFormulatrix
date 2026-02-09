@@ -296,21 +296,28 @@ const TablePage = () => {
 
     // Floating seats layout - Pushed to Absolute margins and centered top/bottom
     const seatPositions = [
-        "bottom-[12%] right-[25%] translate-x-0",  // Seat 0 (Bottom Right)
-        "bottom-[12%] left-[25%] -translate-x-0",   // Seat 1 (Bottom Left)
-        "left-[2%] top-1/2 translate-y-40",        // Seat 2 (Far Left Bottom)
-        "left-[2%] top-1/2 -translate-y-40",       // Seat 3 (Far Left Top)
-        "top-[12%] left-[25%] -translate-x-0",      // Seat 4 (Top Left)
-        "top-[12%] right-[25%] translate-x-0",     // Seat 5 (Top Right)
-        "right-[2%] top-1/2 -translate-y-40",      // Seat 6 (Far Right Top)
-        "right-[2%] top-1/2 translate-y-40",       // Seat 7 (Far Right Bottom)
+        "top-[15%] left-[34%] -translate-x-0",       // Seat 0 (Top Left)
+        "top-[15%] right-[34%] translate-x-0",      // Seat 1 (Top Right)
+        "right-[14%] top-[34%] -translate-y-0",     // Seat 2 (Right Top)
+        "right-[14%] bottom-[34%] translate-y-0",   // Seat 3 (Right Bottom)
+        "bottom-[15%] right-[34%] translate-x-0",   // Seat 4 (Bottom Right)
+        "bottom-[15%] left-[34%] -translate-x-0",    // Seat 5 (Bottom Left)
+        "left-[14%] bottom-[34%] translate-y-0",     // Seat 6 (Left Bottom)
+        "left-[14%] top-[34%] -translate-y-0",       // Seat 7 (Left Top)
     ];
 
     const seatCardPositions = [
-        "top", "top",       // 0, 1 (Bottom) -> Cards Top
-        "right", "right",   // 2, 3 (Left) -> Cards Right
-        "bottom", "bottom", // 4, 5 (Top) -> Cards Bottom
-        "left", "left"      // 6, 7 (Right) -> Cards Left
+        "bottom", "bottom", // 0, 1 (Top) -> Cards Bottom
+        "left", "left",     // 2, 3 (Right) -> Cards Left
+        "top", "top",       // 4, 5 (Bottom) -> Cards Top
+        "right", "right"    // 6, 7 (Left) -> Cards Right
+    ];
+
+    const seatRotations = [
+        0, 0,               // 0, 1 (Top: faces down)
+        90, 90,             // 2, 3 (Right: faces left)
+        180, 180,           // 4, 5 (Bottom: faces up)
+        -90, -90            // 6, 7 (Left: faces right)
     ];
     // This position list expects up to 10 players. 
     // Just mapping index to style.
@@ -396,20 +403,50 @@ const TablePage = () => {
             )}
 
             {/* Table Felt (Centered and Separated) */}
-            <div className="absolute inset-0 flex items-center justify-center p-20 pointer-events-none">
-                <div className="w-[75vw] h-[48vh] bg-poker-felt rounded-[180px] border-[16px] border-poker-dark shadow-[0_0_100px_rgba(0,0,0,0.8)] relative pointer-events-auto">
+            <div className="absolute inset-0 flex items-center justify-center p-10 pointer-events-none -translate-y-12">
+                <div className="w-[68vw] h-[40vh] bg-poker-felt rounded-[170px] border-[16px] border-[#3e2723] shadow-[0_40px_80px_rgba(0,0,0,0.9),_inset_0_0_60px_rgba(0,0,0,0.6)] relative pointer-events-auto overflow-hidden">
+                    {/* Inner Bezel for Wood Depth */}
+                    <div className="absolute inset-0 rounded-[154px] border-[6px] border-[#4e342e] pointer-events-none z-20 shadow-[inset_0_0_30px_rgba(0,0,0,0.9)]"></div>
+
+                    {/* Highlight Shine on Top Edge */}
+                    <div className="absolute top-0 left-0 right-0 h-2 bg-white/5 z-30 pointer-events-none border-b border-white/5" />
+
+                    {/* Bottom Bezel Shadow */}
+                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-black/40 z-30 pointer-events-none blur-sm" />
+
                     {/* Logo/Text in center */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30 pointer-events-none">
                         <h1 className="text-6xl font-black text-black tracking-widest">POKER</h1>
                     </div>
 
-                    {/* Community Cards */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 w-full max-w-lg">
-                        <CommunityCards cards={gameState?.communityCards} />
+                    {/* Community Cards & Deck */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 w-full max-w-lg flex items-center justify-center">
+                        <div className="relative flex items-center">
+                            <CommunityCards cards={gameState?.communityCards} />
+
+                            {/* Decorative Stacked card Deck */}
+                            <div className="ml-12 relative w-16 h-24 hidden md:block opacity-80 group">
+                                {[0, 1, 2, 3, 4].map(idx => (
+                                    <div
+                                        key={idx}
+                                        className="absolute w-16 h-24 rounded-lg shadow-2xl border border-black/30 overflow-hidden transition-transform duration-500 hover:scale-105"
+                                        style={{
+                                            top: `-${idx * 2.5}px`,
+                                            left: `${idx * 1.5}px`,
+                                            zIndex: 10 - idx,
+                                            transform: `rotate(${idx * 0.5}deg)`
+                                        }}
+                                    >
+                                        <img src="/cards/back_dark.png" alt="Deck" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/10" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Pot Display */}
-                        <div className="mt-4 text-center">
-                            <span className="bg-black/40 text-poker-gold px-4 py-1 rounded-full text-lg font-mono border border-poker-gold/30">
+                        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 mt-4 text-center">
+                            <span className="bg-black/60 text-poker-gold px-6 py-2 rounded-full text-xl font-black font-mono border-2 border-poker-gold/40 shadow-2xl backdrop-blur-sm">
                                 POT: {gameState?.pot || 0}
                             </span>
                         </div>
@@ -434,6 +471,7 @@ const TablePage = () => {
                         isLastWinner={isLastWinner}
                         positionClasses={seatPositions[i] || "hidden"}
                         cardPlacement={seatCardPositions[i] || "top"}
+                        rotation={seatRotations[i] || 0}
                         gameStatus={gameState?.gameState || gameState?.GameState}
                         onJoinSeat={!isSeated ? handleJoinSeat : undefined}
                     />
@@ -505,7 +543,7 @@ const TablePage = () => {
                         onClick={handleStandUp}
                         className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded shadow border border-red-800"
                     >
-                        Stand Up
+                        Leave
                     </button>
                 </div>
             )}

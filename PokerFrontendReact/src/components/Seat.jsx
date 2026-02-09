@@ -2,11 +2,20 @@ import React from 'react';
 import Card from './Card';
 import { clsx } from 'clsx';
 
-const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers" }) => {
+const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0 }) => {
     // 1. Handle Empty Seat
     if (!player) {
         return (
             <div className={clsx("absolute flex flex-col items-center justify-center w-24 h-24 rounded-full border-2 border-dashed border-gray-600 bg-black/10 text-gray-500 text-[10px] transition-all", positionClasses)}>
+                {/* Chair Icon for Empty Seat - Centered and Enlarged */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[-1]">
+                    <img
+                        src="/icon/chair-png.png"
+                        alt="Chair"
+                        className="w-52 h-52 max-w-none object-contain opacity-40 transition-transform duration-500"
+                        style={{ transform: `rotate(${rotation}deg)` }}
+                    />
+                </div>
                 <span className="mb-1">Seat {seatIndex}</span>
                 {onJoinSeat ? (
                     <button
@@ -33,7 +42,7 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
 
     // Card Positioning Style
     const getCardContainerStyle = () => {
-        const dist = isCurrentUser ? "140px" : "90px";
+        const dist = isCurrentUser ? "150px" : "110px";
         switch (cardPlacement) {
             case 'top': return { bottom: dist, left: '50%', transform: 'translateX(-50%)' };
             case 'bottom': return { top: dist, left: '50%', transform: 'translateX(-50%)' };
@@ -64,14 +73,27 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
             <div className="relative group">
                 {/* Player Avatar Circle */}
                 <div className={clsx(
-                    "relative w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-2xl transition-all duration-500 bg-gray-900 overflow-hidden",
+                    "relative w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-2xl transition-all duration-500 bg-gray-900",
                     isCurrentUser && !isFolded ? "border-cyan-400 ring-4 ring-cyan-400/20 shadow-[0_0_30px_rgba(34,211,238,0.3)]" :
                         isFolded ? "opacity-30 border-gray-600 grayscale" :
                             state === 'AllIn' ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]" :
-                                isActiveTurn ? "border-yellow-400 scale-110 shadow-[0_0_35px_rgba(250,204,21,0.6)] ring-4 ring-yellow-400/30" :
+                                isActiveTurn ? "border-yellow-400 scale-110 shadow-[0_0_35_px_rgba(250,204,21,0.6)] ring-4 ring-yellow-400/30" :
                                     "border-gray-700",
                     isLastWinner && "ring-[6px] ring-yellow-500/40 border-yellow-400 shadow-[0_0_50px_rgba(250,204,21,0.5)] bg-gradient-to-b from-yellow-900/40 to-black"
                 )}>
+                    {/* Chair Icon - Centered, Enlarged, and Rotated */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[-1]">
+                        <img
+                            src="/icon/chair-png.png"
+                            alt="Chair"
+                            className={clsx(
+                                "w-48 h-48 max-w-none object-contain transition-transform duration-500",
+                                isFolded && "grayscale opacity-50"
+                            )}
+                            style={{ transform: `rotate(${rotation}deg)` }}
+                        />
+                    </div>
+
                     {/* Glossy Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
 
@@ -79,6 +101,13 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
 
                     <div className="font-black text-white text-[13px] truncate w-20 text-center z-10 mb-1">{name}</div>
                     <div className="text-poker-gold text-sm font-black font-mono z-10">🪙 {chipStack}</div>
+
+                    {/* Integrated Bet Bubble - Corner of Avatar */}
+                    {currentBet > 0 && (
+                        <div className="absolute -bottom-2 -right-4 bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black border-2 border-yellow-600 shadow-xl animate-fade-in z-[60] flex items-center">
+                            <span className="mr-0.5">🪙</span> {currentBet}
+                        </div>
+                    )}
 
                     {state === 'AllIn' && <div className="absolute bottom-6 text-white text-[8px] font-black tracking-widest bg-purple-600 px-1.5 rounded-full border border-purple-400 z-10">ALL-IN</div>}
                     {isFolded && <div className="absolute bottom-6 text-gray-300 text-[8px] font-black tracking-widest bg-gray-700 px-1.5 rounded-full border border-gray-600 z-10">FOLDED</div>}
@@ -112,12 +141,6 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                 )}
             </div>
 
-            {/* Inward Bet Bubble */}
-            {currentBet > 0 && (
-                <div className="mt-8 bg-yellow-400 text-black px-3 py-1 rounded-full text-[11px] font-black shadow-lg border-2 border-yellow-600 animate-fade-in whitespace-nowrap z-50">
-                    {currentBet}
-                </div>
-            )}
 
             {/* Hole Cards - Forced onto Table Felt */}
             {(gameStatus === 'InProgress' || gameStatus === 'Showdown' || gameStatus === 'Completed') && (

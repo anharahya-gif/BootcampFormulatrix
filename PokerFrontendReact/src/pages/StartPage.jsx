@@ -50,7 +50,11 @@ const StartPage = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-poker-dark bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
             <div className="bg-black/60 p-8 rounded-2xl shadow-2xl backdrop-blur-md border border-poker-gold/20 w-full max-w-md">
-                <h1 className="text-4xl font-bold text-center text-white mb-2">♠ Poker API ♥</h1>
+                <h1 className="text-4xl font-bold text-center text-white mb-2 flex items-center justify-center gap-2">
+                    <img src="/icon/icon-card.png" alt="icon" className="w-8 h-8" />
+                    Poker API
+                    <img src="/icon/icon-card.png" alt="icon" className="w-8 h-8" />
+                </h1>
                 <p className="text-center text-gray-400 mb-8">Enter your details to join the table</p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
