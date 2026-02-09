@@ -31,14 +31,14 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
         );
     }
 
-    // 2. Data Extraction
-    const name = player.name || player.Name || "Player";
-    const chipStack = player.chipStack !== undefined ? player.chipStack : (player.ChipStack !== undefined ? player.ChipStack : 0);
-    const currentBet = player.currentBet !== undefined ? player.currentBet : (player.CurrentBet !== undefined ? player.CurrentBet : 0);
-    const isFolded = player.isFolded !== undefined ? player.isFolded : (player.IsFolded !== undefined ? player.IsFolded : false);
-    const state = player.state || player.State || "Active";
-    const hand = player.hand || player.Hand || [];
-    const possibleRank = player.possibleHandRank || player.PossibleHandRank;
+    // 2. Data Extraction (Prefer PascalCase from DTO)
+    const name = player.Name || player.name || "Player";
+    const chipStack = player.ChipStack !== undefined ? player.ChipStack : (player.chipStack !== undefined ? player.chipStack : 0);
+    const currentBet = player.CurrentBet !== undefined ? player.CurrentBet : (player.currentBet !== undefined ? player.currentBet : 0);
+    const isFolded = player.IsFolded !== undefined ? player.IsFolded : (player.isFolded !== undefined ? player.isFolded : false);
+    const state = player.State || player.state || "Active";
+    const hand = player.Hand || player.hand || [];
+    const possibleRank = player.PossibleHandRank || player.possibleHandRank;
 
     // Card Positioning Style
     const getCardContainerStyle = () => {
@@ -76,7 +76,7 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                     "relative w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-2xl transition-all duration-500 bg-gray-900",
                     isCurrentUser && !isFolded ? "border-cyan-400 ring-4 ring-cyan-400/20 shadow-[0_0_30px_rgba(34,211,238,0.3)]" :
                         isFolded ? "opacity-30 border-gray-600 grayscale" :
-                            state === 'AllIn' ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]" :
+                            state === 'AllIn' ? "border-[#a855f7] shadow-[0_0_25px_rgba(168,85,247,0.7)]" :
                                 isActiveTurn ? "border-yellow-400 scale-110 shadow-[0_0_35_px_rgba(250,204,21,0.6)] ring-4 ring-yellow-400/30" :
                                     "border-gray-700",
                     isLastWinner && "ring-[6px] ring-yellow-500/40 border-yellow-400 shadow-[0_0_50px_rgba(250,204,21,0.5)] bg-gradient-to-b from-yellow-900/40 to-black"
@@ -95,22 +95,38 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                     </div>
 
                     {/* Glossy Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none rounded-full" />
 
                     {isActiveTurn && <div className="absolute inset-0 bg-yellow-400/10 animate-pulse rounded-full" />}
 
-                    <div className="font-black text-white text-[13px] truncate w-20 text-center z-10 mb-1">{name}</div>
-                    <div className="text-poker-gold text-sm font-black font-mono z-10">🪙 {chipStack}</div>
-
-                    {/* Integrated Bet Bubble - Corner of Avatar */}
-                    {currentBet > 0 && (
-                        <div className="absolute -bottom-2 -right-4 bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black border-2 border-yellow-600 shadow-xl animate-fade-in z-[60] flex items-center">
-                            <span className="mr-0.5">🪙</span> {currentBet}
+                    {/* 2.1 Player State Badge (Left Side) - Increased Offset */}
+                    {(state === 'AllIn' || isFolded) && (
+                        <div className="absolute -left-10 top-1/2 -translate-y-1/2 z-[70] animate-fade-in">
+                            <span className={clsx(
+                                "text-[8px] px-2 py-0.5 rounded-full border shadow-lg font-black tracking-widest block whitespace-nowrap",
+                                state === 'AllIn' ? "bg-purple-600 text-white border-purple-400" : "bg-gray-700 text-gray-300 border-gray-500"
+                            )}>
+                                {state === 'AllIn' ? 'ALLIN' : 'FOLD'}
+                            </span>
                         </div>
                     )}
 
-                    {state === 'AllIn' && <div className="absolute bottom-6 text-white text-[8px] font-black tracking-widest bg-purple-600 px-1.5 rounded-full border border-purple-400 z-10">ALL-IN</div>}
-                    {isFolded && <div className="absolute bottom-6 text-gray-300 text-[8px] font-black tracking-widest bg-gray-700 px-1.5 rounded-full border border-gray-600 z-10">FOLDED</div>}
+                    {/* 2.2 Current Bet Badge (Right Side) - Increased Offset */}
+                    {currentBet > 0 && (
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 z-[70] animate-fade-in">
+                            <div className="bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[9px] font-black border-2 border-yellow-600 shadow-xl flex items-center whitespace-nowrap">
+                                <img src="/icon/chip.png" className="w-4 h-4 object-contain mr-1 drop-shadow-sm" />{currentBet}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2.3 Centered Player Info */}
+                    <div className="flex flex-col items-center justify-center z-10 px-1">
+                        <div className="font-black text-white text-[11px] truncate w-20 text-center leading-tight mb-0.5 shadow-black/80 drop-shadow-md">{name}</div>
+                        <div className="text-poker-gold text-[10px] font-black font-mono leading-none flex items-center shadow-black/80 drop-shadow-md">
+                            <img src="/icon/chip.png" className="w-3 h-3 object-contain mr-1 drop-shadow-sm" />{chipStack}
+                        </div>
+                    </div>
                 </div>
 
                 {/* PREMIUM RIBBON BADGE (At bottom) */}
@@ -130,6 +146,7 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                                 textShadow: "0 2px 4px rgba(0,0,0,0.8)"
                             }}
                         >
+                            {/* 2.3 Player Info (Name & Chips) */}
                             {/* Inner Shine */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
 
@@ -159,6 +176,7 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                             </div>
                         ) : null
                     ) : (
+                        // 2.4 Action/Phase Badge (Removed ALL-IN from here)
                         !isFolded && (
                             <div className="flex -space-x-4 scale-90">
                                 <Card faceDown className="w-12 h-16 -rotate-6 transform shadow-xl border-white/20" />

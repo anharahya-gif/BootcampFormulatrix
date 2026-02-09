@@ -4,7 +4,12 @@ using PokerAPI.Hubs;
 using PokerAPI.Services.Interfaces;
 using PokerAPI.DTOs;
 using PokerAPI.Services; 
+using PokerAPI.Mapper;
+using PokerAPI.Models;
 using System.Linq;
+using System.Collections.Generic;
+using System;
+using System.Threading.Tasks;
 
 namespace PokerAPI.Controllers
 {
@@ -30,290 +35,250 @@ namespace PokerAPI.Controllers
 
             _game.ShowdownCompleted += () =>
             {
-                var details = _game.GetShowdownDetails();
+                object details = _game.GetShowdownDetails();
                 _ = _hub.Clients.All.SendAsync("ShowdownCompleted", details);
             };
         }
 
-        // ======================
-        // Internal Helpers
-        // ======================
+        #region Internal Helpers
         private void AdvanceTurnIfNeeded()
         {
             if (_game.IsBettingRoundOver())
+            {
                 _game.NextPhase();
+            }
             else
+            {
                 _game.GetNextActivePlayer();
-        }
-
-        private object BuildGameStateDto()
-        // ini masukan ke method 
-        // return di masukin var
-        // ui di ganti ganti aset biar ga keliatan ai
-        // var pake intended typenya
-        // dto dipisah tiap class
-        // apply serviceresultpattern di metod metod yg belum
-
-        {
-            return new
-            {
-                gameState = _game.GetGameState(),
-                phase = _game.Phase.ToString(),
-                currentPlayer = _game.GetCurrentPlayer()?.Name,
-                currentBet = _game.CurrentBet,
-                pot = _game.GetTotalPot(),
-                communityCards = _game.CommunityCards
-                    .Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                players = _game.GetPlayersPublicState()
-                    .Select(p => new
-                    {
-                        name = p.Name,
-                        chipStack = p.ChipStack,
-                        currentBet = p.CurrentBet,
-                        isFolded = p.IsFolded,
-                        seatIndex = p.SeatIndex,
-                        state = p.State,
-                        hand = p.Hand != null ? p.Hand.ToList() : new List<string>(),
-                        possibleHandRank = p.PossibleHandRank
-                    }).ToList(),
-                showdown = _game.LastShowdown == null ? null : new
-                {
-                    winners = _game.LastShowdown.Winners.Select(p => p.Name).ToList(),
-                    handRank = _game.LastShowdown.HandRank.ToString(),
-                    message = _game.LastShowdown.Message
-                }
-            };
-        }
-
-        private object BuildAddChipsResponse(string playerName, int newChips, int addedAmount)
-        {
-            return new
-            {
-                PlayerName = playerName,
-                NewChips = newChips,
-                Message = $"{addedAmount} chip berhasil ditambahkan."
-            };
+            }
         }
 
         private async Task BroadcastGameState()
         {
-
-            await _hub.Clients.All.SendAsync("ReceiveGameState", BuildGameStateDto());
+            GameStateDto gameState = GameMapper.MapToGameStateDto(_game);
+            await _hub.Clients.All.SendAsync("ReceiveGameState", gameState);
         }
+        #endregion
 
-        // ======================
-        // Player Management
-        // ======================
+        #region Player Management
         [HttpPost("addPlayer")]
         public async Task<IActionResult> AddPlayer([FromQuery] string name, [FromQuery] int chips = 1000, [FromQuery] int seatIndex = -1)
         {
-            try
+            ServiceResult result = _game.AddPlayer(name, chips, seatIndex);
+            if (result.IsSuccess)
             {
-                _game.AddPlayer(name, chips, seatIndex);
                 await BroadcastGameState();
-                return Ok(ServiceResult.Success("Player added"));
+                return Ok(result);
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ServiceResult.Failure(ex.Message));
-            }
-            catch
-            {
-                return StatusCode(500, ServiceResult.Failure("Internal server error"));
-            }
+            return BadRequest(result);
         }
+
         [HttpPost("registerPlayer")]
         public async Task<IActionResult> RegisterPlayer([FromQuery] string playerName, [FromQuery] int chipStack)
         {
-            try
+            ServiceResult result = _game.RegisterPlayer(playerName, chipStack);
+            if (result.IsSuccess)
             {
-                // pakai RegisterPlayer bukan AddPlayer
-                _game.RegisterPlayer(playerName, chipStack);
                 await BroadcastGameState();
-                return Ok(new { success = true, message = "Player registered" });
+                return Ok(result);
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
+            return BadRequest(result);
         }
 
         [HttpPost("joinSeat")]
         public async Task<IActionResult> JoinSeat([FromQuery] string playerName, [FromQuery] int seatIndex)
         {
-            var player = _game.GetPlayerByName(playerName);
-            if (player == null)
-                return NotFound(ServiceResult.Failure("Player belum terdaftar"));
-
-            try
+            ServiceResult result = _game.UpdatePlayerSeat(playerName, seatIndex);
+            if (result.IsSuccess)
             {
-                _game.UpdatePlayerSeat(playerName, seatIndex); // method baru untuk update seat
                 await BroadcastGameState();
-                return Ok(ServiceResult.Success($"Player {playerName} menempati seat {seatIndex}"));
+                return Ok(result);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ServiceResult.Failure(ex.Message));
-            }
+            return BadRequest(result);
         }
 
         [HttpPost("removePlayer")]
         public async Task<IActionResult> RemovePlayer([FromQuery] string name)
         {
-            var player = _game.GetPlayerByName(name);
+            IPlayer? player = _game.GetPlayerByName(name);
             if (player == null)
-                return NotFound(ServiceResult.Failure("Player not found"));
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            _game.RemovePlayer(player);
-            await BroadcastGameState();
-            return Ok(ServiceResult.Success("Player removed"));
+            ServiceResult result = _game.RemovePlayer(player);
+            if (result.IsSuccess)
+            {
+                await BroadcastGameState();
+                return Ok(result);
+            }
+            return BadRequest(result);
         }
+        #endregion
 
-        // ======================
-        // Add Chips
-        // ======================
+        #region Chips Management
         [HttpPost("addchips")]
         public async Task<IActionResult> AddChips([FromBody] AddChipsRequest request)
         {
-            var player = _game.GetPlayerByName(request.PlayerName);
+            IPlayer? player = _game.GetPlayerByName(request.PlayerName);
             if (player == null)
-                return NotFound(ServiceResult.Failure("Player not found"));
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
             if (request.Amount <= 0)
-                return BadRequest(ServiceResult.Failure("Amount must be greater than 0"));
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Amount must be greater than 0");
+                return BadRequest(resultFail);
+            }
 
             player.ChipStack += request.Amount;
             await BroadcastGameState();
 
-            var response = BuildAddChipsResponse(player.Name, player.ChipStack, request.Amount);
-            return Ok(ServiceResult.Success("Chips added successfully"));
-
+            ServiceResult result = ServiceResult.Success("Chips added successfully");
+            return Ok(result);
         }
+        #endregion
 
-        // ======================
-        // Round Management
-        // ======================
+        #region Round Management
         [HttpPost("startRound")]
         public async Task<IActionResult> StartRound()
         {
-            _game.StartRound();
-            await BroadcastGameState();
-            return Ok(ServiceResult.Success("Round started"));
+            ServiceResult result = _game.StartRound();
+            if (result.IsSuccess)
+            {
+                await BroadcastGameState();
+                return Ok(result);
+            }
+            return BadRequest(result);
         }
 
         [HttpPost("nextPhase")]
         public async Task<IActionResult> NextPhase()
         {
-            _game.NextPhase();
-            await BroadcastGameState();
-            return Ok(ServiceResult.Success("Phase advanced"));
+            ServiceResult result = _game.NextPhase();
+            if (result.IsSuccess)
+            {
+                await BroadcastGameState();
+                return Ok(result);
+            }
+            return BadRequest(result);
         }
+        #endregion
 
-        // ======================
-        // Betting Actions
-        // ======================
+        #region Betting Actions
         [HttpPost("bet")]
         public async Task<IActionResult> Bet([FromQuery] string name, [FromQuery] int amount)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
+            IPlayer? player = _game.GetPlayerByName(name);
+            if (player == null)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            var result = _game.HandleBet(player, amount);
-            if (result.IsSuccess) AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleBet(player, amount);
             await BroadcastGameState();
-            return Ok(result);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("call")]
         public async Task<IActionResult> Call([FromQuery] string name)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
+            IPlayer? player = _game.GetPlayerByName(name);
+            if (player == null)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            var result = _game.HandleCall(player);
-            if (result.IsSuccess) AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleCall(player);
             await BroadcastGameState();
-            return Ok(result);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("raise")]
         public async Task<IActionResult> Raise([FromQuery] string name, [FromQuery] int amount)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
+            IPlayer? player = _game.GetPlayerByName(name);
+            if (player == null)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            var result = _game.HandleRaise(player, amount);
-            if (result.IsSuccess) AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleRaise(player, amount);
             await BroadcastGameState();
-            return Ok(result);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("check")]
         public async Task<IActionResult> Check([FromQuery] string name)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
+            IPlayer? player = _game.GetPlayerByName(name);
+            if (player == null)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            _game.HandleCheck(player);
-            AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleCheck(player);
             await BroadcastGameState();
-            return Ok(ServiceResult.Success("Check performed"));
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("fold")]
         public async Task<IActionResult> Fold([FromQuery] string name)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
+            IPlayer? player = _game.GetPlayerByName(name);
+            if (player == null)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Player not found");
+                return NotFound(resultFail);
+            }
 
-            _game.HandleFold(player);
-            AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleFold(player);
             await BroadcastGameState();
-            return Ok(ServiceResult.Success("Folded"));
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("allin")]
         public async Task<IActionResult> AllIn([FromQuery] string name)
         {
-            var player = _game.GetPlayerByName(name);
-            if (player == null) return NotFound(ServiceResult.Failure("Player not found"));
-
-            var result = _game.HandleAllIn(player.Name);
-            if (result.IsSuccess) AdvanceTurnIfNeeded();
+            ServiceResult result = _game.HandleAllIn(name);
             await BroadcastGameState();
             return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
+        #endregion
 
-        // ======================
-        // Showdown
-        // ======================
+        #region Showdown & Reset
         [HttpPost("showdown")]
         public async Task<IActionResult> Showdown()
         {
-            var result = _game.ResolveShowdownDetailed();
+            (List<IPlayer> winners, HandRank rank) showdownResult = _game.ResolveShowdownDetailed();
             await BroadcastGameState();
+            ServiceResult result = ServiceResult.Success("Showdown resolved");
             return Ok(result);
         }
 
         [HttpPost("reset")]
         public async Task<IActionResult> Reset()
         {
-            _game.ResetGame();
+            ServiceResult result = _game.ResetGame();
             await BroadcastGameState();
-            return Ok(ServiceResult.Success("Server reset successfully. All players kicked."));
+            return Ok(result);
         }
+        #endregion
 
-        // ======================
-        // Game State
-        // ======================
+        #region Game State
         [HttpGet("state")]
         public IActionResult State()
         {
-            return Ok(BuildGameStateDto());
+            GameStateDto gameState = GameMapper.MapToGameStateDto(_game);
+            return Ok(gameState);
         }
+        #endregion
     }
 }

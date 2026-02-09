@@ -33,7 +33,7 @@ namespace PokerAPI.Models
             _cards = new Stack<ICard>(_cards.OrderBy(c => rnd.Next()));
         }
 
-        public ICard Draw()
+        public ICard? Draw()
         {
             return _cards.Count > 0 ? _cards.Pop() : null;
         }

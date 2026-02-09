@@ -19,10 +19,6 @@ namespace PokerAPI.Hubs
         {
             await Clients.All.SendAsync("ShowdownStateUpdated", showdownState);
         }
-        public async Task TestSend()
-        {
-            await Clients.All.SendAsync("ReceiveMessage", "Hello from server");
-        }
 
     }
 }

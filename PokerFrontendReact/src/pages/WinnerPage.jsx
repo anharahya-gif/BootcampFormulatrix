@@ -56,11 +56,11 @@ const WinnerPage = () => {
     const navigate = useNavigate();
 
     // Support both camelCase and PascalCase from state
-    const winnersRaw = state?.winners || [];
-    const allPlayers = state?.allPlayers || [];
-    const communityCards = state?.communityCards || state?.CommunityCards || [];
-    const handRank = state?.handRank || state?.rank || state?.Rank || "Winning Hand";
-    const pot = state?.pot || state?.Pot || 0;
+    const winnersRaw = state?.Winners || state?.winners || [];
+    const allPlayers = state?.Players || state?.allPlayers || [];
+    const communityCards = state?.CommunityCards || state?.communityCards || [];
+    const handRank = state?.HandRank || state?.handRank || state?.Rank || state?.rank || "Winning Hand";
+    const pot = state?.Pot || state?.pot || 0;
 
     const winnerNames = winnersRaw.map(w => w.name || w.Name);
 
@@ -128,11 +128,11 @@ const WinnerPage = () => {
             {/* Players Grid */}
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl mb-12 px-4">
                 {allPlayers.map((player, idx) => {
-                    const name = player.name || player.Name;
-                    const hand = player.hand || player.Hand;
+                    const name = player.Name || player.name;
+                    const hand = player.Hand || player.hand;
                     const isWinner = winnerNames.includes(name);
-                    const chipStack = player.chipStack || player.ChipStack;
-                    const winnings = player.winnings || player.Winnings;
+                    const chipStack = player.ChipStack || player.chipStack;
+                    const winnings = player.Winnings || player.winnings;
 
                     return (
                         <div

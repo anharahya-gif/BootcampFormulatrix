@@ -58,15 +58,16 @@ const TablePage = () => {
                 signalrService.on('ReceiveGameState', (state) => {
                     console.log("Game State Received:", state);
 
-                    // Detect if community cards increased
-                    const newCount = state?.communityCards?.length || 0;
+                    // Detect if community cards increased (PascalCase)
+                    const communityCards = state?.CommunityCards || state?.communityCards || [];
+                    const newCount = communityCards.length;
                     if (newCount > prevCommunityCount.current) {
                         playCardSound();
                     }
                     prevCommunityCount.current = newCount;
 
-                    // Detect if pot increased
-                    const newPot = state?.pot || 0;
+                    // Detect if pot increased (PascalCase)
+                    const newPot = state?.Pot || state?.pot || 0;
                     if (newPot > prevPot.current) {
                         playChipSound();
                     }
@@ -76,8 +77,9 @@ const TablePage = () => {
                     setLoading(false);
 
                     // Auto-redirect if server has been reset (no players left)
-                    if (state && state.players && state.players.length === 0 && !loading) {
-                        const amIInList = state.players.some(p => (p.name || p.Name) === playerName);
+                    const players = state?.Players || state?.players || [];
+                    if (state && players.length === 0 && !loading) {
+                        const amIInList = players.some(p => (p.Name || p.name) === playerName);
                         if (!amIInList && playerName) {
                             console.log("Server reset detected or player removed. Redirecting...");
                             navigate('/');
@@ -86,7 +88,8 @@ const TablePage = () => {
                 });
 
                 signalrService.on('CommunityCardsUpdated', (d) => {
-                    console.log("Community Cards Updated:", d.communityCards);
+                    const cards = d.CommunityCards || d.communityCards || [];
+                    console.log("Community Cards Updated:", cards);
                     // Just play sound if we get this explicit event too
                     playCardSound();
                 });
@@ -95,11 +98,14 @@ const TablePage = () => {
                     console.log("Showdown!", details);
                     prevCommunityCount.current = 0; // Reset for next round
 
+                    // The backend sends a ServiceResult<object>, so data is in details.data
+                    const data = details?.Data || details?.data || details;
+
                     // Navigate after a delay to ensure players see the final community cards
                     setTimeout(() => {
-                        const winnerNames = details.winners || details.Winners || [];
-                        const rawPlayers = details.players || details.Players || [];
-                        const totalPot = details.pot || details.Pot || 0;
+                        const winnerNames = data.winners || data.Winners || [];
+                        const rawPlayers = data.players || data.Players || [];
+                        const totalPot = data.pot || data.Pot || 0;
 
                         navigate('/winner', {
                             state: {
@@ -108,10 +114,10 @@ const TablePage = () => {
                                     return winnerNames.includes(pName);
                                 }) || [],
                                 allPlayers: rawPlayers,
-                                communityCards: details.communityCards || details.CommunityCards || [],
-                                handRank: details.handRank || details.rank || details.Rank || "Winner",
+                                communityCards: data.communityCards || data.CommunityCards || [],
+                                handRank: data.handRank || data.rank || data.Rank || "Winner",
                                 pot: totalPot,
-                                message: details.message || details.Message || ""
+                                message: data.message || data.Message || ""
                             }
                         });
                     }, 1);
@@ -130,11 +136,10 @@ const TablePage = () => {
                     const response = await apiService.getGameState();
                     const initialState = response.data;
                     setGameState(initialState);
-                    // Looking at Controller: BuildGameStateDto returns object. 
-                    // Let's assume response.data IS the state object.
 
                     // Logic to join if not present
-                    const amIInGame = initialState.players?.some(p => (p.name || p.Name) === playerName);
+                    const players = initialState?.Players || initialState?.players || [];
+                    const amIInGame = players.some(p => (p.Name || p.name) === playerName);
                     if (!amIInGame) {
                         try {
                             // Try to join at a random seat or just use joinSeat endpoint
@@ -188,7 +193,15 @@ const TablePage = () => {
     const handleAction = async (action, amount) => {
         try {
             switch (action) {
-                case 'bet': await apiService.bet(playerName, amount); break;
+                case 'bet':
+                    // If there is already a bet on the table, this must be a raise
+                    const currentTableBet = gameState?.CurrentBet || gameState?.currentBet || 0;
+                    if (currentTableBet > 0) {
+                        await apiService.raise(playerName, amount);
+                    } else {
+                        await apiService.bet(playerName, amount);
+                    }
+                    break;
                 case 'call': await apiService.call(playerName); break;
                 case 'check': await apiService.check(playerName); break;
                 case 'fold': await apiService.fold(playerName); break;
@@ -296,14 +309,14 @@ const TablePage = () => {
 
     // Floating seats layout - Pushed to Absolute margins and centered top/bottom
     const seatPositions = [
-        "top-[15%] left-[34%] -translate-x-0",       // Seat 0 (Top Left)
-        "top-[15%] right-[34%] translate-x-0",      // Seat 1 (Top Right)
-        "right-[14%] top-[34%] -translate-y-0",     // Seat 2 (Right Top)
-        "right-[14%] bottom-[34%] translate-y-0",   // Seat 3 (Right Bottom)
-        "bottom-[15%] right-[34%] translate-x-0",   // Seat 4 (Bottom Right)
-        "bottom-[15%] left-[34%] -translate-x-0",    // Seat 5 (Bottom Left)
-        "left-[14%] bottom-[34%] translate-y-0",     // Seat 6 (Left Bottom)
-        "left-[14%] top-[34%] -translate-y-0",       // Seat 7 (Left Top)
+        "top-[12%] left-[34%] -translate-x-0",       // Seat 0 (Top Left)
+        "top-[12%] right-[34%] translate-x-0",      // Seat 1 (Top Right)
+        "right-[6%] top-[32%] -translate-y-0",       // Seat 2 (Right Top)
+        "right-[6%] bottom-[36%] translate-y-0",     // Seat 3 (Right Bottom)
+        "bottom-[20%] right-[34%] translate-x-0",    // Seat 4 (Bottom Right)
+        "bottom-[20%] left-[34%] -translate-x-0",     // Seat 5 (Bottom Left)
+        "left-[6%] bottom-[36%] translate-y-0",      // Seat 6 (Left Bottom)
+        "left-[6%] top-[32%] -translate-y-0",        // Seat 7 (Left Top)
     ];
 
     const seatCardPositions = [
@@ -323,12 +336,17 @@ const TablePage = () => {
     // Just mapping index to style.
 
     // helper to find player in state
-    const getPlayerAtSeat = (idx) => gameState?.players?.find(p => (p.seatIndex !== undefined ? p.seatIndex : p.SeatIndex) === idx);
-    const currentPlayer = gameState?.players?.find(p => (p.name || p.Name) === playerName);
-    const isMyTurn = gameState?.currentPlayer === playerName;
+    const players = gameState?.Players || gameState?.players || [];
+    const getPlayerAtSeat = (idx) => players.find(p => (p.SeatIndex !== undefined ? p.SeatIndex : p.seatIndex) === idx);
+    const currentPlayer = players.find(p => (p.Name || p.name) === playerName);
+
+    // Normalized turn and state checks
+    const apiCurrentPlayer = gameState?.CurrentPlayer || gameState?.currentPlayer;
+    const isMyTurn = apiCurrentPlayer === playerName;
+    const currentTableState = gameState?.GameState || gameState?.gameState;
 
     // Show controls if my turn (and not just waiting)
-    const showControls = isMyTurn && gameState?.gameState === 'InProgress';
+    const showControls = isMyTurn && currentTableState === 'InProgress';
 
     // Can start?
     const playersWithChips = gameState?.players?.filter(p => p.seatIndex >= 0);
@@ -403,10 +421,10 @@ const TablePage = () => {
             )}
 
             {/* Table Felt (Centered and Separated) */}
-            <div className="absolute inset-0 flex items-center justify-center p-10 pointer-events-none -translate-y-12">
-                <div className="w-[68vw] h-[40vh] bg-poker-felt rounded-[170px] border-[16px] border-[#3e2723] shadow-[0_40px_80px_rgba(0,0,0,0.9),_inset_0_0_60px_rgba(0,0,0,0.6)] relative pointer-events-auto overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center p-10 pointer-events-none -translate-y-6">
+                <div className="w-[55vw] h-[32vh] bg-poker-felt rounded-[140px] border-[16px] border-[#3e2723] shadow-[0_40px_80px_rgba(0,0,0,0.9),_inset_0_0_60px_rgba(0,0,0,0.6)] relative pointer-events-auto overflow-hidden">
                     {/* Inner Bezel for Wood Depth */}
-                    <div className="absolute inset-0 rounded-[154px] border-[6px] border-[#4e342e] pointer-events-none z-20 shadow-[inset_0_0_30px_rgba(0,0,0,0.9)]"></div>
+                    <div className="absolute inset-0 rounded-[124px] border-[6px] border-[#4e342e] pointer-events-none z-20 shadow-[inset_0_0_30px_rgba(0,0,0,0.9)]"></div>
 
                     {/* Highlight Shine on Top Edge */}
                     <div className="absolute top-0 left-0 right-0 h-2 bg-white/5 z-30 pointer-events-none border-b border-white/5" />
@@ -445,7 +463,7 @@ const TablePage = () => {
                         </div>
 
                         {/* Pot Display */}
-                        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 mt-4 text-center">
+                        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 mt-4 text-center">
                             <span className="bg-black/60 text-poker-gold px-6 py-2 rounded-full text-xl font-black font-mono border-2 border-poker-gold/40 shadow-2xl backdrop-blur-sm">
                                 POT: {gameState?.pot || 0}
                             </span>
@@ -467,7 +485,7 @@ const TablePage = () => {
                         seatIndex={i}
                         player={playerAtSeat}
                         isCurrentUser={playerNameAtSeat === playerName}
-                        isActiveTurn={gameState?.currentPlayer === playerNameAtSeat}
+                        isActiveTurn={playerNameAtSeat === apiCurrentPlayer}
                         isLastWinner={isLastWinner}
                         positionClasses={seatPositions[i] || "hidden"}
                         cardPlacement={seatCardPositions[i] || "top"}
@@ -507,11 +525,11 @@ const TablePage = () => {
                     >
                         START GAME
                     </button>
-                    {gameState.players.filter(p => p.seatIndex >= 0).length < 2 && <div className="text-white text-xs text-center mt-1 bg-black/50 px-2 rounded">Waiting for players...</div>}
+                    {gameState.Players?.length < 2 && <div className="text-white text-xs text-center mt-1 bg-black/50 px-2 rounded">Waiting for players...</div>}
                 </div>
             )}
 
-            {!canStart && hasZeroChips && gameState?.gameState !== 'InProgress' && (
+            {!canStart && hasZeroChips && currentTableState !== 'InProgress' && (
                 <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
                     <div className="bg-red-600 text-white font-bold px-4 py-2 rounded text-sm shadow-lg border-2 border-red-800">
                         Cannot Start: Some players have 0 chips
@@ -520,7 +538,7 @@ const TablePage = () => {
             )}
 
             {/* Player System Menu (Stand Up / Add Chips) - Only when NOT InProgress */}
-            {currentPlayer && currentPlayer.seatIndex >= 0 && gameState?.gameState !== 'InProgress' && (
+            {currentPlayer && (currentPlayer.SeatIndex >= 0 || currentPlayer.seatIndex >= 0) && currentTableState !== 'InProgress' && (
                 <div className="absolute top-4 right-4 flex flex-col items-end space-y-2 z-50">
                     <div className="bg-black/80 p-2 rounded border border-gray-700 backdrop-blur-sm flex items-center space-x-2">
                         <input
@@ -564,8 +582,8 @@ const TablePage = () => {
             {showControls && (
                 <GameControls
                     onAction={handleAction}
-                    currentBet={gameState?.currentBet || 0}
-                    playerChips={currentPlayer?.chipStack || 0}
+                    currentBet={gameState?.CurrentBet || gameState?.currentBet || 0}
+                    playerChips={currentPlayer?.ChipStack || currentPlayer?.chipStack || 0}
                 />
             )}
 

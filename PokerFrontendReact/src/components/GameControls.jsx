@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 
 const GameControls = ({ onAction, currentBet, playerChips }) => {
     const [raiseAmount, setRaiseAmount] = useState(currentBet > 0 ? currentBet * 2 : 100);
@@ -18,8 +19,17 @@ const GameControls = ({ onAction, currentBet, playerChips }) => {
                 </button>
 
                 <button
-                    onClick={() => onAction('check')}
-                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded shadow border border-gray-800"
+                    onClick={() => {
+                        console.log("Action: check", { currentBet });
+                        onAction('check');
+                    }}
+                    disabled={currentBet > 0}
+                    className={clsx(
+                        "px-6 py-2 font-bold rounded shadow border transition-all duration-200",
+                        currentBet > 0
+                            ? "bg-gray-800 text-gray-500 border-gray-900 cursor-not-allowed opacity-50"
+                            : "bg-gray-600 hover:bg-gray-700 text-white border-gray-800"
+                    )}
                 >
                     CHECK
                 </button>
@@ -35,7 +45,7 @@ const GameControls = ({ onAction, currentBet, playerChips }) => {
                     onClick={() => onAction('bet', raiseAmount)}
                     className="px-6 py-2 bg-poker-gold hover:bg-yellow-400 text-black font-bold rounded shadow border border-yellow-600"
                 >
-                    BET/RAISE
+                    {currentBet > 0 ? 'RAISE' : 'BET'}
                 </button>
                 <button
                     onClick={() => onAction('allin')}
