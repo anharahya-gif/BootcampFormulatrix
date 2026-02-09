@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace PokerAPI.Services.Interfaces
 {
-    public interface IGameController
+    public interface IGameService
     {
         // ======================
         // Game State

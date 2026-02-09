@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace PokerAPI.Services
 {
-    public class GameController : IGameController, IDisposable
+    public class GameService : IGameService, IDisposable
     {
         // ======================
         // Game State / Core Properties
@@ -36,7 +36,7 @@ namespace PokerAPI.Services
         // ======================
         // Constructor
         // ======================
-        public GameController()
+        public GameService()
         {
             RoundStarted += OnRoundStarted;
             CommunityCardsUpdated += OnCommunityCardsUpdated;
@@ -191,10 +191,6 @@ namespace PokerAPI.Services
             return Phase == GamePhase.Showdown;
         }
 
-        /// <summary>
-        /// Adds a new player directly into a specific seat. 
-        /// Validates seat occupancy and max player limits.
-        /// </summary>
         public void AddPlayer(string name, int chips, int seatIndex)
         {
             if (PlayerMap.Count >= MaxPlayers)
@@ -278,10 +274,6 @@ namespace PokerAPI.Services
             }
         }
 
-        /// <summary>
-        /// Returns a list of players eligible to continue in the current round.
-        /// Filters for Active/AllIn states and ensures they are seated.
-        /// </summary>
         public List<IPlayer> ActivePlayers()
         {
             return PlayerMap.Where(kv => (kv.Value.State == PlayerState.Active || kv.Value.State == PlayerState.AllIn) 
@@ -292,10 +284,7 @@ namespace PokerAPI.Services
         // ======================
         // Round Management
         // ======================
-        /// <summary>
-        /// Starts a new betting round (Pre-Flop, Flop, etc.).
-        /// Resets betting states and deals cards if necessary.
-        /// </summary>
+
         public void StartRound()
         {
             if (!CanStartRound())
@@ -324,7 +313,7 @@ namespace PokerAPI.Services
         {
             foreach (var player in PlayerMap.Keys)
             {
-                if (player.SeatIndex < 0) continue; // Skip players who are not seated
+                if (player.SeatIndex < 0) continue; 
 
                 PlayerMap[player].Hand.Clear();
                 PlayerMap[player].Hand.Add(Deck.Draw());
@@ -452,9 +441,7 @@ namespace PokerAPI.Services
         // ======================
         // Betting Actions
         // ======================
-        /// <summary>
-        /// Processes a player's Bet action. Updates pot and advances turn.
-        /// </summary>
+
         public ServiceResult HandleBet(IPlayer player, int amount)
         {
             try
@@ -487,10 +474,6 @@ namespace PokerAPI.Services
                 return ServiceResult.Failure(ex.Message);
             }
         }
-
-        /// <summary>
-        /// Processes a Call action. Matches the current max bet.
-        /// </summary>
         public ServiceResult HandleCall(IPlayer player)
         {
             var status = PlayerMap[player];
@@ -518,10 +501,6 @@ namespace PokerAPI.Services
             TryAutoAdvance();
             return ServiceResult.Success($"{player.Name} called {toCall} chips");
         }
-
-        /// <summary>
-        /// Processes a Raise action. Increases the current minimum bet by a specified amount.
-        /// </summary>
         public ServiceResult HandleRaise(IPlayer player, int raiseAmount)
         {
             var status = PlayerMap[player];
@@ -630,10 +609,7 @@ namespace PokerAPI.Services
             return winners;
         }
 
-        /// <summary>
-        /// Performs a comprehensive showdown: evaluates hands, identifies winners, 
-        /// distributes the pot, and triggers completion event.
-        /// </summary>
+
         public (List<IPlayer> winners, HandRank rank) ResolveShowdownDetailed()
         {
             if (Phase != GamePhase.Showdown)
@@ -817,9 +793,9 @@ namespace PokerAPI.Services
             return null;
         }
 
-        /// <summary>
+        /// =========================
         /// Resets the entire game state, clearing all players, cards, and pots.
-        /// </summary>
+        /// ==========================
         public void ResetGame()
         {
             _hasRoundStarted = false;

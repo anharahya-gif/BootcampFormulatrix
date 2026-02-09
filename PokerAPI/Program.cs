@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Services
 // =======================
 builder.Services.AddControllers();
-builder.Services.AddSingleton<IGameController, GameController>();
+builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();  
 builder.Services.AddSignalR(); 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using PokerAPI.Hubs;
 using PokerAPI.Services.Interfaces;
 using PokerAPI.DTOs;
-using PokerAPI.Services; // <-- untuk ServiceResult
+using PokerAPI.Services; 
 using System.Linq;
 
 namespace PokerAPI.Controllers
@@ -12,10 +12,10 @@ namespace PokerAPI.Controllers
     [Route("api/[controller]")]
     public class GameControllerAPI : ControllerBase
     {
-        private readonly IGameController _game;
+        private readonly IGameService _game;
         private readonly IHubContext<PokerHub> _hub;
 
-        public GameControllerAPI(IGameController game, IHubContext<PokerHub> hub)
+        public GameControllerAPI(IGameService game, IHubContext<PokerHub> hub)
         {
             _game = game;
             _hub = hub;

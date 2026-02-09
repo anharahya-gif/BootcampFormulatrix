@@ -114,7 +114,7 @@ const TablePage = () => {
                                 message: details.message || details.Message || ""
                             }
                         });
-                    }, 1000);
+                    }, 1);
                 });
 
                 signalrService.on('ReceiveMessage', (msg) => {
