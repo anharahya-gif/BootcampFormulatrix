@@ -10,6 +10,7 @@ namespace PokerAPI.Services.Interfaces
     {
 
         string GetGameState();
+        bool IsRoundActive { get; }
         bool CanStartRound();
         int GetTotalPot();
 

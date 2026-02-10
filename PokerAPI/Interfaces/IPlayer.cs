@@ -6,6 +6,7 @@ namespace PokerAPI.Services.Interfaces
     {
         string Name { get; set; }
         int ChipStack { get; set; }
+        int ChipsWonThisRound { get; set; }
         PlayerState State { get; set; }
         bool IsAllIn { get; }
         int SeatIndex { get; set; }

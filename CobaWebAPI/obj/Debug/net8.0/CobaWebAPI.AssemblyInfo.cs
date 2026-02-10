@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CobaWebAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e4e893bc3dde456e9b6acddcc23f3c930287d227")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+812b1b1a2146f60e6c397146f8a577eddbb9312a")]
 [assembly: System.Reflection.AssemblyProductAttribute("CobaWebAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CobaWebAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Serilog;
 
 namespace PokerAPI.Services
 {
     public class GameService : IGameService, IDisposable
     {
         #region Game State / Core Properties
+        public bool IsRoundActive { get; private set; }
         private bool _hasRoundStarted = false;
         private const int MaxPlayers = 8;
         private string? _currentPlayerName;
@@ -22,6 +24,7 @@ namespace PokerAPI.Services
         public int CurrentBet { get; private set; } = 0;
         public GamePhase Phase { get; private set; } = GamePhase.PreFlop;
         public ShowdownResult? LastShowdown { get; private set; }
+        private readonly Serilog.ILogger _logger;
         #endregion
 
         #region Events
@@ -31,8 +34,9 @@ namespace PokerAPI.Services
         #endregion
 
         #region Constructor
-        public GameService()
+        public GameService(Serilog.ILogger logger)
         {
+            _logger = logger;
             RoundStarted += OnRoundStarted;
             CommunityCardsUpdated += OnCommunityCardsUpdated;
             ShowdownCompleted += OnShowdownCompleted;
@@ -42,23 +46,35 @@ namespace PokerAPI.Services
         #region Event Handlers
         private void OnRoundStarted()
         {
-            Console.WriteLine("[Event] RoundStarted triggered");
+            _logger.Information(
+               "Event {@EventName} triggered",
+               "RoundStarted"
+               );
         }
 
         private void OnCommunityCardsUpdated()
         {
-            Console.WriteLine("[Event] CommunityCardsUpdated triggered. CommunityCards: " +
-                string.Join(", ", CommunityCards.Select(c => $"{c.Rank} of {c.Suit}")));
+            _logger.Information(
+             "Event {@EventName} triggered with community cards {@CommunityCards}",
+             "CommunityCardsUpdated",
+             CommunityCards.Select(c => new { c.Rank, c.Suit })
+             );
         }
 
         private void OnShowdownCompleted()
         {
-            Console.WriteLine("[Event] ShowdownCompleted triggered");
-            if (LastShowdown != null)
-            {
-                Console.WriteLine("Winners: " + string.Join(", ", LastShowdown.Winners.Select(p => p.Name)));
-                Console.WriteLine("Winning Rank: " + LastShowdown.HandRank);
-            }
+            if (LastShowdown == null) return;
+
+            _logger.Information(
+                "Showdown completed. TotalPot={TotalPot}, Rank={HandRank}, Winners={@Winners}",
+                Pot.TotalChips,
+                LastShowdown.HandRank,
+                LastShowdown.Winners.Select(w => new
+                {
+                    w.Name,
+                    ChipsWon = w.ChipsWonThisRound
+                })
+            );
         }
         #endregion
 
@@ -178,7 +194,7 @@ namespace PokerAPI.Services
         public int GetTotalPot() => Pot.TotalChips;
         public IPlayer? GetPlayerByName(string name) => PlayerMap.Keys.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         public int GetTotalPlayers() => PlayerMap.Count;
-        
+
         public string GetGameState()
         {
             if (PlayerMap.Count < 2) return "WaitingForPlayers";
@@ -248,6 +264,11 @@ namespace PokerAPI.Services
             PlayerMap[player] = new PlayerStatus();
 
             ServiceResult result = ServiceResult.Success("Player registered successfully");
+            _logger.Information(
+            "Player {@Player} has regitered",
+            player.Name
+            );
+
             return result;
         }
 
@@ -274,6 +295,11 @@ namespace PokerAPI.Services
             }
 
             player.SeatIndex = seatIndex;
+            _logger.Information(
+            "Player {@Player} has sit in {@seatIndex}",
+            player.Name,
+            player.SeatIndex
+            );
 
             ServiceResult result = ServiceResult.Success($"Seat updated to {seatIndex} for {playerName}");
             return result;
@@ -300,8 +326,12 @@ namespace PokerAPI.Services
             {
                 GetNextActivePlayer();
             }
-
+            _logger.Information(
+            "Player {@Player} has leave",
+            player.Name
+            );
             ServiceResult result = ServiceResult.Success("Player removed successfully");
+
             return result;
         }
 
@@ -329,6 +359,7 @@ namespace PokerAPI.Services
             }
 
             _hasRoundStarted = true;
+            IsRoundActive = true;
             Deck = new Deck();
             Deck.Shuffle();
             Pot.Reset();
@@ -339,14 +370,19 @@ namespace PokerAPI.Services
             foreach (PlayerStatus status in PlayerMap.Values)
                 status.ResetStatus();
 
-            
+
             List<IPlayer> seatedPlayers = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).OrderBy(p => p.SeatIndex).ToList();
             IPlayer? firstPlayer = seatedPlayers.FirstOrDefault(p => PlayerMap[p].State == PlayerState.Active);
             _currentPlayerName = firstPlayer?.Name;
             CurrentPlayerIndex = firstPlayer != null ? seatedPlayers.IndexOf(firstPlayer) : 0;
+            _logger.Debug("First player for round: {@PlayerName}", _currentPlayerName);
 
             DealHoleCards();
             RoundStarted?.Invoke();
+            _logger.Information(
+            "Starting round with {@PlayerCount} players",
+            PlayerMap.Count
+            );
 
             ServiceResult result = ServiceResult.Success("Round started successfully");
             return result;
@@ -368,9 +404,9 @@ namespace PokerAPI.Services
         {
             if (Deck.RemainingCards() >= 3)
             {
-                CommunityCards.Add(Deck.Draw());
-                CommunityCards.Add(Deck.Draw());
-                CommunityCards.Add(Deck.Draw());
+                CommunityCards.Add(Deck.Draw()!);
+                CommunityCards.Add(Deck.Draw()!);
+                CommunityCards.Add(Deck.Draw()!);
                 CommunityCardsUpdated?.Invoke();
             }
         }
@@ -379,7 +415,7 @@ namespace PokerAPI.Services
         {
             if (Deck.RemainingCards() >= 1)
             {
-                CommunityCards.Add(Deck.Draw());
+                CommunityCards.Add(Deck.Draw()!);
                 CommunityCardsUpdated?.Invoke();
             }
         }
@@ -388,7 +424,7 @@ namespace PokerAPI.Services
         {
             if (Deck.RemainingCards() >= 1)
             {
-                CommunityCards.Add(Deck.Draw());
+                CommunityCards.Add(Deck.Draw()!);
                 CommunityCardsUpdated?.Invoke();
             }
         }
@@ -423,8 +459,11 @@ namespace PokerAPI.Services
                     break;
                 case GamePhase.Showdown:
                     ServiceResult resultFail = ServiceResult.Failure("Game is already at showdown");
+                    _logger.Warning("Attempted to advance phase from Showdown, which is invalid");
                     return resultFail;
             }
+
+            _logger.Information("Phase transition to {@Phase}", Phase);
 
             ServiceResult result = ServiceResult.Success($"Advanced to {Phase}");
             return result;
@@ -468,16 +507,17 @@ namespace PokerAPI.Services
 
             IPlayer? current = GetCurrentPlayer();
             int currentIndex = seatedActive.IndexOf(current!);
-            
-            
+
+
             int nextIndex = (currentIndex + 1) % seatedActive.Count;
             IPlayer nextPlayer = seatedActive[nextIndex];
-            
+
             _currentPlayerName = nextPlayer.Name;
-            
-            
+
+
             CurrentPlayerIndex = PlayerMap.Keys.ToList().IndexOf(nextPlayer);
-            
+
+            _logger.Debug("Turn advanced to {@PlayerName}", _currentPlayerName);
             return nextPlayer;
         }
 
@@ -489,11 +529,11 @@ namespace PokerAPI.Services
 
             if (playersInPot.Count <= 1) return true;
 
- 
-            
+
+
             bool everyoneActed = playersInPot.All(p => PlayerMap[p].HasActed);
-            bool betsMatched = playersInPot.All(p => 
-                PlayerMap[p].State == PlayerState.AllIn || 
+            bool betsMatched = playersInPot.All(p =>
+                PlayerMap[p].State == PlayerState.AllIn ||
                 PlayerMap[p].CurrentBet == CurrentBet
             );
 
@@ -504,12 +544,23 @@ namespace PokerAPI.Services
         #region Betting Actions
         private ServiceResult ValidateTurn(IPlayer player)
         {
-            if (!_hasRoundStarted) return ServiceResult.Failure("Round has not started");
-            if (Phase == GamePhase.Showdown) return ServiceResult.Failure("Game is in showdown phase");
-            
+            if (!_hasRoundStarted)
+            {
+                _logger.Warning("Turn validation failed: Round has not started");
+                return ServiceResult.Failure("Round has not started");
+            }
+            if (Phase == GamePhase.Showdown)
+            {
+                _logger.Warning("Turn validation failed: Game is in showdown phase");
+                return ServiceResult.Failure("Game is in showdown phase");
+            }
+
             IPlayer? currentPlayer = GetCurrentPlayer();
             if (currentPlayer == null || !currentPlayer.Name.Equals(player.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.Warning("Turn validation failed for {@PlayerName}: It is not their turn. Current turn: {@CurrentPlayer}", player.Name, _currentPlayerName);
                 return ServiceResult.Failure("It is not your turn");
+            }
 
             return ServiceResult.Success("Turn valid");
         }
@@ -519,23 +570,36 @@ namespace PokerAPI.Services
             ServiceResult turnValidation = ValidateTurn(player);
             if (!turnValidation.IsSuccess) return turnValidation;
 
-            if (amount <= 0) return ServiceResult.Failure("Bet amount must be greater than 0");
-            if (CurrentBet > 0) return ServiceResult.Failure("Use Call or Raise when there is an existing bet");
+            if (amount <= 0)
+            {
+                _logger.Warning("Invalid bet amount {@Amount} by {@PlayerName}", amount, player.Name);
+                return ServiceResult.Failure("Bet amount must be greater than 0");
+            }
+            if (CurrentBet > 0)
+            {
+                _logger.Warning("Invalid action Bet by {@PlayerName} when CurrentBet is {@CurrentBet}", player.Name, CurrentBet);
+                return ServiceResult.Failure("Use Call or Raise when there is an existing bet");
+            }
 
             PlayerStatus status = PlayerMap[player];
-            if (player.ChipStack < amount) return ServiceResult.Failure("Insufficient chips");
+            if (player.ChipStack < amount)
+            {
+                _logger.Warning("Insufficient chips for Bet by {@PlayerName}. Stack: {@Stack}, Amount: {@Amount}", player.Name, player.ChipStack, amount);
+                return ServiceResult.Failure("Insufficient chips");
+            }
 
             player.ChipStack -= amount;
             status.CurrentBet += amount;
             status.HasActed = true;
             Pot.AddChips(amount);
-            
+
             if (status.CurrentBet > CurrentBet)
             {
                 CurrentBet = status.CurrentBet;
                 ResetHasActedExcept(player);
             }
 
+            _logger.Information("Player {@PlayerName} placed bet {@Amount} in phase {@Phase}", player.Name, amount, Phase);
             TryAutoAdvance();
             return ServiceResult.Success($"Bet of {amount} placed by {player.Name}");
         }
@@ -548,7 +612,11 @@ namespace PokerAPI.Services
             PlayerStatus status = PlayerMap[player];
             int toCall = CurrentBet - status.CurrentBet;
 
-            if (toCall < 0) return ServiceResult.Failure("Invalid call: Current bet is lower than your contribution");
+            if (toCall < 0)
+            {
+                _logger.Warning("Invalid Call by {@PlayerName}: CurrentBet {@CurrentBet} < StatusBet {@StatusBet}", player.Name, CurrentBet, status.CurrentBet);
+                return ServiceResult.Failure("Invalid call: Current bet is lower than your contribution");
+            }
 
             if (player.ChipStack <= toCall)
             {
@@ -567,6 +635,7 @@ namespace PokerAPI.Services
                 Pot.AddChips(toCall);
             }
 
+            _logger.Information("Player {@PlayerName} called {@Amount} in phase {@Phase}", player.Name, toCall, Phase);
             TryAutoAdvance();
             return ServiceResult.Success($"{player.Name} called successfuly");
         }
@@ -576,26 +645,34 @@ namespace PokerAPI.Services
             ServiceResult turnValidation = ValidateTurn(player);
             if (!turnValidation.IsSuccess) return turnValidation;
 
-            if (raiseAmount <= 0) return ServiceResult.Failure("Raise amount must be positive");
+            if (raiseAmount <= 0)
+            {
+                _logger.Warning("Invalid raise amount {@Amount} by {@PlayerName}", raiseAmount, player.Name);
+                return ServiceResult.Failure("Raise amount must be positive");
+            }
 
             PlayerStatus status = PlayerMap[player];
             int toCall = CurrentBet - status.CurrentBet;
             int totalRequirement = toCall + raiseAmount;
 
             if (player.ChipStack < totalRequirement)
+            {
+                _logger.Warning("Insufficient chips for Raise by {@PlayerName}. Stack: {@Stack}, Required: {@Required}", player.Name, player.ChipStack, totalRequirement);
                 return ServiceResult.Failure("Insufficient chips to raise");
+            }
 
             player.ChipStack -= totalRequirement;
             status.CurrentBet += totalRequirement;
             status.HasActed = true;
             Pot.AddChips(totalRequirement);
-            
+
             if (status.CurrentBet > CurrentBet)
             {
                 CurrentBet = status.CurrentBet;
                 ResetHasActedExcept(player);
             }
 
+            _logger.Information("Player {@PlayerName} raised by {@RaiseAmount} in phase {@Phase}", player.Name, raiseAmount, Phase);
             TryAutoAdvance();
             return ServiceResult.Success($"{player.Name} raised by {raiseAmount}");
         }
@@ -610,6 +687,7 @@ namespace PokerAPI.Services
             status.HasActed = true;
             status.Hand.Clear();
 
+            _logger.Information("Player {@PlayerName} folded in phase {@Phase}", player.Name, Phase);
             TryAutoAdvance();
 
             return ServiceResult.Success($"{player.Name} folded");
@@ -622,9 +700,13 @@ namespace PokerAPI.Services
 
             PlayerStatus status = PlayerMap[player];
             if (CurrentBet > status.CurrentBet)
+            {
+                _logger.Warning("Invalid Check by {@PlayerName}: Active bet exists", player.Name);
                 return ServiceResult.Failure("Cannot check when there is an active bet. You must Call, Raise, or Fold.");
+            }
 
             status.HasActed = true;
+            _logger.Information("Player {@PlayerName} checked in phase {@Phase}", player.Name, Phase);
             TryAutoAdvance();
 
             return ServiceResult.Success($"{player.Name} checked");
@@ -640,7 +722,11 @@ namespace PokerAPI.Services
 
             PlayerStatus status = PlayerMap[player];
             int amount = player.ChipStack;
-            if (amount <= 0) return ServiceResult.Failure("No chips left for All-In");
+            if (amount <= 0)
+            {
+                _logger.Warning("Invalid AllIn by {@PlayerName}: No chips left", player.Name);
+                return ServiceResult.Failure("No chips left for All-In");
+            }
 
             player.ChipStack = 0;
             status.CurrentBet += amount;
@@ -654,6 +740,7 @@ namespace PokerAPI.Services
                 ResetHasActedExcept(player);
             }
 
+            _logger.Information("Player {@PlayerName} went All-In with {@Amount} chips in phase {@Phase}", player.Name, amount, Phase);
             TryAutoAdvance();
             return ServiceResult.Success($"{player.Name} is All-In with {amount} chips");
         }
@@ -692,9 +779,13 @@ namespace PokerAPI.Services
 
             int share = Pot.TotalChips / winners.Count;
             foreach (IPlayer winner in winners)
+            {
                 winner.ChipStack += share;
+                winner.ChipsWonThisRound = share;
+            }
 
             Pot.Reset();
+            IsRoundActive = false;
             return winners;
         }
 
@@ -702,7 +793,7 @@ namespace PokerAPI.Services
         {
             if (Phase != GamePhase.Showdown)
             {
-                
+
                 if (PlayerMap.Values.Count(s => s.State == PlayerState.Active || s.State == PlayerState.AllIn) <= 1)
                 {
                     Phase = GamePhase.Showdown;
@@ -725,7 +816,10 @@ namespace PokerAPI.Services
 
             int share = Pot.TotalChips / winners.Count;
             foreach (IPlayer winner in winners)
+            {
                 winner.ChipStack += share;
+                winner.ChipsWonThisRound = share;
+            }
 
             LastShowdown = new ShowdownResult(winners, bestRank);
             ShowdownCompleted?.Invoke();
@@ -734,6 +828,7 @@ namespace PokerAPI.Services
             CleanupAfterRound();
 
             _hasRoundStarted = false;
+            IsRoundActive = false;
             Phase = GamePhase.PreFlop;
 
             return (winners, bestRank);
@@ -753,8 +848,14 @@ namespace PokerAPI.Services
                     status.State = PlayerState.Active;
             }
 
+            foreach (var player in PlayerMap.Keys)
+            {
+                player.ChipsWonThisRound = 0;
+            }
+
             CurrentBet = 0;
             CurrentPlayerIndex = 0;
+            _logger.Debug("Round cleanup handling completed");
         }
 
         private void ResetHasActedExcept(IPlayer activePlayer)
@@ -762,7 +863,7 @@ namespace PokerAPI.Services
             foreach (var kv in PlayerMap)
             {
                 if (kv.Key.Name.Equals(activePlayer.Name, StringComparison.OrdinalIgnoreCase)) continue;
-                
+
                 if (kv.Value.State == PlayerState.Active)
                 {
                     kv.Value.HasActed = false;
@@ -778,14 +879,14 @@ namespace PokerAPI.Services
                 .Where(s => s.State != PlayerState.Folded)
                 .ToList();
 
-            
+
             if (alive.Count <= 1) return true;
 
-            
+
             if (alive.All(s => s.State == PlayerState.AllIn))
                 return true;
 
-            
+
             List<PlayerStatus> active = alive.Where(s => s.State == PlayerState.Active).ToList();
             if (active.Count <= 1)
             {
@@ -818,13 +919,14 @@ namespace PokerAPI.Services
 
             if (IsBettingRoundOver())
             {
+                _logger.Debug("Betting round over, advancing phase from {@Phase}", Phase);
                 NextPhase();
                 if (Phase == GamePhase.Showdown)
                     ResolveShowdownDetailed();
             }
             else
             {
-               
+
                 GetNextActivePlayer();
             }
         }
@@ -835,7 +937,37 @@ namespace PokerAPI.Services
             else if (Phase == GamePhase.Flop) { DealTurn(); DealRiver(); }
             else if (Phase == GamePhase.Turn) { DealRiver(); }
         }
+
+        private bool CanPlayerAct(string action, params GamePhase[] allowedPhases)
+        {
+            if (!IsRoundActive)
+            {
+                _logger.Warning(
+                    "{Action} ignored. Round inactive. Player={Player}",
+                    action,
+                    _currentPlayerName
+                );
+                return false;
+            }
+
+            if (!allowedPhases.Contains(Phase))
+            {
+                _logger.Warning(
+                    "{Action} ignored in phase {Phase}. Player={Player}",
+                    action,
+                    Phase,
+                    _currentPlayerName
+                );
+                return false;
+            }
+
+            return true;
+        }
+
+
         #endregion
+
+
 
         #region Internal Hand Evaluator
         private static HandRank EvaluateHand(List<ICard> cards)
@@ -906,6 +1038,7 @@ namespace PokerAPI.Services
             CurrentPlayerIndex = 0;
             LastShowdown = null;
 
+            _logger.Information("Game reset triggered via ResetGame");
             ServiceResult result = ServiceResult.Success("Game reset successful");
             return result;
         }

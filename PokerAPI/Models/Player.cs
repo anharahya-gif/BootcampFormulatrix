@@ -13,6 +13,7 @@ namespace PokerAPI.Models
             ChipStack = startingChips;
             SeatIndex = SeatIndex;
         }
+        public int ChipsWonThisRound { get; set; }
         public PlayerState State { get; set; } = PlayerState.Active;
         public bool IsAllIn => State == PlayerState.AllIn;
         public int SeatIndex { get; set; } 

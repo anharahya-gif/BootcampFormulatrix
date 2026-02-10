@@ -1,12 +1,22 @@
 using PokerAPI.Services;
 using PokerAPI.Services.Interfaces;
 using PokerAPI.Hubs;
+using Serilog;
+// using PokerAPI.Logging; // Removed old logging
+using PokerAPI.Infrastructure.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// SerilogConfiguration.Configure(); // Removed old static config
+// builder.Host.UseSerilog(); // This was already here but let's make sure we use the new way if needed, or just keep it. 
+// actually the new way is to configure it via the host builder.
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 // =======================
 // Services
 // =======================
+
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddEndpointsApiExplorer();
