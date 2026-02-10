@@ -346,17 +346,18 @@ namespace PokerAPI.Services
         #region Round Management
         public ServiceResult StartRound()
         {
+            if (_hasRoundStarted && Phase != GamePhase.Showdown)
+            {
+                ServiceResult resultFail = ServiceResult.Failure("Round already in progress.");
+                return resultFail;
+            }
             if (!CanStartRound())
             {
                 ServiceResult resultFail = ServiceResult.Failure("Cannot start round. Ensure at least 2 players are seated.");
                 return resultFail;
             }
 
-            if (_hasRoundStarted && Phase != GamePhase.Showdown)
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Round already in progress.");
-                return resultFail;
-            }
+
 
             _hasRoundStarted = true;
             IsRoundActive = true;
