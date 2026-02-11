@@ -144,3 +144,4 @@ C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI.Tests\obj\Debug\ne
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI.Tests\obj\Debug\net8.0\PokerAPI.Tests.pdb
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI.Tests\obj\Debug\net8.0\PokerAPI.Tests.genruntimeconfig.cache
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI.Tests\obj\Debug\net8.0\ref\PokerAPI.Tests.dll
+C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\PokerAPI.Tests\bin\Debug\net8.0\Logs\Jsonformat\poker-api-20260211.json

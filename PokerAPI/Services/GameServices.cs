@@ -25,6 +25,7 @@ namespace PokerAPI.Services
         public GamePhase Phase { get; private set; } = GamePhase.PreFlop;
         public ShowdownResult? LastShowdown { get; private set; }
         private readonly Serilog.ILogger _logger;
+        private Dictionary<IPlayer, HandRank>? _forcedHandRanks; // For testing
         #endregion
 
         #region Events
@@ -750,6 +751,8 @@ namespace PokerAPI.Services
         #region Showdown
         public Dictionary<IPlayer, HandRank> EvaluateHands()
         {
+            if (_forcedHandRanks != null) return _forcedHandRanks;
+
             Dictionary<IPlayer, HandRank> result = new Dictionary<IPlayer, HandRank>();
             foreach (KeyValuePair<IPlayer, PlayerStatus> kv in PlayerMap)
             {
@@ -1042,6 +1045,49 @@ namespace PokerAPI.Services
             _logger.Information("Game reset triggered via ResetGame");
             ServiceResult result = ServiceResult.Success("Game reset successful");
             return result;
+        }
+        #endregion
+        #region Test Helpers
+        public void SetPhase(GamePhase phase)
+        {
+            Phase = phase;
+        }
+
+        public void OverrideHandEvaluation(Dictionary<IPlayer, HandRank> forcedRanks)
+        {
+            _forcedHandRanks = forcedRanks;
+        }
+
+        public void LoadPlayers(List<IPlayer> players)
+        {
+            PlayerMap.Clear();
+            foreach (var p in players)
+            {
+                PlayerMap[p] = new PlayerStatus { State = PlayerState.Active };
+            }
+        }
+        public void SetCurrentBetForTest(int amount)
+        {
+            CurrentBet = amount;
+        }
+        public void SetCurrentPlayerForTest(IPlayer player)
+        {
+            // Ambil list pemain dari PlayerMap yang seated (SeatIndex >= 0)
+            var seatedPlayers = PlayerMap.Keys
+                .Where(p => p.SeatIndex >= 0)
+                .OrderBy(p => p.SeatIndex)
+                .ToList();
+
+            int index = seatedPlayers.IndexOf(player);
+            if (index >= 0)
+            {
+                CurrentPlayerIndex = index;
+                _currentPlayerName = player.Name;
+            }
+            else
+            {
+                throw new ArgumentException("Player not found in the current seated players");
+            }
         }
         #endregion
     }

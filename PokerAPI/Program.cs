@@ -3,7 +3,7 @@ using PokerAPI.Services.Interfaces;
 using PokerAPI.Hubs;
 using Serilog;
 // using PokerAPI.Logging; // Removed old logging
-using PokerAPI.Infrastructure.Logging;
+//using PokerAPI.Infrastructure.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 // SerilogConfiguration.Configure(); // Removed old static config
@@ -12,7 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
-    .Enrich.FromLogContext());
+    .MinimumLevel.Debug()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    );
 // =======================
 // Services
 // =======================
