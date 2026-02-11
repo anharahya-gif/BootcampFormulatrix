@@ -14,7 +14,6 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Services(services)
     .MinimumLevel.Debug()
     .Enrich.FromLogContext()
-    .WriteTo.Console()
     );
 // =======================
 // Services

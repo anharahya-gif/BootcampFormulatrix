@@ -276,12 +276,6 @@ public class GameServiceTests
         // Assert
         Assert.AreEqual(0, activePlayers.Count);
     }
-
-
-
-
-
-
     #endregion
 
     #region Round Management Tests
@@ -690,13 +684,6 @@ public class GameServiceTests
 
         Assert.AreEqual(string.Empty, dto.PossibleHandRank);
     }
-
-
-
-
-
-
-
     #endregion
 }
 

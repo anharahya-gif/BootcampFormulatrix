@@ -26,6 +26,7 @@ namespace PokerAPI.Services
         public ShowdownResult? LastShowdown { get; private set; }
         private readonly Serilog.ILogger _logger;
         private Dictionary<IPlayer, HandRank>? _forcedHandRanks; // For testing
+        private readonly object _lock = new object();
         #endregion
 
         #region Events
@@ -97,99 +98,108 @@ namespace PokerAPI.Services
         #region Public State Accessors
         public IEnumerable<PlayerPublicStateDto> GetPlayersPublicState()
         {
-            List<PlayerPublicStateDto> states = PlayerMap.Select(kv =>
+            lock (_lock)
             {
-                IPlayer player = kv.Key;
-                PlayerStatus status = kv.Value;
-
-                return new PlayerPublicStateDto
+                List<PlayerPublicStateDto> states = PlayerMap.Select(kv =>
                 {
-                    SeatIndex = player.SeatIndex,
-                    Name = player.Name,
-                    ChipStack = player.ChipStack,
-                    State = status.State.ToString(),
-                    CurrentBet = status.CurrentBet,
-                    IsFolded = status.State == PlayerState.Folded,
-                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                    PossibleHandRank = (status.Hand.Any() || CommunityCards.Any())
-                        ? EvaluateHand(status.Hand.Concat(CommunityCards).ToList()).ToString()
-                        : string.Empty
-                };
-            }).ToList();
-            return states;
+                    IPlayer player = kv.Key;
+                    PlayerStatus status = kv.Value;
+
+                    return new PlayerPublicStateDto
+                    {
+                        SeatIndex = player.SeatIndex,
+                        Name = player.Name,
+                        ChipStack = player.ChipStack,
+                        State = status.State.ToString(),
+                        CurrentBet = status.CurrentBet,
+                        IsFolded = status.State == PlayerState.Folded,
+                        Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                        PossibleHandRank = (status.Hand.Any() || CommunityCards.Any())
+                            ? EvaluateHand(status.Hand.Concat(CommunityCards).ToList()).ToString()
+                            : string.Empty
+                    };
+                }).ToList();
+                return states;
+            }
         }
 
         public ServiceResult<object> EvaluateVisibleForPlayer(string playerName)
         {
-            KeyValuePair<IPlayer, PlayerStatus> kv = PlayerMap.FirstOrDefault(k => k.Key.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
-            if (kv.Key == null)
+            lock (_lock)
             {
-                ServiceResult<object> resultFail = ServiceResult<object>.Failure("Player not found");
-                return resultFail;
+                KeyValuePair<IPlayer, PlayerStatus> kv = PlayerMap.FirstOrDefault(k => k.Key.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
+                if (kv.Key == null)
+                {
+                    ServiceResult<object> resultFail = ServiceResult<object>.Failure("Player not found");
+                    return resultFail;
+                }
+
+                IPlayer player = kv.Key;
+                PlayerStatus status = kv.Value;
+
+                List<ICard> combined = status.Hand.Concat(CommunityCards).ToList();
+                HandRank rank = EvaluateHand(combined);
+
+                object data = new
+                {
+                    Player = player.Name,
+                    SeatIndex = player.SeatIndex,
+                    Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                    CommunityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                    Rank = rank.ToString()
+                };
+
+                ServiceResult<object> result = ServiceResult<object>.Success(data, "Evaluation successful");
+                return result;
             }
-
-            IPlayer player = kv.Key;
-            PlayerStatus status = kv.Value;
-
-            List<ICard> combined = status.Hand.Concat(CommunityCards).ToList();
-            HandRank rank = EvaluateHand(combined);
-
-            object data = new
-            {
-                Player = player.Name,
-                SeatIndex = player.SeatIndex,
-                Hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                CommunityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                Rank = rank.ToString()
-            };
-
-            ServiceResult<object> result = ServiceResult<object>.Success(data, "Evaluation successful");
-            return result;
         }
 
         public ServiceResult<object> GetShowdownDetails()
         {
-            List<IPlayer> winnersList = LastShowdown?.Winners ?? DetermineWinners();
-            List<string> winnerNames = winnersList.Select(p => p.Name).ToList();
-            HandRank winningRank = LastShowdown?.HandRank ?? (winnersList.Any() ? EvaluateHands().Values.Max() : HandRank.HighCard);
-
-            int potShare = winnersList.Count > 0 ? Pot.TotalChips / winnersList.Count : 0;
-
-            var allPlayers = PlayerMap.Select(kv =>
+            lock (_lock)
             {
-                IPlayer player = kv.Key;
-                PlayerStatus status = kv.Value;
-                List<ICard> combined = status.Hand.Concat(CommunityCards).ToList();
-                HandRank rank = EvaluateHand(combined);
-                bool isWinner = winnerNames.Contains(player.Name);
+                List<IPlayer> winnersList = LastShowdown?.Winners ?? DetermineWinners();
+                List<string> winnerNames = winnersList.Select(p => p.Name).ToList();
+                HandRank winningRank = LastShowdown?.HandRank ?? (winnersList.Any() ? EvaluateHands().Values.Max() : HandRank.HighCard);
 
-                return new
+                int potShare = winnersList.Count > 0 ? Pot.TotalChips / winnersList.Count : 0;
+
+                var allPlayers = PlayerMap.Select(kv =>
                 {
-                    name = player.Name,
-                    seatIndex = player.SeatIndex,
-                    hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                    handRank = rank.ToString(),
-                    chipStack = player.ChipStack,
-                    isFolded = status.State == PlayerState.Folded,
-                    isWinner = isWinner,
-                    winnings = isWinner ? potShare : 0
+                    IPlayer player = kv.Key;
+                    PlayerStatus status = kv.Value;
+                    List<ICard> combined = status.Hand.Concat(CommunityCards).ToList();
+                    HandRank rank = EvaluateHand(combined);
+                    bool isWinner = winnerNames.Contains(player.Name);
+
+                    return new
+                    {
+                        name = player.Name,
+                        seatIndex = player.SeatIndex,
+                        hand = status.Hand.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                        handRank = rank.ToString(),
+                        chipStack = player.ChipStack,
+                        isFolded = status.State == PlayerState.Folded,
+                        isWinner = isWinner,
+                        winnings = isWinner ? potShare : 0
+                    };
+                }).ToList();
+
+                object data = new
+                {
+                    winners = winnerNames,
+                    players = allPlayers,
+                    communityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
+                    handRank = winningRank.ToString(),
+                    pot = Pot.TotalChips,
+                    message = LastShowdown?.Message ?? (winnerNames.Any()
+                        ? $"{string.Join(", ", winnerNames)} wins with {winningRank}"
+                        : "No winner")
                 };
-            }).ToList();
 
-            object data = new
-            {
-                winners = winnerNames,
-                players = allPlayers,
-                communityCards = CommunityCards.Select(c => $"{c.Rank} of {c.Suit}").ToList(),
-                handRank = winningRank.ToString(),
-                pot = Pot.TotalChips,
-                message = LastShowdown?.Message ?? (winnerNames.Any()
-                    ? $"{string.Join(", ", winnerNames)} wins with {winningRank}"
-                    : "No winner")
-            };
-
-            ServiceResult<object> result = ServiceResult<object>.Success(data, "Showdown details retrieved");
-            return result;
+                ServiceResult<object> result = ServiceResult<object>.Success(data, "Showdown details retrieved");
+                return result;
+            }
         }
 
         public int GetTotalPot() => Pot.TotalChips;
@@ -213,127 +223,139 @@ namespace PokerAPI.Services
 
         public ServiceResult AddPlayer(string name, int chips, int seatIndex)
         {
-            if (PlayerMap.Count >= MaxPlayers)
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure($"Table is full (max {MaxPlayers} players)");
-                return resultFail;
+                if (PlayerMap.Count >= MaxPlayers)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure($"Table is full (max {MaxPlayers} players)");
+                    return resultFail;
+                }
+
+                if (PlayerMap.Keys.Any(p => p.Name == name))
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Player already exists");
+                    return resultFail;
+                }
+
+                if (seatIndex < 0 || seatIndex >= MaxPlayers)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Seat index invalid");
+                    return resultFail;
+                }
+
+                List<int> occupiedSeats = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).Select(p => p.SeatIndex).ToList();
+                if (occupiedSeats.Contains(seatIndex))
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Seat already occupied");
+                    return resultFail;
+                }
+
+                IPlayer player = new Player(name, chips) { SeatIndex = seatIndex };
+                PlayerMap[player] = new PlayerStatus();
+
+                ServiceResult result = ServiceResult.Success("Player added successfully");
+                return result;
             }
-
-            if (PlayerMap.Keys.Any(p => p.Name == name))
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Player already exists");
-                return resultFail;
-            }
-
-            if (seatIndex < 0 || seatIndex >= MaxPlayers)
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Seat index invalid");
-                return resultFail;
-            }
-
-            List<int> occupiedSeats = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).Select(p => p.SeatIndex).ToList();
-            if (occupiedSeats.Contains(seatIndex))
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Seat already occupied");
-                return resultFail;
-            }
-
-            IPlayer player = new Player(name, chips) { SeatIndex = seatIndex };
-            PlayerMap[player] = new PlayerStatus();
-
-            ServiceResult result = ServiceResult.Success("Player added successfully");
-            return result;
         }
         #endregion
 
         #region Player Management and Register
         public ServiceResult RegisterPlayer(string name, int chips)
         {
-            if (PlayerMap.Count >= MaxPlayers)
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure($"Maximum {MaxPlayers} players sudah terdaftar");
-                return resultFail;
+                if (PlayerMap.Count >= MaxPlayers)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure($"Maximum {MaxPlayers} players sudah terdaftar");
+                    return resultFail;
+                }
+
+                if (GetPlayerByName(name) != null)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("PlayerName sudah terdaftar");
+                    return resultFail;
+                }
+
+                IPlayer player = new Player(name, chips) { SeatIndex = -1 };
+                PlayerMap[player] = new PlayerStatus();
+
+                ServiceResult result = ServiceResult.Success("Player registered successfully");
+                _logger.Information(
+                "Player {@Player} has regitered",
+                player.Name
+                );
+
+                return result;
             }
-
-            if (GetPlayerByName(name) != null)
-            {
-                ServiceResult resultFail = ServiceResult.Failure("PlayerName sudah terdaftar");
-                return resultFail;
-            }
-
-            IPlayer player = new Player(name, chips) { SeatIndex = -1 };
-            PlayerMap[player] = new PlayerStatus();
-
-            ServiceResult result = ServiceResult.Success("Player registered successfully");
-            _logger.Information(
-            "Player {@Player} has regitered",
-            player.Name
-            );
-
-            return result;
         }
 
         public ServiceResult UpdatePlayerSeat(string playerName, int seatIndex)
         {
-            IPlayer? player = GetPlayerByName(playerName);
-            if (player == null)
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure("Player tidak ditemukan");
-                return resultFail;
+                IPlayer? player = GetPlayerByName(playerName);
+                if (player == null)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Player tidak ditemukan");
+                    return resultFail;
+                }
+
+                if (seatIndex < 0 || seatIndex >= MaxPlayers)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Seat index invalid");
+                    return resultFail;
+                }
+
+                List<int> occupiedSeats = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).Select(p => p.SeatIndex).ToList();
+                if (occupiedSeats.Contains(seatIndex))
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Seat sudah terisi");
+                    return resultFail;
+                }
+
+                player.SeatIndex = seatIndex;
+                _logger.Information(
+                "Player {@Player} has sit in {@seatIndex}",
+                player.Name,
+                player.SeatIndex
+                );
+
+                ServiceResult result = ServiceResult.Success($"Seat updated to {seatIndex} for {playerName}");
+                return result;
             }
-
-            if (seatIndex < 0 || seatIndex >= MaxPlayers)
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Seat index invalid");
-                return resultFail;
-            }
-
-            List<int> occupiedSeats = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).Select(p => p.SeatIndex).ToList();
-            if (occupiedSeats.Contains(seatIndex))
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Seat sudah terisi");
-                return resultFail;
-            }
-
-            player.SeatIndex = seatIndex;
-            _logger.Information(
-            "Player {@Player} has sit in {@seatIndex}",
-            player.Name,
-            player.SeatIndex
-            );
-
-            ServiceResult result = ServiceResult.Success($"Seat updated to {seatIndex} for {playerName}");
-            return result;
         }
 
         public ServiceResult RemovePlayer(IPlayer player)
         {
-            if (!PlayerMap.ContainsKey(player))
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure("Player not found in this game");
-                return resultFail;
-            }
+                if (!PlayerMap.ContainsKey(player))
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Player not found in this game");
+                    return resultFail;
+                }
 
-            bool wasCurrent = GetCurrentPlayer() == player;
-            PlayerMap.Remove(player);
+                bool wasCurrent = GetCurrentPlayer() == player;
+                PlayerMap.Remove(player);
 
-            if (PlayerMap.Count == 0)
-            {
-                CurrentPlayerIndex = 0;
-                _hasRoundStarted = false;
-                Phase = GamePhase.PreFlop;
-            }
-            else if (wasCurrent)
-            {
-                GetNextActivePlayer();
-            }
-            _logger.Information(
-            "Player {@Player} has leave",
-            player.Name
-            );
-            ServiceResult result = ServiceResult.Success("Player removed successfully");
+                if (PlayerMap.Count == 0)
+                {
+                    CurrentPlayerIndex = 0;
+                    _hasRoundStarted = false;
+                    Phase = GamePhase.PreFlop;
+                }
+                else if (wasCurrent)
+                {
+                    GetNextActivePlayer();
+                }
+                _logger.Information(
+                "Player {@Player} has leave",
+                player.Name
+                );
+                ServiceResult result = ServiceResult.Success("Player removed successfully");
 
-            return result;
+                return result;
+            }
         }
 
         public List<IPlayer> ActivePlayers()
@@ -347,47 +369,50 @@ namespace PokerAPI.Services
         #region Round Management
         public ServiceResult StartRound()
         {
-            if (_hasRoundStarted && Phase != GamePhase.Showdown)
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure("Round already in progress.");
-                return resultFail;
+                if (_hasRoundStarted && Phase != GamePhase.Showdown)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Round already in progress.");
+                    return resultFail;
+                }
+                if (!CanStartRound())
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("Cannot start round. Ensure at least 2 players are seated.");
+                    return resultFail;
+                }
+
+
+
+                _hasRoundStarted = true;
+                IsRoundActive = true;
+                Deck = new Deck();
+                Deck.Shuffle();
+                Pot.Reset();
+                CurrentBet = 0;
+                Phase = GamePhase.PreFlop;
+                CommunityCards.Clear();
+
+                foreach (PlayerStatus status in PlayerMap.Values)
+                    status.ResetStatus();
+
+
+                List<IPlayer> seatedPlayers = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).OrderBy(p => p.SeatIndex).ToList();
+                IPlayer? firstPlayer = seatedPlayers.FirstOrDefault(p => PlayerMap[p].State == PlayerState.Active);
+                _currentPlayerName = firstPlayer?.Name;
+                CurrentPlayerIndex = firstPlayer != null ? seatedPlayers.IndexOf(firstPlayer) : 0;
+                _logger.Debug("First player for round: {@PlayerName}", _currentPlayerName);
+
+                DealHoleCards();
+                RoundStarted?.Invoke();
+                _logger.Information(
+                "Starting round with {@PlayerCount} players",
+                PlayerMap.Count
+                );
+
+                ServiceResult result = ServiceResult.Success("Round started successfully");
+                return result;
             }
-            if (!CanStartRound())
-            {
-                ServiceResult resultFail = ServiceResult.Failure("Cannot start round. Ensure at least 2 players are seated.");
-                return resultFail;
-            }
-
-
-
-            _hasRoundStarted = true;
-            IsRoundActive = true;
-            Deck = new Deck();
-            Deck.Shuffle();
-            Pot.Reset();
-            CurrentBet = 0;
-            Phase = GamePhase.PreFlop;
-            CommunityCards.Clear();
-
-            foreach (PlayerStatus status in PlayerMap.Values)
-                status.ResetStatus();
-
-
-            List<IPlayer> seatedPlayers = PlayerMap.Keys.Where(p => p.SeatIndex >= 0).OrderBy(p => p.SeatIndex).ToList();
-            IPlayer? firstPlayer = seatedPlayers.FirstOrDefault(p => PlayerMap[p].State == PlayerState.Active);
-            _currentPlayerName = firstPlayer?.Name;
-            CurrentPlayerIndex = firstPlayer != null ? seatedPlayers.IndexOf(firstPlayer) : 0;
-            _logger.Debug("First player for round: {@PlayerName}", _currentPlayerName);
-
-            DealHoleCards();
-            RoundStarted?.Invoke();
-            _logger.Information(
-            "Starting round with {@PlayerCount} players",
-            PlayerMap.Count
-            );
-
-            ServiceResult result = ServiceResult.Success("Round started successfully");
-            return result;
         }
 
         private void DealHoleCards()
@@ -433,42 +458,47 @@ namespace PokerAPI.Services
 
         public ServiceResult NextPhase()
         {
-            if (!_hasRoundStarted)
+            lock (_lock)
             {
-                ServiceResult resultFail = ServiceResult.Failure("No round in progress");
-                return resultFail;
-            }
-
-            switch (Phase)
-            {
-                case GamePhase.PreFlop:
-                    DealFlop();
-                    StartBettingRound();
-                    Phase = GamePhase.Flop;
-                    break;
-                case GamePhase.Flop:
-                    DealTurn();
-                    StartBettingRound();
-                    Phase = GamePhase.Turn;
-                    break;
-                case GamePhase.Turn:
-                    DealRiver();
-                    StartBettingRound();
-                    Phase = GamePhase.River;
-                    break;
-                case GamePhase.River:
-                    Phase = GamePhase.Showdown;
-                    break;
-                case GamePhase.Showdown:
-                    ServiceResult resultFail = ServiceResult.Failure("Game is already at showdown");
-                    _logger.Warning("Attempted to advance phase from Showdown, which is invalid");
+                if (!_hasRoundStarted)
+                {
+                    ServiceResult resultFail = ServiceResult.Failure("No round in progress");
                     return resultFail;
+                }
+
+                switch (Phase)
+                {
+                    case GamePhase.PreFlop:
+                        DealFlop();
+                        StartBettingRound();
+                        Phase = GamePhase.Flop;
+                        break;
+                    case GamePhase.Flop:
+                        DealTurn();
+                        StartBettingRound();
+                        Phase = GamePhase.Turn;
+                        break;
+                    case GamePhase.Turn:
+                        DealRiver();
+                        StartBettingRound();
+                        Phase = GamePhase.River;
+                        break;
+                    case GamePhase.River:
+                        Phase = GamePhase.Showdown;
+                        break;
+                    case GamePhase.Showdown:
+                        ServiceResult resultFail = ServiceResult.Failure("Game is already at showdown");
+                        _logger.Warning("Attempted to advance phase from Showdown, which is invalid");
+                        return resultFail;
+                    default:
+                        break;
+                }
+
+                _logger.Information("Phase transition to {@Phase}", Phase);
+
+                ServiceResult result = ServiceResult.Success($"Advanced to {Phase}");
+                return result;
             }
-
-            _logger.Information("Phase transition to {@Phase}", Phase);
-
-            ServiceResult result = ServiceResult.Success($"Advanced to {Phase}");
-            return result;
         }
 
         private void StartBettingRound()
@@ -569,182 +599,200 @@ namespace PokerAPI.Services
 
         public ServiceResult HandleBet(IPlayer player, int amount)
         {
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
-
-            if (amount <= 0)
+            lock (_lock)
             {
-                _logger.Warning("Invalid bet amount {@Amount} by {@PlayerName}", amount, player.Name);
-                return ServiceResult.Failure("Bet amount must be greater than 0");
-            }
-            if (CurrentBet > 0)
-            {
-                _logger.Warning("Invalid action Bet by {@PlayerName} when CurrentBet is {@CurrentBet}", player.Name, CurrentBet);
-                return ServiceResult.Failure("Use Call or Raise when there is an existing bet");
-            }
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
 
-            PlayerStatus status = PlayerMap[player];
-            if (player.ChipStack < amount)
-            {
-                _logger.Warning("Insufficient chips for Bet by {@PlayerName}. Stack: {@Stack}, Amount: {@Amount}", player.Name, player.ChipStack, amount);
-                return ServiceResult.Failure("Insufficient chips");
+                if (amount <= 0)
+                {
+                    _logger.Warning("Invalid bet amount {@Amount} by {@PlayerName}", amount, player.Name);
+                    return ServiceResult.Failure("Bet amount must be greater than 0");
+                }
+                if (CurrentBet > 0)
+                {
+                    _logger.Warning("Invalid action Bet by {@PlayerName} when CurrentBet is {@CurrentBet}", player.Name, CurrentBet);
+                    return ServiceResult.Failure("Use Call or Raise when there is an existing bet");
+                }
+
+                PlayerStatus status = PlayerMap[player];
+                if (player.ChipStack < amount)
+                {
+                    _logger.Warning("Insufficient chips for Bet by {@PlayerName}. Stack: {@Stack}, Amount: {@Amount}", player.Name, player.ChipStack, amount);
+                    return ServiceResult.Failure("Insufficient chips");
+                }
+
+                player.ChipStack -= amount;
+                status.CurrentBet += amount;
+                status.HasActed = true;
+                Pot.AddChips(amount);
+
+                if (status.CurrentBet > CurrentBet)
+                {
+                    CurrentBet = status.CurrentBet;
+                    ResetHasActedExcept(player);
+                }
+
+                _logger.Information("Player {@PlayerName} placed bet {@Amount} in phase {@Phase}", player.Name, amount, Phase);
+                TryAutoAdvance();
+                return ServiceResult.Success($"Bet of {amount} placed by {player.Name}");
             }
-
-            player.ChipStack -= amount;
-            status.CurrentBet += amount;
-            status.HasActed = true;
-            Pot.AddChips(amount);
-
-            if (status.CurrentBet > CurrentBet)
-            {
-                CurrentBet = status.CurrentBet;
-                ResetHasActedExcept(player);
-            }
-
-            _logger.Information("Player {@PlayerName} placed bet {@Amount} in phase {@Phase}", player.Name, amount, Phase);
-            TryAutoAdvance();
-            return ServiceResult.Success($"Bet of {amount} placed by {player.Name}");
         }
 
         public ServiceResult HandleCall(IPlayer player)
         {
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
-
-            PlayerStatus status = PlayerMap[player];
-            int toCall = CurrentBet - status.CurrentBet;
-
-            if (toCall < 0)
+            lock (_lock)
             {
-                _logger.Warning("Invalid Call by {@PlayerName}: CurrentBet {@CurrentBet} < StatusBet {@StatusBet}", player.Name, CurrentBet, status.CurrentBet);
-                return ServiceResult.Failure("Invalid call: Current bet is lower than your contribution");
-            }
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
 
-            if (player.ChipStack <= toCall)
-            {
-                int allInAmount = player.ChipStack;
-                status.CurrentBet += allInAmount;
-                player.ChipStack = 0;
-                status.State = PlayerState.AllIn;
-                status.HasActed = true;
-                Pot.AddChips(allInAmount);
-            }
-            else
-            {
-                player.ChipStack -= toCall;
-                status.CurrentBet += toCall;
-                status.HasActed = true;
-                Pot.AddChips(toCall);
-            }
+                PlayerStatus status = PlayerMap[player];
+                int toCall = CurrentBet - status.CurrentBet;
 
-            _logger.Information("Player {@PlayerName} called {@Amount} in phase {@Phase}", player.Name, toCall, Phase);
-            TryAutoAdvance();
-            return ServiceResult.Success($"{player.Name} called successfuly");
+                if (toCall < 0)
+                {
+                    _logger.Warning("Invalid Call by {@PlayerName}: CurrentBet {@CurrentBet} < StatusBet {@StatusBet}", player.Name, CurrentBet, status.CurrentBet);
+                    return ServiceResult.Failure("Invalid call: Current bet is lower than your contribution");
+                }
+
+                if (player.ChipStack <= toCall)
+                {
+                    int allInAmount = player.ChipStack;
+                    status.CurrentBet += allInAmount;
+                    player.ChipStack = 0;
+                    status.State = PlayerState.AllIn;
+                    status.HasActed = true;
+                    Pot.AddChips(allInAmount);
+                }
+                else
+                {
+                    player.ChipStack -= toCall;
+                    status.CurrentBet += toCall;
+                    status.HasActed = true;
+                    Pot.AddChips(toCall);
+                }
+
+                _logger.Information("Player {@PlayerName} called {@Amount} in phase {@Phase}", player.Name, toCall, Phase);
+                TryAutoAdvance();
+                return ServiceResult.Success($"{player.Name} called successfuly");
+            }
         }
 
         public ServiceResult HandleRaise(IPlayer player, int raiseAmount)
         {
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
-
-            if (raiseAmount <= 0)
+            lock (_lock)
             {
-                _logger.Warning("Invalid raise amount {@Amount} by {@PlayerName}", raiseAmount, player.Name);
-                return ServiceResult.Failure("Raise amount must be positive");
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
+
+                if (raiseAmount <= 0)
+                {
+                    _logger.Warning("Invalid raise amount {@Amount} by {@PlayerName}", raiseAmount, player.Name);
+                    return ServiceResult.Failure("Raise amount must be positive");
+                }
+
+                PlayerStatus status = PlayerMap[player];
+                int toCall = CurrentBet - status.CurrentBet;
+                int totalRequirement = toCall + raiseAmount;
+
+                if (player.ChipStack < totalRequirement)
+                {
+                    _logger.Warning("Insufficient chips for Raise by {@PlayerName}. Stack: {@Stack}, Required: {@Required}", player.Name, player.ChipStack, totalRequirement);
+                    return ServiceResult.Failure("Insufficient chips to raise");
+                }
+
+                player.ChipStack -= totalRequirement;
+                status.CurrentBet += totalRequirement;
+                status.HasActed = true;
+                Pot.AddChips(totalRequirement);
+
+                if (status.CurrentBet > CurrentBet)
+                {
+                    CurrentBet = status.CurrentBet;
+                    ResetHasActedExcept(player);
+                }
+
+                _logger.Information("Player {@PlayerName} raised by {@RaiseAmount} in phase {@Phase}", player.Name, raiseAmount, Phase);
+                TryAutoAdvance();
+                return ServiceResult.Success($"{player.Name} raised by {raiseAmount}");
             }
-
-            PlayerStatus status = PlayerMap[player];
-            int toCall = CurrentBet - status.CurrentBet;
-            int totalRequirement = toCall + raiseAmount;
-
-            if (player.ChipStack < totalRequirement)
-            {
-                _logger.Warning("Insufficient chips for Raise by {@PlayerName}. Stack: {@Stack}, Required: {@Required}", player.Name, player.ChipStack, totalRequirement);
-                return ServiceResult.Failure("Insufficient chips to raise");
-            }
-
-            player.ChipStack -= totalRequirement;
-            status.CurrentBet += totalRequirement;
-            status.HasActed = true;
-            Pot.AddChips(totalRequirement);
-
-            if (status.CurrentBet > CurrentBet)
-            {
-                CurrentBet = status.CurrentBet;
-                ResetHasActedExcept(player);
-            }
-
-            _logger.Information("Player {@PlayerName} raised by {@RaiseAmount} in phase {@Phase}", player.Name, raiseAmount, Phase);
-            TryAutoAdvance();
-            return ServiceResult.Success($"{player.Name} raised by {raiseAmount}");
         }
 
         public ServiceResult HandleFold(IPlayer player)
         {
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
+            lock (_lock)
+            {
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
 
-            PlayerStatus status = PlayerMap[player];
-            status.State = PlayerState.Folded;
-            status.HasActed = true;
-            status.Hand.Clear();
+                PlayerStatus status = PlayerMap[player];
+                status.State = PlayerState.Folded;
+                status.HasActed = true;
+                status.Hand.Clear();
 
-            _logger.Information("Player {@PlayerName} folded in phase {@Phase}", player.Name, Phase);
-            TryAutoAdvance();
+                _logger.Information("Player {@PlayerName} folded in phase {@Phase}", player.Name, Phase);
+                TryAutoAdvance();
 
-            return ServiceResult.Success($"{player.Name} folded");
+                return ServiceResult.Success($"{player.Name} folded");
+            }
         }
 
         public ServiceResult HandleCheck(IPlayer player)
         {
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
-
-            PlayerStatus status = PlayerMap[player];
-            if (CurrentBet > status.CurrentBet)
+            lock (_lock)
             {
-                _logger.Warning("Invalid Check by {@PlayerName}: Active bet exists", player.Name);
-                return ServiceResult.Failure("Cannot check when there is an active bet. You must Call, Raise, or Fold.");
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
+
+                PlayerStatus status = PlayerMap[player];
+                if (CurrentBet > status.CurrentBet)
+                {
+                    _logger.Warning("Invalid Check by {@PlayerName}: Active bet exists", player.Name);
+                    return ServiceResult.Failure("Cannot check when there is an active bet. You must Call, Raise, or Fold.");
+                }
+
+                status.HasActed = true;
+                _logger.Information("Player {@PlayerName} checked in phase {@Phase}", player.Name, Phase);
+                TryAutoAdvance();
+
+                return ServiceResult.Success($"{player.Name} checked");
             }
-
-            status.HasActed = true;
-            _logger.Information("Player {@PlayerName} checked in phase {@Phase}", player.Name, Phase);
-            TryAutoAdvance();
-
-            return ServiceResult.Success($"{player.Name} checked");
         }
 
         public ServiceResult HandleAllIn(string playerName)
         {
-            IPlayer? player = GetPlayerByName(playerName);
-            if (player == null) return ServiceResult.Failure("Player not found");
-
-            ServiceResult turnValidation = ValidateTurn(player);
-            if (!turnValidation.IsSuccess) return turnValidation;
-
-            PlayerStatus status = PlayerMap[player];
-            int amount = player.ChipStack;
-            if (amount <= 0)
+            lock (_lock)
             {
-                _logger.Warning("Invalid AllIn by {@PlayerName}: No chips left", player.Name);
-                return ServiceResult.Failure("No chips left for All-In");
+                IPlayer? player = GetPlayerByName(playerName);
+                if (player == null) return ServiceResult.Failure("Player not found");
+
+                ServiceResult turnValidation = ValidateTurn(player);
+                if (!turnValidation.IsSuccess) return turnValidation;
+
+                PlayerStatus status = PlayerMap[player];
+                int amount = player.ChipStack;
+                if (amount <= 0)
+                {
+                    _logger.Warning("Invalid AllIn by {@PlayerName}: No chips left", player.Name);
+                    return ServiceResult.Failure("No chips left for All-In");
+                }
+
+                player.ChipStack = 0;
+                status.CurrentBet += amount;
+                status.State = PlayerState.AllIn;
+                status.HasActed = true;
+                Pot.AddChips(amount);
+
+                if (status.CurrentBet > CurrentBet)
+                {
+                    CurrentBet = status.CurrentBet;
+                    ResetHasActedExcept(player);
+                }
+
+                _logger.Information("Player {@PlayerName} went All-In with {@Amount} chips in phase {@Phase}", player.Name, amount, Phase);
+                TryAutoAdvance();
+                return ServiceResult.Success($"{player.Name} is All-In with {amount} chips");
             }
-
-            player.ChipStack = 0;
-            status.CurrentBet += amount;
-            status.State = PlayerState.AllIn;
-            status.HasActed = true;
-            Pot.AddChips(amount);
-
-            if (status.CurrentBet > CurrentBet)
-            {
-                CurrentBet = status.CurrentBet;
-                ResetHasActedExcept(player);
-            }
-
-            _logger.Information("Player {@PlayerName} went All-In with {@Amount} chips in phase {@Phase}", player.Name, amount, Phase);
-            TryAutoAdvance();
-            return ServiceResult.Success($"{player.Name} is All-In with {amount} chips");
         }
         #endregion
 
