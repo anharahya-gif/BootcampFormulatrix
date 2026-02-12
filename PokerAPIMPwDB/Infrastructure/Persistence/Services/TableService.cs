@@ -18,7 +18,7 @@ public class TableService : ITableService
 
     public async Task<ServiceResult<List<Table>>> GetAllTablesAsync()
     {
-        var tables = await _db.Tables.Include(t => t.PlayerSeats).ToListAsync();
+        var tables = await _db.Tables.Where(t=>!t.isDeleted).Include(t => t.PlayerSeats).ToListAsync();
         return ServiceResult<List<Table>>.Success(tables);
     }
 
@@ -75,6 +75,17 @@ public async Task<ServiceResult<Table>> CreateTableAsync(Table table, int seatCo
         if (table == null) return ServiceResult.Fail("Table not found");
 
         _db.Tables.Remove(table);
+        await _db.SaveChangesAsync();
+        return ServiceResult.Success();
+    }
+    
+    public async Task<ServiceResult> SoftDeleteTableAsync(Guid tableId)
+    {
+        var table = await _db.Tables.FindAsync(tableId);
+        if (table == null) return ServiceResult.Fail("Table not found");
+
+        table.isDeleted = true;
+
         await _db.SaveChangesAsync();
         return ServiceResult.Success();
     }

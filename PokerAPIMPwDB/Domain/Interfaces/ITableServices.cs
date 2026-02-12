@@ -11,4 +11,5 @@ public interface ITableService
     Task<ServiceResult<Table>> CreateTableAsync(Table table,int seatCount);
     Task<ServiceResult> UpdateTableAsync(Guid tableId, Table updatedTable);
     Task<ServiceResult> DeleteTableAsync(Guid tableId);
+    Task<ServiceResult> SoftDeleteTableAsync(Guid tableId);
 }

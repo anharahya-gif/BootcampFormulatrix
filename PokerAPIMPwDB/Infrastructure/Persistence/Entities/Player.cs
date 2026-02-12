@@ -12,6 +12,7 @@ namespace PokerAPIMPwDB.Infrastructure.Persistence.Entities
 
         public string DisplayName { get; set; } = null!;
         public int ChipStack { get; set; } = 0;
+        public bool isDeleted {get;set;}=false;
 
         // PlayerState
         public PlayerState State { get; set; } = PlayerState.Active;

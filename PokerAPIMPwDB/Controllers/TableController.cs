@@ -118,6 +118,20 @@ namespace PokerAPIMPwDB.API.Controllers
 
             return NoContent();
         }
+        // PUT: api/table/{id}
+        [HttpPut("softdelete/{id}")]
+        public async Task<IActionResult> SoftDeleteTable(Guid id)
+        {
+            var updatedTable = new Table
+            {
+                isDeleted = true,
+            };
+
+            var result = await _tableService.SoftDeleteTableAsync(id);
+            if (!result.IsSuccess) return NotFound(result.ErrorMessage);
+
+            return Ok("Table is Deleted");
+        }
 
         // POST: api/table/{tableId}/join
         [HttpPost("{tableId}/join")]
