@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "E:\\BootcampFormulatrix\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj": {}
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj": {}
   },
   "projects": {
-    "E:\\BootcampFormulatrix\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj": {
+    "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj",
+        "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj",
         "projectName": "PokerAPIMPwDB",
-        "projectPath": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj",
-        "packagesPath": "C:\\Users\\Anhar Ahya\\.nuget\\packages\\",
-        "outputPath": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\PokerAPIMPwDB\\obj\\",
+        "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMPwDB\\PokerAPIMPwDB.csproj",
+        "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\PokerAPIMPwDB\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Anhar Ahya\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -101,7 +101,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

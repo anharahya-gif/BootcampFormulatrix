@@ -26,7 +26,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void StartRound_WithTwoPlayers_ShouldInitializeRound()
+    public void StartRound_WhenTwoPlayersOrMore_ShouldInitializeRound()
     {
         // Arrange: 2 pemain seated
         var add1 = _gameService.AddPlayer("Anhar", 1000, 0);
@@ -53,7 +53,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void StartRound_WithOnePlayer_ShouldFail()
+    public void StartRound_WhenWithOnePlayer_ShouldFail()
     {
         // Arrange: hanya 1 pemain
         var add1 = _gameService.AddPlayer("Anhar", 1000, 0);
@@ -69,7 +69,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void StartRound_AlreadyStarted_ShouldFail()
+    public void StartRound_WhenAlreadyStarted_ShouldFail()
     {
         // Arrange: 2 pemain seated
         var add1 = _gameService.AddPlayer("Anhar", 1000, 0);
@@ -91,7 +91,7 @@ public class GameServiceTests
 
     #region Player Management Tests
     [Test]
-    public void AddPlayer_WithValidData_ShouldSuccess()
+    public void AddPlayer_WhenWithValidData_ShouldSuccess()
     {
         var result = _gameService.AddPlayer("Anhar", 500, 2);
         Assert.IsTrue(result.IsSuccess);
@@ -99,7 +99,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void AddPlayer_DuplicateName_ShouldFail()
+    public void AddPlayer_WhenDuplicateName_ShouldFail()
     {
         _gameService.AddPlayer("Anhar", 500, 0);
         var result = _gameService.AddPlayer("Anhar", 500, 1);
@@ -108,7 +108,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void AddPlayer_InvalidSeatIndex_ShouldFail()
+    public void AddPlayer_WhenInvalidSeatIndex_ShouldFail()
     {
         var result = _gameService.AddPlayer("Ahya", 500, 10); // Max is 8 (0-7)
         Assert.IsFalse(result.IsSuccess);
@@ -116,7 +116,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void AddPlayer_SeatOccupied_ShouldFail()
+    public void AddPlayer_WhenSeatOccupied_ShouldFail()
     {
         _gameService.AddPlayer("Joko", 500, 0);
         var result = _gameService.AddPlayer("Mulyono", 500, 0);
@@ -125,7 +125,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void RegisterPlayer_Success()
+    public void RegisterPlayer_WhenWithValidPlayer_Success()
     {
         var result = _gameService.RegisterPlayer("Prabowo", 1000);
         Assert.IsTrue(result.IsSuccess);
@@ -135,7 +135,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void RegisterPlayer_Duplicate_ShouldFail()
+    public void RegisterPlayer_WhenDuplicate_ShouldFail()
     {
         _gameService.RegisterPlayer("Bahlil", 1000);
         var result = _gameService.RegisterPlayer("Bahlil", 1000);
@@ -144,7 +144,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void UpdatePlayerSeat_Success()
+    public void UpdatePlayerSeat_WhenValidSeatIndex_ShouldReturnSuccess()
     {
         _gameService.RegisterPlayer("Jack", 1000);
         var result = _gameService.UpdatePlayerSeat("Jack", 3);
@@ -154,14 +154,14 @@ public class GameServiceTests
     }
 
     [Test]
-    public void UpdatePlayerSeat_InvalidSeat_ShouldFail()
+    public void UpdatePlayerSeat_WhenInvalidSeat_ShouldFail()
     {
         _gameService.RegisterPlayer("Ahya", 1000);
         var result = _gameService.UpdatePlayerSeat("Ahya", -1);
         Assert.IsFalse(result.IsSuccess);
     }
     [Test]
-    public void UpdatePlayerSeat_OccupiedSeat_ShouldFail()
+    public void UpdatePlayerSeat_WhenOccupiedSeat_ShouldFail()
     {
         _gameService.AddPlayer("Ahya", 1000, 1);
         _gameService.RegisterPlayer("Ahya", 1000);
@@ -169,14 +169,14 @@ public class GameServiceTests
         Assert.IsFalse(result.IsSuccess);
     }
     [Test]
-    public void UpdatePlayerSeat_InvalidPlayername_ShouldFail()
+    public void UpdatePlayerSeat_WhenInvalidPlayername_ShouldFail()
     {
         _gameService.RegisterPlayer("Anhar", 1000);
         var result = _gameService.UpdatePlayerSeat("Ahya", 1);
         Assert.IsFalse(result.IsSuccess);
     }
     [Test]
-    public void RemovePlayer_Success()
+    public void RemovePlayer_WhenPlayerExists_ShouldRemovePlayer()
     {
         _gameService.AddPlayer("Larry", 1000, 0);
         var player = _gameService.GetPlayerByName("Larry");
@@ -186,14 +186,14 @@ public class GameServiceTests
     }
 
     [Test]
-    public void RemovePlayer_NotFound_ShouldFail()
+    public void RemovePlayer_WhenNotFound_ShouldFail()
     {
         var player = new Player("Anies", 1000);
         var result = _gameService.RemovePlayer(player);
         Assert.IsFalse(result.IsSuccess);
     }
     [Test]
-    public void RemovePlayer_WasCurrentPlayer_ShouldMoveTurnToNextPlayer()
+    public void RemovePlayer_WhenWasCurrentPlayer_ShouldMoveTurnToNextPlayer()
     {
         // Susun: tambahkan 2 pemain
         _gameService.AddPlayer("Larry", 1000, 0);
@@ -220,7 +220,7 @@ public class GameServiceTests
         Assert.AreEqual("Squilliam", newCurrentPlayer.Name);
     }
     [Test]
-    public void ActivePlayers_ShouldReturnOnlyActivePlayers()
+    public void ActivePlayers_WhenPlayerIsFolded_ShouldExcludePlayer()
     {
         // Arrange
         _gameService.AddPlayer("Larry", 1000, 0);
@@ -242,7 +242,7 @@ public class GameServiceTests
         Assert.AreEqual("Larry", activePlayers[0].Name);
     }
     [Test]
-    public void ActivePlayers_ShouldIncludeAllInPlayers()
+    public void ActivePlayers_WhenPlayerIsAllIn_ShouldIncludePlayer()
     {
         // Arrange
         _gameService.AddPlayer("Larry", 1000, 0);
@@ -262,7 +262,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void ActivePlayers_ShouldExcludePlayersWithoutSeat()
+    public void ActivePlayers_WhenPlayerHasNoSeat_ShouldExcludePlayer()
     {
         // Arrange
         _gameService.RegisterPlayer("Larry", 1000); // SeatIndex = -1
@@ -280,7 +280,7 @@ public class GameServiceTests
 
     #region Round Management Tests
     [Test]
-    public void NextPhase_Success()
+    public void NextPhase_WhenRoundActive_ShouldAdvanceGamePhase()
     {
         // Setup game with >2 players
         _gameService.AddPlayer("Anhar", 1000, 0);
@@ -309,7 +309,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void NextPhase_NoRound_ShouldFail()
+    public void NextPhase_WhenNoRound_ShouldFail()
     {
         var result = _gameService.NextPhase();
         Assert.IsFalse(result.IsSuccess);
@@ -317,7 +317,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void ResetGame_Success()
+    public void ResetGame_WhenGameIsActive_ShouldClearAllGameState()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.StartRound();
@@ -334,7 +334,7 @@ public class GameServiceTests
 
     #region Betting Logic Tests
     [Test]
-    public void HandleBet_Success()
+    public void HandleBet_WhenCalledOnPlayersTurn_ShouldDeductChipsAndIncreasePot()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -350,7 +350,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleBet_Failure_NotTurn()
+    public void HandleBet_WhenNotPlayersTurn_ShouldReturnFailure()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -367,7 +367,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleCall_Success()
+    public void HandleCall_WhenCalledWithValidState_ShouldMatchCurrentBet()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -410,7 +410,7 @@ public class GameServiceTests
     
 
     [Test]
-    public void HandleRaise_Success()
+    public void HandleRaise_WhenValidRaise_ShouldIncreaseCurrentBetAndDeductChips()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -437,7 +437,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleFold_Success()
+    public void HandleFold_WhenCalledOnPlayersTurn_ShouldMarkPlayerAsFolded()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -453,7 +453,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleCheck_Success()
+    public void HandleCheck_WhenNoActiveBet_ShouldReturnSuccess()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -467,7 +467,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleCheck_Failure_WithBet()
+    public void HandleCheck_WhenActiveBetExists_ShouldReturnFailure()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -484,7 +484,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void HandleAllIn_Success()
+    public void HandleAllIn_WhenCalledWithValidPlayer_ShouldMoveAllChipsToPot()
     {
         _gameService.AddPlayer("Anhar", 1000, 0); // 1000 chips
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -502,7 +502,7 @@ public class GameServiceTests
     #endregion
     #region Information and Evaluation Tests
     [Test]
-    public void GetPlayersPublicState_Success()
+    public void GetPlayersPublicState_WhenRoundActive_ShouldReturnPlayersPublicInfo()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -517,7 +517,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void EvaluateVisibleForPlayer_Success()
+    public void EvaluateVisibleForPlayer_WhenPlayerExists_ShouldReturnEvaluation()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.StartRound();
@@ -527,7 +527,7 @@ public class GameServiceTests
         Assert.IsNotNull(result.Data);
     }
     [Test]
-    public void EvaluateVisibleForPlayer_PlayerNotFound_ShouldReturnFailure()
+    public void EvaluateVisibleForPlayer_WhenPlayerNotFound_ShouldReturnFailure()
     {
         // Arrange
         _gameService.AddPlayer("Anhar", 1000, 0);
@@ -542,7 +542,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void GetShowdownDetails_Success()
+    public void GetShowdownDetails_WhenCalled_ShouldReturnShowdownData()
     {
         _gameService.AddPlayer("Anhar", 1000, 0);
         _gameService.AddPlayer("Ahya", 1000, 1);
@@ -557,7 +557,7 @@ public class GameServiceTests
         Assert.IsNotNull(result.Data);
     }
     [Test]
-    public void ResolveShowdownDetailed_NotShowdownAndMultipleActive_ShouldReturnEmpty()
+    public void ResolveShowdownDetailed_WhenNotShowdownAndMultipleActive_ShouldReturnEmpty()
     {
         _gameService.SetPhase(GamePhase.Turn);
 
@@ -574,7 +574,7 @@ public class GameServiceTests
         Assert.AreEqual(HandRank.HighCard, result.rank);
     }
     [Test]
-    public void ResolveShowdownDetailed_SingleWinner_ShouldAwardFullPot()
+    public void ResolveShowdownDetailed_WhenSingleWinner_ShouldAwardFullPot()
     {
         _gameService.SetPhase(GamePhase.Showdown);
 
@@ -600,7 +600,7 @@ public class GameServiceTests
     }
 
     [Test]
-    public void ResolveShowdownDetailed_SplitPot_ShouldDivideEvenly()
+    public void ResolveShowdownDetailed_WithSplitPot_ShouldDivideEvenly()
     {
         _gameService.SetPhase(GamePhase.Showdown);
 
@@ -622,7 +622,7 @@ public class GameServiceTests
         Assert.AreEqual(1100, players[1].ChipStack);
     }
     [Test]
-    public void ResolveShowdownDetailed_ShouldCleanupAfterRound()
+    public void ResolveShowdownDetailed_WhenCompleted_ShouldResetRoundState()
     {
         _gameService.SetPhase(GamePhase.Showdown);
 
@@ -649,7 +649,7 @@ public class GameServiceTests
         Assert.AreEqual(GamePhase.PreFlop, _gameService.Phase);
     }
     [Test]
-    public void GetPlayersPublicState_ShouldMapBasicPlayerInfo()
+    public void GetPlayersPublicState_WhenCalled_ShouldMapBasicPlayerInformation()
     {
         var players = TestHelper.CreatePlayers(1, 1000);
         _gameService.LoadPlayers(players);
@@ -662,7 +662,7 @@ public class GameServiceTests
         Assert.AreEqual(players[0].ChipStack, dto.ChipStack);
     }
     [Test]
-    public void GetPlayersPublicState_ShouldSetIsFolded_WhenPlayerFolded()
+    public void GetPlayersPublicState_WhenPlayerFolded_ShouldSetIsFolded()
     {
         var players = TestHelper.CreatePlayers(1, 1000);
         _gameService.LoadPlayers(players);
@@ -675,7 +675,7 @@ public class GameServiceTests
         Assert.AreEqual("Folded", dto.State);
     }
     [Test]
-    public void GetPlayersPublicState_ShouldReturnEmptyPossibleHandRank_WhenNoCards()
+    public void GetPlayersPublicState_WhenNoCards_ShouldReturnEmptyPossibleHandRank()
     {
         var players = TestHelper.CreatePlayers(1, 1000);
         _gameService.LoadPlayers(players);
