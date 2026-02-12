@@ -134,7 +134,7 @@ namespace PokerAPIMPwDB.API.Controllers
         }
 
         // POST: api/table/{tableId}/join
-        [HttpPost("{tableId}/join")]
+        [HttpDelete("{tableId}/join")]
         public async Task<IActionResult> JoinTable(Guid tableId, int buyInAmount, int seatNumber)
         {
             // Ambil UserId dari JWT

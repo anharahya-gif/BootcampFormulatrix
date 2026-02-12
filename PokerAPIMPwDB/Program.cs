@@ -24,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<ITableService, TableService>();
 builder.Services.AddScoped<IPlayerServiceTable, PlayerServiceTable>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<LobbyService>(); 
 builder.Services.AddSingleton<GameManager>();
 builder.Services.AddSignalR();
