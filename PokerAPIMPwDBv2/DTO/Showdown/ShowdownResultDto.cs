@@ -1,0 +1,5 @@
+namespace PokerAPIMPwDB.DTO.Showdown
+
+{
+    
+}

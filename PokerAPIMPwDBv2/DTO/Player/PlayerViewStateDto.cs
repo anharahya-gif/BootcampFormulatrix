@@ -1,0 +1,4 @@
+namespace PokerAPIMPwDB.DTO.Player
+{
+    
+}
