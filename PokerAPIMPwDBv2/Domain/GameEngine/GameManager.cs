@@ -71,7 +71,7 @@ namespace PokerAPIMPwDB.Services
         // ===========================
         // Table / Player Actions
         // ===========================
-        public async Task<ServiceResult> PlayerJoinTableAsync(Guid tableId)
+        public async Task<ServiceResult<TableStateDto>> PlayerJoinTableAsync(Guid tableId)
         {
             var game = await GetOrCreateGameAsync(tableId);
             return await game.JoinTableAsync(tableId);
@@ -80,13 +80,17 @@ namespace PokerAPIMPwDB.Services
         public async Task<ServiceResult> SitPlayerAsync(Guid tableId, Guid userId, string displayName, int seatIndex, int chips)
         {
             var game = await GetOrCreateGameAsync(tableId);
-            return await game.SitDownAsync(userId, displayName, seatIndex, chips);
+            var result = await game.SitDownAsync(userId, displayName, seatIndex, chips);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
         public async Task<ServiceResult> StandPlayerAsync(Guid tableId, Guid userId)
         {
             var game = await GetOrCreateGameAsync(tableId);
-            return await game.StandUpAsync(userId);
+            var result = await game.StandUpAsync(userId);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
         public async Task<ServiceResult> PlayerLeaveTableAsync(Guid tableId, Guid userId)
@@ -194,6 +198,19 @@ namespace PokerAPIMPwDB.Services
                 return true;
             }
             return false;
+        }
+
+        private async Task BroadcastStateAsync(Guid tableId, IPokerGameEngine game)
+        {
+            await _hub.Clients.Group(tableId.ToString()).SendAsync("ReceiveGameState", new
+            {
+                TableId = tableId,
+                Phase = game.Phase.ToString(),
+                Seats = game.GetSeatsState(),
+                CommunityCards = game.CommunityCards,
+                MinBuyIn = game.MinBuyIn,
+                MaxBuyIn = game.MaxBuyIn
+            });
         }
 
     }

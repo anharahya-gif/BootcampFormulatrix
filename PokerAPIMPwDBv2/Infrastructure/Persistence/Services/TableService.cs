@@ -33,7 +33,7 @@ public class TableService : ITableService
         return ServiceResult<Table>.Success(table);
     }
 
-    public async Task<ServiceResult<Table>> CreateTableAsync(Table table, int seatCount = 6)
+    public async Task<ServiceResult<Table>> CreateTableAsync(Table table, int seatCount = 8)
     {
         table.Id = Guid.NewGuid();
         table.CreatedAt = DateTime.UtcNow;

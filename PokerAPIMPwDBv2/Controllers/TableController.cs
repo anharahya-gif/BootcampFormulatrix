@@ -44,7 +44,11 @@ namespace PokerAPIMPwDB.API.Controllers
                 TableId = t.Id,
                 Name = t.Name,
                 MaxPlayers = t.MaxPlayers,
-                PlayerCount = t.PlayerSeats.Count,
+                PlayerCount = t.PlayerSeats.Count(ps => ps.PlayerId != null),
+                SmallBlind = t.SmallBlind,
+                BigBlind = t.BigBlind,
+                MinBuyIn = t.MinBuyIn,
+                MaxBuyIn = t.MaxBuyIn,
                 State = t.Status
             }).ToList();
 
@@ -64,7 +68,11 @@ namespace PokerAPIMPwDB.API.Controllers
                 TableId = table!.Id,
                 Name = table.Name,
                 MaxPlayers = table.MaxPlayers,
-                PlayerCount = table.PlayerSeats.Count,
+                PlayerCount = table.PlayerSeats.Count(ps => ps.PlayerId != null),
+                SmallBlind = table.SmallBlind,
+                BigBlind = table.BigBlind,
+                MinBuyIn = table.MinBuyIn,
+                MaxBuyIn = table.MaxBuyIn,
                 State = table.Status
             };
             return Ok(dto);
@@ -77,13 +85,17 @@ namespace PokerAPIMPwDB.API.Controllers
             var table = new Table
             {
                 Name = request.Name,
-                MaxPlayers = request.MaxPlayers,
+                MaxPlayers = 8, // Force 8 seats as requested
+                MinBuyIn = 200,
+                MaxBuyIn = 2000,
+                SmallBlind = 10,
+                BigBlind = 20,
                 Status = TableState.Waiting,
                 CreatedAt = DateTime.UtcNow,
                 PlayerSeats = new List<PlayerSeat>()
             };
 
-            var result = await _tableService.CreateTableAsync(table,6);
+            var result = await _tableService.CreateTableAsync(table, 8);
             if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
 
             request.TableId = result.Value!.Id;

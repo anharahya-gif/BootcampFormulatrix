@@ -152,8 +152,12 @@ namespace PokerAPIMPwDB.Migrations
                     b.Property<int>("ChipStack")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ChipsWonThisRound")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("State")
@@ -169,7 +173,7 @@ namespace PokerAPIMPwDB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Players");
+                    b.ToTable("Players", (string)null);
                 });
 
             modelBuilder.Entity("PokerAPIMPwDB.Infrastructure.Persistence.Entities.PlayerSeat", b =>
@@ -194,7 +198,7 @@ namespace PokerAPIMPwDB.Migrations
 
                     b.HasIndex("TableId");
 
-                    b.ToTable("PlayerSeats");
+                    b.ToTable("PlayerSeats", (string)null);
                 });
 
             modelBuilder.Entity("PokerAPIMPwDB.Infrastructure.Persistence.Entities.Table", b =>
@@ -203,15 +207,28 @@ namespace PokerAPIMPwDB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("BigBlind")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxBuyIn")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("MinBuyIn")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("SmallBlind")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
@@ -221,7 +238,7 @@ namespace PokerAPIMPwDB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tables");
+                    b.ToTable("Tables", (string)null);
                 });
 
             modelBuilder.Entity("PokerAPIMPwDB.Infrastructure.Persistence.Entities.User", b =>
@@ -234,7 +251,9 @@ namespace PokerAPIMPwDB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Balance")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -284,7 +303,9 @@ namespace PokerAPIMPwDB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("isDeleted")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 
@@ -365,7 +386,7 @@ namespace PokerAPIMPwDB.Migrations
                     b.HasOne("PokerAPIMPwDB.Infrastructure.Persistence.Entities.Player", "Player")
                         .WithOne("PlayerSeat")
                         .HasForeignKey("PokerAPIMPwDB.Infrastructure.Persistence.Entities.PlayerSeat", "PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PokerAPIMPwDB.Infrastructure.Persistence.Entities.Table", "Table")
                         .WithMany("PlayerSeats")

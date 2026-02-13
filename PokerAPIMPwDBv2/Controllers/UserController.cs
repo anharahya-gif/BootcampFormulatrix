@@ -18,6 +18,31 @@ namespace PokerAPIMPwDB.API.Controllers
         }
 
         // ==============================
+        // GET: api/user/profile
+        // ==============================
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdStr);
+            var result = await _userService.GetUserByIdAsync(userId);
+
+            if (!result.IsSuccess)
+                return NotFound(result.ErrorMessage);
+
+            var user = result.Value;
+            return Ok(new UserInfoDto
+            {
+                Id = user.Id,
+                Username = user!.UserName!,
+                Balance = user.Balance,
+                CreatedAt = user.CreatedAt
+            });
+        }
+
+        // ==============================
         // GET: api/user
         // ==============================
         [HttpGet]
@@ -42,7 +67,7 @@ namespace PokerAPIMPwDB.API.Controllers
         // ==============================
         // GET: api/user/{id}
         // ==============================
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetUser(Guid id)
         {
             var result = await _userService.GetUserByIdAsync(id);
@@ -104,7 +129,7 @@ namespace PokerAPIMPwDB.API.Controllers
         // ==============================
         // PUT: api/user/{id}
         // ==============================
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto request)
         {
             var result = await _userService.UpdateUserAsync(id, request);
@@ -118,7 +143,7 @@ namespace PokerAPIMPwDB.API.Controllers
         // ==============================
         // DELETE (Soft Delete)
         // ==============================
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> SoftDeleteUser(Guid id)
         {
             var result = await _userService.SoftDeleteUserAsync(id);

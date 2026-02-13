@@ -11,6 +11,8 @@ namespace PokerAPIMPwDB.DTO.Table
         public int PlayerCount { get; set; }
         public int SmallBlind { get; set; }
         public int BigBlind { get; set; }
+        public int MinBuyIn { get; set; }
+        public int MaxBuyIn { get; set; }
         public TableState State { get; set; }
     }
 }

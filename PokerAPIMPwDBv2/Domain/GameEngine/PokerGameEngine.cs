@@ -12,6 +12,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PokerAPIMPwDB.Domain.GameEngine
 {
@@ -30,13 +32,16 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         private ShowdownResult? _lastShowdown;
 
         private readonly List<IPlayer> _players = new();
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public Guid CurrentTableId { get; internal set; } = Guid.Empty;
 
         public GamePhase Phase { get; private set; } = GamePhase.WaitingForPlayer;
         public int CurrentBet => _currentBet;
         public int CurrentPlayerIndex => _currentPlayerIndex;
-        public List<ICard> CommunityCards => _communityCards;
+        public IReadOnlyList<ICard> CommunityCards => _communityCards;
+        public int MinBuyIn { get; private set; } = 200;
+        public int MaxBuyIn { get; private set; } = 2000;
         public ShowdownResult? LastShowdown => _lastShowdown;
         public IServiceScope? Scope { get; set; }
 
@@ -57,36 +62,52 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task LoadPlayersFromTableAsync(Guid tableId)
         {
-            CurrentTableId = tableId;
-
-            var table = await _db.Tables
-                .Include(t => t.PlayerSeats)
-                .ThenInclude(ps => ps.Player)
-                .FirstOrDefaultAsync(t => t.Id == tableId);
-
-            if (table == null)
-                throw new InvalidOperationException("Table not found");
-
-            _seats.Clear();
-            _players.Clear();
-
-            // Map seats + player
-            foreach (var ps in table.PlayerSeats.OrderBy(s => s.SeatNumber))
+            try
             {
-                var seat = new PlayerSeat(ps.SeatNumber);
+                CurrentTableId = tableId;
+                Console.WriteLine($"[LOAD_DEBUG] Loading table {tableId}");
 
-                if (ps.Player != null)
+                var table = await _db.Tables
+                    .Include(t => t.PlayerSeats)
+                    .ThenInclude(ps => ps.Player)
+                    .FirstOrDefaultAsync(t => t.Id == tableId);
+
+                if (table == null)
                 {
-                    var domainPlayer = MapToDomain(ps.Player);
-                    seat.SitDown(domainPlayer, domainPlayer.ChipStack);
-                    _players.Add(domainPlayer);
+                    Console.WriteLine($"[LOAD_ERROR] Table {tableId} not found in DB");
+                    throw new InvalidOperationException("Table not found");
                 }
 
-                _seats.Add(seat);
-            }
+                _seats.Clear();
+                _players.Clear();
 
-            // Debug: tampilkan seat yang tersedia
-            Console.WriteLine("Loaded seats: " + string.Join(", ", _seats.Select(s => s.SeatIndex)));
+                // Map seats + player
+                foreach (var ps in table.PlayerSeats.OrderBy(s => s.SeatNumber))
+                {
+                    var seat = new PlayerSeat(ps.SeatNumber);
+
+                    if (ps.Player != null)
+                    {
+                        var domainPlayer = MapToDomain(ps.Player);
+                        seat.SitDown(domainPlayer, domainPlayer.ChipStack);
+                        _players.Add(domainPlayer);
+                    }
+
+                    _seats.Add(seat);
+                }
+
+                // Store Buy-in limits
+                MinBuyIn = table.MinBuyIn > 0 ? table.MinBuyIn : 200;
+                MaxBuyIn = table.MaxBuyIn > 0 ? table.MaxBuyIn : 2000;
+
+                // Debug: tampilkan seat yang tersedia
+                Console.WriteLine($"[LOAD_DEBUG] Loaded table {tableId}: Seats={_seats.Count}, MinBuyIn={MinBuyIn}, MaxBuyIn={MaxBuyIn}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOAD_ERROR] Failed to load table {tableId}: {ex.Message}\n{ex.StackTrace}");
+                throw;
+            }
         }
 
 
@@ -133,56 +154,77 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task<ServiceResult<TableStateDto>> JoinTableAsync(Guid tableId)
         {
-            // Load state table & seats
-            await LoadPlayersFromTableAsync(tableId);
-
-            var tableState = new TableStateDto
+            try
             {
-                TableId = tableId,
-                Phase = Phase,
-                CurrentBet = CurrentBet,
-                CommunityCards = CommunityCards
-                            .Select(c => new Card(c.Rank, c.Suit)) // fix constructor
-                            .ToList(),
-                // Masukkan seat state
-                Seats = GetSeatsState()
-            };
+                Console.WriteLine($"[JOIN_DEBUG] Starting JoinTableAsync for {tableId}");
+                // Load state table & seats
+                await LoadPlayersFromTableAsync(tableId);
 
-
-            // Map each seat
-            foreach (var seat in _seats.OrderBy(s => s.SeatIndex))
-            {
-                tableState.Players.Add(new PlayerPublicStateDto
+                var tableState = new TableStateDto
                 {
-                    PlayerId = seat.Player?.PlayerId ?? Guid.Empty,
-                    DisplayName = seat.Player?.DisplayName ?? "",
-                    ChipStack = seat.Player?.ChipStack ?? 0,
-                    CurrentBet = seat.Player?.CurrentBet ?? 0,
-                    State = seat.Player?.State ?? PlayerState.Waiting,
-                    SeatIndex = seat.SeatIndex
-                });
-            }
+                    TableId = tableId,
+                    Phase = Phase,
+                    CurrentBet = CurrentBet,
+                    CommunityCards = CommunityCards
+                                .Select(c => new Domain.Models.Card(c.Rank, c.Suit))
+                                .ToList(),
+                    // Masukkan seat state
+                    Seats = GetSeatsState()
+                };
 
-            return ServiceResult<TableStateDto>.Success(tableState, "Table loaded");
+                // Map each seat
+                foreach (var seat in _seats.Where(s => s.IsOccupied).OrderBy(s => s.SeatIndex))
+                {
+                    tableState.Players.Add(new PlayerPublicStateDto
+                    {
+                        PlayerId = seat.Player?.PlayerId ?? Guid.Empty,
+                        DisplayName = seat.Player?.DisplayName ?? "",
+                        ChipStack = seat.Player?.ChipStack ?? 0,
+                        CurrentBet = seat.Player?.CurrentBet ?? 0,
+                        State = seat.Player?.State ?? PlayerState.Waiting,
+                        SeatIndex = seat.SeatIndex
+                    });
+                }
+
+                Console.WriteLine($"[JOIN_DEBUG] Successfully joined table {tableId}");
+                return ServiceResult<TableStateDto>.Success(tableState, "Table loaded");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[JOIN_ERROR] {ex.Message}\n{ex.StackTrace}");
+                throw; // rethrow to keep 500 but also log to console
+            }
         }
         // SitDown 
 
         public async Task<ServiceResult> SitDownAsync(Guid userId, string displayName, int seatIndex, int chips)
         {
-            if (chips <= 0) return ServiceResult.Fail("Chip amount must be positive");
-
-            using var transaction = await _db.Database.BeginTransactionAsync();
+            await _semaphore.WaitAsync();
             try
             {
-                var user = await _db.Users.FindAsync(userId);
-                if (user == null) return ServiceResult.Fail("User not found");
-                if (user.Balance < chips) return ServiceResult.Fail("Insufficient balance for buy-in");
+                if (chips <= 0) return ServiceResult.Fail("Chip amount must be positive");
 
-                var table = await _db.Tables.Include(t => t.PlayerSeats).FirstOrDefaultAsync(t => t.Id == CurrentTableId);
-                if (table == null) return ServiceResult.Fail("Table not found");
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    var user = await _db.Users.FindAsync(userId);
+                    if (user == null) return ServiceResult.Fail("User not found");
+                    if (user.Balance < chips) return ServiceResult.Fail("Insufficient balance for buy-in");
 
-                if (chips < table.MinBuyIn || chips > table.MaxBuyIn)
-                    return ServiceResult.Fail($"Buy-in must be between {table.MinBuyIn} and {table.MaxBuyIn}");
+                    // Global check: Is user already seated at ANY table?
+                    var alreadySeated = await _db.Players.AnyAsync(p => p.UserId == userId && !p.isDeleted);
+                    if (alreadySeated) return ServiceResult.Fail("You are already seated at a table. Stand up first to join another seat.");
+
+                // Safety fallback if limits are 0 (stale memory or table)
+                int effectiveMin = MinBuyIn > 0 ? MinBuyIn : 200;
+                int effectiveMax = MaxBuyIn > 0 ? MaxBuyIn : 2000;
+
+                if (chips < effectiveMin || chips > effectiveMax)
+                {
+                    var msg = $"Buy-in must be between {effectiveMin} and {effectiveMax}";
+                    Console.WriteLine($"[SIT_FAIL] {msg}");
+                    return ServiceResult.Fail(msg);
+                }
 
                 var seat = _seats.FirstOrDefault(s => s.SeatIndex == seatIndex);
                 if (seat == null) return ServiceResult.Fail("Seat does not exist");
@@ -215,7 +257,15 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 _db.Players.Add(dbPlayer);
 
                 var dbSeat = await _db.PlayerSeats.FirstOrDefaultAsync(ps => ps.SeatNumber == seatIndex && ps.TableId == CurrentTableId);
-                if (dbSeat != null) dbSeat.PlayerId = userId;
+                if (dbSeat != null) 
+                {
+                    dbSeat.PlayerId = dbPlayer.Id; // Correctly map to the new Player record
+                }
+                else
+                {
+                    Console.WriteLine($"[SIT_FAIL] dbSeat not found for seat {seatIndex}");
+                    return ServiceResult.Fail("Seat record not found in database");
+                }
 
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -226,15 +276,23 @@ namespace PokerAPIMPwDB.Domain.GameEngine
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                Console.WriteLine($"[SIT_FAIL] Failed to sit down: {ex.Message}");
                 return ServiceResult.Fail($"Failed to sit down: {ex.Message}");
+            }
+            finally
+            {
+                _semaphore.Release();
             }
         }
 
         public async Task<ServiceResult> StandUpAsync(Guid userId)
         {
-            using var transaction = await _db.Database.BeginTransactionAsync();
+            await _semaphore.WaitAsync();
             try
             {
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
                 var seat = _seats.FirstOrDefault(s => s.IsOccupied && s.Player!.PlayerId == userId);
                 if (seat == null) return ServiceResult.Fail("Player is not seated");
 
@@ -247,7 +305,7 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 seat.Leave();
                 _players.Remove(player);
 
-                var dbPlayer = await _db.Players.FindAsync(userId);
+                var dbPlayer = await _db.Players.FirstOrDefaultAsync(p => p.UserId == userId && !p.isDeleted);
                 if (dbPlayer != null) _db.Players.Remove(dbPlayer);
 
                 var dbSeat = await _db.PlayerSeats
@@ -263,7 +321,12 @@ namespace PokerAPIMPwDB.Domain.GameEngine
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                Console.WriteLine($"[STAND_FAIL] {ex.Message}");
                 return ServiceResult.Fail($"Failed to stand up: {ex.Message}");
+            }
+            finally
+            {
+                _semaphore.Release();
             }
         }
         // =========================
@@ -271,16 +334,12 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task<ServiceResult> LeaveTableAsync(Guid userId)
         {
-            // Stand up dulu jika player duduk
-            var player = _players.FirstOrDefault(p => p.PlayerId == userId);
-            if (player != null)
+            var isSeated = _players.Any(p => p.PlayerId == userId);
+            if (isSeated)
             {
-                var standResult = await StandUpAsync(userId);
-                if (!standResult.IsSuccess)
-                    return standResult;
+                return ServiceResult.Fail("You must stand up before leaving the table.");
             }
 
-            // Hanya unload dari memory, player sudah dihapus via StandUpAsync
             return ServiceResult.Success("Player left table");
         }
 

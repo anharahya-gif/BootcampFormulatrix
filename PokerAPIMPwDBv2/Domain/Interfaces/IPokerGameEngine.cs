@@ -29,7 +29,9 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         GamePhase Phase { get; }
         int CurrentBet { get; }
         int CurrentPlayerIndex { get; }
-        List<ICard> CommunityCards { get; }
+        IReadOnlyList<ICard> CommunityCards { get; }
+        int MinBuyIn { get; }
+        int MaxBuyIn { get; }
         ShowdownResult? LastShowdown { get; }
 
         // ======================

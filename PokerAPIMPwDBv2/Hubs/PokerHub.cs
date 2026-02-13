@@ -56,7 +56,9 @@ namespace PokerAPIMPwDB.Hubs
                 TableId = tableId,
                 Phase = game.Phase.ToString(),
                 Seats = game.GetSeatsState(),
-                CommunityCards = game.CommunityCards
+                CommunityCards = game.CommunityCards,
+                MinBuyIn = game.MinBuyIn,
+                MaxBuyIn = game.MaxBuyIn
             });
         }
 

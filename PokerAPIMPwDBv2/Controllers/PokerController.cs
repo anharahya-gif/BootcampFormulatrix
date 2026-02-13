@@ -21,7 +21,7 @@ namespace PokerAPIMPwDB.API.Controllers
         // Join Table (load table state)
         // ===========================
         [HttpPost("join")]
-        public async Task<ActionResult<ServiceResult>> JoinTable([FromQuery] Guid tableId)
+        public async Task<ActionResult<ServiceResult<TableStateDto>>> JoinTable([FromQuery] Guid tableId)
         {
             var result = await _gameManager.PlayerJoinTableAsync(tableId);
             if (!result.IsSuccess) return BadRequest(result);
@@ -88,7 +88,9 @@ namespace PokerAPIMPwDB.API.Controllers
                 TableId = tableId,
                 Phase = game.Phase.ToString(),
                 Seats = game.GetSeatsState(),
-                CommunityCards = game.CommunityCards
+                CommunityCards = game.CommunityCards,
+                MinBuyIn = game.MinBuyIn,
+                MaxBuyIn = game.MaxBuyIn
             });
         }
 

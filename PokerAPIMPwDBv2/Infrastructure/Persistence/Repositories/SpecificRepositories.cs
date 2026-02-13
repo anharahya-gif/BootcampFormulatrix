@@ -22,6 +22,7 @@ namespace PokerAPIMPwDB.Infrastructure.Persistence.Repositories
         public async Task<IEnumerable<Table>> GetActiveTablesAsync()
         {
             return await _context.Tables
+                .Include(t => t.PlayerSeats)
                 .Where(t => !t.isDeleted)
                 .ToListAsync();
         }

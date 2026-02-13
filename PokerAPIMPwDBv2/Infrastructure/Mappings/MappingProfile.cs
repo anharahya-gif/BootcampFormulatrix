@@ -11,8 +11,13 @@ namespace PokerAPIMPwDB.Infrastructure.Mappings
         public MappingProfile()
         {
             // Table Mappings
-            CreateMap<Table, TableInfoDto>();
-            CreateMap<Table, TableStateDto>();
+            CreateMap<Table, TableInfoDto>()
+                .ForMember(dest => dest.TableId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.State, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.PlayerCount, opt => opt.MapFrom(src => src.PlayerSeats.Count(ps => ps.PlayerId != null)));
+
+            CreateMap<Table, TableStateDto>()
+                .ForMember(dest => dest.TableId, opt => opt.MapFrom(src => src.Id));
 
             // Player Mappings
             CreateMap<Player, PlayerPublicStateDto>()
