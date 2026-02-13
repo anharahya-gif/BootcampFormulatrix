@@ -45,7 +45,7 @@ public class PlayerServiceTable : IPlayerServiceTable
         var player = new Player
         {
             UserId = user.Id,
-            DisplayName = user.Username,
+            DisplayName = user.UserName!,
             ChipStack = buyInAmount,
             State = PlayerState.Active
         };

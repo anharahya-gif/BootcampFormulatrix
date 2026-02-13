@@ -44,10 +44,9 @@ public class UserService : IUserService
     // ==============================
     public async Task<ServiceResult<User>> CreateUserAsync(User user)
     {
-        if (string.IsNullOrWhiteSpace(user.Username))
+        if (string.IsNullOrWhiteSpace(user.UserName))
             return ServiceResult<User>.Fail("Username is required");
 
-        user.Id = Guid.NewGuid();
         user.CreatedAt = DateTime.UtcNow;
         user.isDeleted = false;
 
@@ -69,7 +68,7 @@ public class UserService : IUserService
 
         // Update hanya field yang dikirim
         if (!string.IsNullOrWhiteSpace(request.Username))
-            user.Username = request.Username;
+            user.UserName = request.Username;
 
         if (request.Balance.HasValue)
             user.Balance = request.Balance.Value;

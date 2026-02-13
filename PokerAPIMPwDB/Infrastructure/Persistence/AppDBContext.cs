@@ -1,13 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PokerAPIMPwDB.Infrastructure.Persistence.Entities;
 
 namespace PokerAPIMPwDB.Infrastructure.Persistence
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<User> Users { get; set; } = null!;
         public DbSet<Table> Tables { get; set; } = null!;
         public DbSet<Player> Players { get; set; } = null!;
         public DbSet<PlayerSeat> PlayerSeats { get; set; } = null!;

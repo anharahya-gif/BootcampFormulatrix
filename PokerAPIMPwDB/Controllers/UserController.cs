@@ -31,7 +31,7 @@ namespace PokerAPIMPwDB.API.Controllers
             var dtos = result.Value.Select(u => new UserInfoDto
             {
                 Id = u.Id,
-                Username = u.Username,
+                Username = u.UserName!,
                 Balance = u.Balance,
                 CreatedAt = u.CreatedAt
             });
@@ -55,7 +55,7 @@ namespace PokerAPIMPwDB.API.Controllers
             var dto = new UserInfoDto
             {
                 Id = user.Id,
-                Username = user.Username,
+                Username = user.UserName!,
                 Balance = user.Balance,
                 CreatedAt = user.CreatedAt
             };
@@ -77,8 +77,7 @@ namespace PokerAPIMPwDB.API.Controllers
 
             var user = new User
             {
-                Username = request.Username,
-                PasswordHash = request.Password, // nanti ganti hash
+                UserName = request.Username,
                 Balance = request.Balance
             };
 
@@ -92,7 +91,7 @@ namespace PokerAPIMPwDB.API.Controllers
             var response = new UserInfoDto
             {
                 Id = createdUser.Id,
-                Username = createdUser.Username,
+                Username = createdUser.UserName!,
                 Balance = createdUser.Balance,
                 CreatedAt = createdUser.CreatedAt
             };

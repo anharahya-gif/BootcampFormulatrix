@@ -6,38 +6,41 @@ using PokerAPIMPwDB.Infrastructure.Persistence.Entities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using BCrypt.Net;
 using PokerAPIMPwDB.DTO.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly UserManager<User> _userManager;
     private readonly IConfiguration _config;
 
-    public AuthController(AppDbContext db, IConfiguration config)
+    public AuthController(UserManager<User> userManager, IConfiguration config)
     {
-        _db = db;
+        _userManager = userManager;
         _config = config;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest req)
     {
-        if (await _db.Users.AnyAsync(u => u.Username == req.Username))
+        var existingUser = await _userManager.FindByNameAsync(req.Username);
+        if (existingUser != null)
             return BadRequest("Username already exists");
 
         var user = new User
         {
-            Username = req.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            UserName = req.Username,
             Balance = req.Balance
         };
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        var result = await _userManager.CreateAsync(user, req.Password);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
 
         return Ok();
     }
@@ -45,11 +48,9 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest req)
     {
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.Username == req.Username);
+        var user = await _userManager.FindByNameAsync(req.Username);
 
-        if (user == null ||
-            !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
+        if (user == null || !await _userManager.CheckPasswordAsync(user, req.Password))
             return Unauthorized("Invalid credentials");
 
         var token = GenerateJwt(user);
@@ -61,10 +62,10 @@ public class AuthController : ControllerBase
         var key = _config["Jwt:Key"]
                   ?? "DEV-ONLY-SECRET-KEY-MIN-32-CHARS";
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username)
+            new Claim(ClaimTypes.Name, user.UserName!)
         };
 
         var creds = new SigningCredentials(
@@ -78,13 +79,11 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
     [Authorize]
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        // Tidak perlu hapus token di server karena JWT stateless
-        // Frontend cukup buang token dari localStorage/cookie
         return Ok(new { message = "Logged out successfully" });
     }
-
 }

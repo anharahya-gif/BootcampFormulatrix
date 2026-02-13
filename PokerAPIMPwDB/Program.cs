@@ -7,18 +7,28 @@ using PokerAPIMPwDB.API.Controllers;
 using PokerAPIMPwDB.Infrastructure.Services;
 using PokerAPIMPwDB.Hubs;
 using PokerAPIMPwDB.Services;
+using Microsoft.AspNetCore.Identity;
+using PokerAPIMPwDB.Infrastructure.Persistence.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// ======================
-// Services
-// ======================
 
 // EF Core SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite("Data Source=poker.db");
 });
+
+// Identity
+builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequiredLength = 4;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
 
 // Controllers
 builder.Services.AddControllers();
@@ -64,18 +74,23 @@ builder.Services.AddSwaggerGen(c =>
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
 
 builder.Services.AddAuthorization();
 
