@@ -16,9 +16,11 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// Controllers
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+
+#region Controllers
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+#endregion
 
 #region DB CONTEXT
 builder.Services.AddDbContext<AppDbContext>(options =>
