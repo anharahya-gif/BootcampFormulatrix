@@ -10,7 +10,7 @@ import MyBookings from './pages/MyBookings';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRooms from './pages/AdminRooms';
 import AdminBookings from './pages/AdminBookings';
-import AdminUsers from './pages/AdminUsers';
+import AdminUsers from './pages/AdminUsers.tsx';
 import AdminRecycleBin from './pages/AdminRecycleBin';
 import Profile from './pages/Profile';
 
