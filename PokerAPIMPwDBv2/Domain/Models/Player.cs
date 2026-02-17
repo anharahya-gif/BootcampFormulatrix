@@ -7,7 +7,7 @@ namespace PokerAPIMPwDB.Domain.Models
     public class Player : IPlayer
     {
         public Guid PlayerId { get; set; }
-        public string? DisplayName { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
         public int ChipStack { get; set; }
         public int CurrentBet { get; set; }
         public PlayerState State { get; set; } = PlayerState.Active;

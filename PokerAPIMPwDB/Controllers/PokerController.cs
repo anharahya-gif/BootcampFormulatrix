@@ -88,8 +88,77 @@ namespace PokerAPIMPwDB.API.Controllers
                 TableId = tableId,
                 Phase = game.Phase.ToString(),
                 Seats = game.GetSeatsState(),
-                CommunityCards = game.CommunityCards
+                Players = game.GetPlayersPublicState(),
+                CurrentPlayer = game.Phase != GamePhase.WaitingForPlayer ? game.GetCurrentPlayer()?.DisplayName : null,
+                CommunityCards = game.CommunityCards,
+                MinBuyIn = game.MinBuyIn,
+                MaxBuyIn = game.MaxBuyIn
             });
+        }
+
+        // ===========================
+        // Betting Actions
+        // ===========================
+        [HttpPost("check")]
+        public ActionResult<ServiceResult> Check([FromQuery] Guid tableId)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleCheck(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("call")]
+        public ActionResult<ServiceResult<int>> Call([FromQuery] Guid tableId)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleCall(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("bet")]
+        public ActionResult<ServiceResult<int>> Bet([FromQuery] Guid tableId, [FromQuery] int amount)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleBet(tableId, userId, amount);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("raise")]
+        public ActionResult<ServiceResult<int>> Raise([FromQuery] Guid tableId, [FromQuery] int raiseAmount)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleRaise(tableId, userId, raiseAmount);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("fold")]
+        public ActionResult<ServiceResult> Fold([FromQuery] Guid tableId)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleFold(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("allin")]
+        public ActionResult<ServiceResult> AllIn([FromQuery] Guid tableId)
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            var result = _gameManager.HandleAllIn(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("start")]
+        public ActionResult<ServiceResult> StartRound([FromQuery] Guid tableId)
+        {
+            var result = _gameManager.StartRound(tableId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
         }
     }
 }

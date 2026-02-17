@@ -14,6 +14,7 @@ const TablePage = () => {
     const [gameState, setGameState] = useState(null);
     const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState([]);
+    const [lastWinners, setLastWinners] = useState([]);
 
     const prevPhase = useRef(null);
 
@@ -51,7 +52,8 @@ const TablePage = () => {
     const fetchBalance = async () => {
         try {
             const response = await apiService.getProfile();
-            setUserBalance(response.data.balance);
+            const data = response.data;
+            setUserBalance(data.Balance ?? data.balance ?? 0);
         } catch (err) {
             console.error("Failed to fetch balance:", err);
         }
@@ -84,7 +86,10 @@ const TablePage = () => {
                 // 2. Start SignalR
                 await signalrService.startConnection();
 
-                // 3. Subscribe to events
+                // 3. Join Table Group (SignalR)
+                await signalrService.invoke('JoinTable', tableId);
+
+                // 4. Subscribe to events
                 signalrService.on('ReceiveGameState', (state) => {
                     console.log("Game State Received:", state);
 
@@ -109,6 +114,23 @@ const TablePage = () => {
                     setLoading(false);
                 });
 
+                signalrService.on('SeatsUpdated', (seats) => {
+                    console.log("Seats Updated:", seats);
+                    setGameState(prev => ({ ...prev, Seats: seats, seats: seats }));
+                });
+
+                signalrService.on('RoundStarted', (data) => {
+                    console.log("Round Started:", data);
+                    setGameState(prev => ({ ...prev, ...data }));
+                    playCardSound();
+                });
+
+                signalrService.on('PhaseAdvanced', (data) => {
+                    console.log("Phase Advanced:", data);
+                    setGameState(prev => ({ ...prev, ...data }));
+                    playCardSound();
+                });
+
                 signalrService.on('CommunityCardsUpdated', (d) => {
                     playCardSound();
                 });
@@ -118,9 +140,10 @@ const TablePage = () => {
                     prevCommunityCount.current = 0;
 
                     const data = details?.Data || details?.data || details;
+                    const winnersArr = data.winners || data.Winners || [];
+                    setLastWinners(winnersArr);
 
                     setTimeout(() => {
-                        const winnerNames = data.winners || data.Winners || [];
                         const rawPlayers = data.players || data.Players || [];
                         const totalPot = data.pot || data.Pot || 0;
 
@@ -128,7 +151,7 @@ const TablePage = () => {
                             state: {
                                 winners: rawPlayers.filter(p => {
                                     const pName = p.name || p.Name;
-                                    return winnerNames.includes(pName);
+                                    return winnersArr.includes(pName);
                                 }) || [],
                                 allPlayers: rawPlayers,
                                 communityCards: data.communityCards || data.CommunityCards || [],
@@ -137,7 +160,7 @@ const TablePage = () => {
                                 message: data.message || data.Message || ""
                             }
                         });
-                    }, 3000);
+                    }, 4000);
                 });
 
                 signalrService.on('ReceiveMessage', (msg) => {
@@ -160,6 +183,9 @@ const TablePage = () => {
 
         return () => {
             signalrService.off('ReceiveGameState');
+            signalrService.off('SeatsUpdated');
+            signalrService.off('RoundStarted');
+            signalrService.off('PhaseAdvanced');
             signalrService.off('ReceiveMessage');
             signalrService.off('ShowdownCompleted');
             signalrService.off('CommunityCardsUpdated');
@@ -209,6 +235,10 @@ const TablePage = () => {
         try {
             await apiService.standUp(tableId);
             setShowStandUpModal(false);
+            showAlert("Stood up from table.", "success");
+
+            // Refresh balance after standing up
+            await fetchBalance();
         } catch (err) {
             console.error("Stand up failed:", err);
             setShowStandUpModal(false);
@@ -219,7 +249,7 @@ const TablePage = () => {
     };
 
     const executeLeaveTable = async () => {
-        if (currentPlayer) {
+        if (isSeated) {
             showAlert("You must stand up before leaving the table.");
             return;
         }
@@ -236,8 +266,10 @@ const TablePage = () => {
         }
     };
 
-    const handleJoinSeat = (seatIndex) => {
+    const handleJoinSeat = async (seatIndex) => {
         setSelectedSeatIndex(seatIndex);
+        // Refresh balance before showing modal
+        await fetchBalance();
         setShowBuyInModal(true);
     };
 
@@ -249,6 +281,9 @@ const TablePage = () => {
 
             setShowBuyInModal(false);
             showAlert("Joined seat and bought in!", "success");
+
+            // Refresh balance after buy-in
+            await fetchBalance();
         } catch (err) {
             console.error("Sit/Buy-in failed:", err);
             showAlert("Buy-in failed: " + (err.response?.data?.message || err.message));
@@ -259,7 +294,7 @@ const TablePage = () => {
 
     const handleStartGame = async () => {
         try {
-            await apiService.startRound();
+            await apiService.startRound(tableId);
         } catch (err) {
             showAlert("Start failed: " + (err.response?.data?.message || err.message));
         }
@@ -268,21 +303,20 @@ const TablePage = () => {
     if (loading) return <div className="min-h-screen bg-poker-dark flex items-center justify-center"><Loader text="Connecting to Table..." /></div>;
 
     const seatPositions = [
-        "top-[12%] left-[34%] -translate-x-0",
-        "top-[12%] right-[34%] translate-x-0",
-        "right-[6%] top-[32%] -translate-y-0",
-        "right-[6%] bottom-[36%] translate-y-0",
-        "bottom-[20%] right-[34%] translate-x-0",
-        "bottom-[20%] left-[34%] -translate-x-0",
-        "left-[6%] bottom-[36%] translate-y-0",
-        "left-[6%] top-[32%] -translate-y-0",
+        "top-[5%] left-[34%] -translate-x-0",
+        "top-[5%] right-[34%] translate-x-0",
+        "right-[2%] top-[32%] -translate-y-0",
+        "right-[2%] bottom-[36%] translate-y-0",
+        "bottom-[18%] right-[34%] translate-x-0",
+        "bottom-[18%] left-[34%] -translate-x-0",
+        "left-[2%] bottom-[36%] translate-y-0",
+        "left-[2%] top-[32%] -translate-y-0",
     ];
 
     const seatCardPositions = ["bottom", "bottom", "left", "left", "top", "top", "right", "right"];
     const seatRotations = [0, 0, 90, 90, 180, 180, -90, -90];
 
     const players = gameState?.Players || gameState?.players || [];
-    const currentPlayer = players.find(p => (p.Name || p.name || p.DisplayName || p.displayName) === playerName);
     const getPlayerAtSeat = (idx) => {
         // 1. Look in Seats list first to check occupancy
         const seatInfo = gameState?.Seats?.find(s => (s.seatIndex ?? s.SeatIndex) === idx) ||
@@ -303,13 +337,26 @@ const TablePage = () => {
         };
     };
 
-    const apiCurrentPlayer = gameState?.CurrentPlayer || gameState?.currentPlayer;
-    const isMyTurn = apiCurrentPlayer === playerName;
-    const currentTableState = gameState?.GameState || gameState?.gameState || gameState?.Phase || gameState?.phase;
-    const showControls = isMyTurn && (currentTableState === 'InProgress' || currentTableState !== 'WaitingForPlayers');
+    // Robust player detection (case-insensitive)
+    const normalizedPlayerName = String(playerName || '').trim().toLowerCase();
+    const seatedPlayer = players.find(p => String(p.Name || p.name || '').trim().toLowerCase() === normalizedPlayerName) ||
+        Array.from({ length: 12 }).map((_, i) => getPlayerAtSeat(i)).find(p => p && String(p.name || p.Name || '').trim().toLowerCase() === normalizedPlayerName);
 
-    const playersInSeats = players.filter(p => (p.seatIndex ?? p.SeatIndex) >= 0);
-    const canStart = playersInSeats.length >= 2 && currentTableState === 'WaitingForPlayers';
+    const isSeated = !!seatedPlayer;
+
+    const apiCurrentPlayer = gameState?.CurrentPlayer || gameState?.currentPlayer;
+    const isMyTurn = String(apiCurrentPlayer || '').trim().toLowerCase() === normalizedPlayerName;
+    const currentTableState = gameState?.GameState || gameState?.gameState || gameState?.Phase || gameState?.phase;
+    // Robust phase check (handles "WaitingForPlayer" string or index 0)
+    const isWaiting = currentTableState === 'WaitingForPlayer' || currentTableState === 0;
+
+    const showControls = isMyTurn && (currentTableState === 'InProgress' || !isWaiting);
+
+    // Count players from either Players list or Seats list (whichever is more populated)
+    const playersInSeats = players.length > 0 ? players.filter(p => (p.seatIndex ?? p.SeatIndex) >= 0) :
+        (gameState?.Seats || gameState?.seats || []).filter(s => s.IsOccupied || s.isOccupied);
+
+    const canStart = playersInSeats.length >= 2 && isWaiting;
 
     return (
         <div className="min-h-screen bg-poker-dark overflow-hidden relative">
@@ -376,18 +423,21 @@ const TablePage = () => {
             {/* Seats */}
             {Array.from({ length: gameState?.Seats?.length || gameState?.seats?.length || 6 }).map((_, i) => {
                 const playerAtSeat = getPlayerAtSeat(i);
-                const isSeated = !!currentPlayer;
+                // isSeated is already calculated above
                 return (
                     <Seat
                         key={i}
                         seatIndex={i}
                         player={playerAtSeat}
-                        isCurrentUser={(playerAtSeat?.name || playerAtSeat?.Name) === playerName}
-                        isActiveTurn={(playerAtSeat?.name || playerAtSeat?.Name) === apiCurrentPlayer}
+                        isCurrentUser={playerAtSeat && String(playerAtSeat.name || playerAtSeat.Name || '').trim().toLowerCase() === normalizedPlayerName}
+                        isActiveTurn={playerAtSeat && String(playerAtSeat.name || playerAtSeat.Name || '').trim().toLowerCase() === String(apiCurrentPlayer || '').trim().toLowerCase()}
+                        isLastWinner={playerAtSeat && lastWinners.some(w => String(w || '').trim().toLowerCase() === String(playerAtSeat.name || playerAtSeat.Name || '').trim().toLowerCase())}
                         positionClasses={seatPositions[i]}
                         cardPlacement={seatCardPositions[i]}
                         rotation={seatRotations[i]}
+                        gameStatus={currentTableState}
                         onJoinSeat={!isSeated ? handleJoinSeat : undefined}
+                        onStandUp={isSeated ? () => setShowStandUpModal(true) : undefined}
                     />
                 );
             })}
@@ -405,7 +455,7 @@ const TablePage = () => {
             {canStart && (
                 <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
                     <button onClick={handleStartGame} className="bg-poker-gold text-black font-black px-10 py-4 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all animate-pulse-slow">
-                        START HAND
+                        START ROUND
                     </button>
                 </div>
             )}
@@ -415,17 +465,8 @@ const TablePage = () => {
                 <GameControls
                     onAction={handleAction}
                     currentBet={gameState?.CurrentBet || gameState?.currentBet || 0}
-                    playerChips={currentPlayer?.ChipStack || currentPlayer?.chipStack || 0}
+                    playerChips={seatedPlayer?.ChipStack || seatedPlayer?.chipStack || seatedPlayer?.chips || 0}
                 />
-            )}
-
-            {/* Stand Up Button */}
-            {currentPlayer && (
-                <div className="absolute bottom-6 left-6 z-50">
-                    <button onClick={() => setShowStandUpModal(true)} className="px-6 py-2 bg-poker-gold/20 hover:bg-poker-gold text-poker-gold hover:text-black border border-poker-gold/30 rounded-xl transition-all font-bold text-xs uppercase tracking-widest">
-                        Stand Up
-                    </button>
-                </div>
             )}
 
             <CustomAlert

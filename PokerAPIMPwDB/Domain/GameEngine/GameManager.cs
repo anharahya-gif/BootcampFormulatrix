@@ -80,13 +80,17 @@ namespace PokerAPIMPwDB.Services
         public async Task<ServiceResult> SitPlayerAsync(Guid tableId, Guid userId, string displayName, int seatIndex, int chips)
         {
             var game = await GetOrCreateGameAsync(tableId);
-            return await game.SitDownAsync(userId, displayName, seatIndex, chips);
+            var result = await game.SitDownAsync(userId, displayName, seatIndex, chips);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
         public async Task<ServiceResult> StandPlayerAsync(Guid tableId, Guid userId)
         {
             var game = await GetOrCreateGameAsync(tableId);
-            return await game.StandUpAsync(userId);
+            var result = await game.StandUpAsync(userId);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
         public async Task<ServiceResult> PlayerLeaveTableAsync(Guid tableId, Guid userId)
@@ -98,50 +102,90 @@ namespace PokerAPIMPwDB.Services
         // ===========================
         // Player Actions (Turn / Betting)
         // ===========================
-        public ServiceResult HandleFold(Guid tableId, Guid playerId)
+        public async Task<ServiceResult> HandleFold(Guid tableId, Guid playerId)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleFold(player) : ServiceResult.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult.Fail("Player not found");
+            var result = game.HandleFold(player);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
-        public ServiceResult HandleCheck(Guid tableId, Guid playerId)
+        public async Task<ServiceResult> HandleCheck(Guid tableId, Guid playerId)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleCheck(player) : ServiceResult.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult.Fail("Player not found");
+            var result = game.HandleCheck(player);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
-        public ServiceResult<int> HandleBet(Guid tableId, Guid playerId, int amount)
+        public async Task<ServiceResult<int>> HandleBet(Guid tableId, Guid playerId, int amount)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleBet(player, amount) : ServiceResult<int>.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            var result = game.HandleBet(player, amount);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
-        public ServiceResult<int> HandleCall(Guid tableId, Guid playerId)
+        public async Task<ServiceResult<int>> HandleCall(Guid tableId, Guid playerId)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleCall(player) : ServiceResult<int>.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            var result = game.HandleCall(player);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
-        public ServiceResult<int> HandleRaise(Guid tableId, Guid playerId, int raiseAmount)
+        public async Task<ServiceResult<int>> HandleRaise(Guid tableId, Guid playerId, int raiseAmount)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleRaise(player, raiseAmount) : ServiceResult<int>.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            var result = game.HandleRaise(player, raiseAmount);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
-        public ServiceResult HandleAllIn(Guid tableId, Guid playerId)
+        public async Task<ServiceResult> HandleAllIn(Guid tableId, Guid playerId)
         {
-            var player = GetPlayerInTable(tableId, playerId);
-            return player != null ? _games[tableId].HandleAllIn(player.DisplayName) : ServiceResult.Fail("Player not found");
+            var game = await GetOrCreateGameAsync(tableId);
+            var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
+            if (player == null) return ServiceResult.Fail("Player not found");
+            var result = game.HandleAllIn(player.DisplayName);
+            if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+            return result;
         }
 
         // ===========================
         // Round Management
         // ===========================
-        public ServiceResult StartRound(Guid tableId) =>
-            _games.TryGetValue(tableId, out var game) ? game.StartRound() : ServiceResult.Fail("Table not found");
+        public async Task<ServiceResult> StartRound(Guid tableId)
+        {
+            if (_games.TryGetValue(tableId, out var game))
+            {
+                var result = game.StartRound();
+                if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+                return result;
+            }
+            return ServiceResult.Fail("Table not found");
+        }
 
-        public ServiceResult NextPhase(Guid tableId) =>
-            _games.TryGetValue(tableId, out var game) ? game.NextPhase() : ServiceResult.Fail("Table not found");
+        public async Task<ServiceResult> NextPhase(Guid tableId)
+        {
+            if (_games.TryGetValue(tableId, out var game))
+            {
+                var result = game.NextPhase();
+                if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+                return result;
+            }
+            return ServiceResult.Fail("Table not found");
+        }
 
         public string GetGameState(Guid tableId) =>
             _games.TryGetValue(tableId, out var game) ? game.GetGameState() : "Unknown";
@@ -178,5 +222,19 @@ namespace PokerAPIMPwDB.Services
             return false;
         }
 
+        private async Task BroadcastStateAsync(Guid tableId, IPokerGameEngine game)
+        {
+            await _hub.Clients.Group(tableId.ToString()).SendAsync("ReceiveGameState", new
+            {
+                TableId = tableId,
+                Phase = game.Phase.ToString(),
+                Seats = game.GetSeatsState(),
+                Players = game.GetPlayersPublicState(),
+                CurrentPlayer = game.Phase != GamePhase.WaitingForPlayer ? game.GetCurrentPlayer()?.DisplayName : null,
+                CommunityCards = game.CommunityCards,
+                MinBuyIn = game.MinBuyIn,
+                MaxBuyIn = game.MaxBuyIn
+            });
+        }
     }
 }

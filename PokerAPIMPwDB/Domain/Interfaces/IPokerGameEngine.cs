@@ -32,6 +32,9 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         List<ICard> CommunityCards { get; }
         ShowdownResult? LastShowdown { get; }
 
+        int MinBuyIn { get; }
+        int MaxBuyIn { get; }
+
         // ======================
         // Table Join / Leave / Seat
         // ======================
@@ -51,7 +54,7 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         // ======================
         // Player Turn Management
         // ======================
-        IPlayer GetCurrentPlayer();
+        IPlayer? GetCurrentPlayer();
         IPlayer GetNextActivePlayer();
         bool IsBettingRoundOver();
 

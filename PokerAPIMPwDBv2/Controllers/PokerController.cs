@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using PokerAPIMPwDB.Services;
+using PokerAPIMPwDB.DTO.Table;
 using PokerAPIMPwDB.Common.Results;
+using PokerAPIMPwDB.Domain.Enums;
 using System;
 using System.Threading.Tasks;
 
@@ -88,6 +90,7 @@ namespace PokerAPIMPwDB.API.Controllers
                 TableId = tableId,
                 Phase = game.Phase.ToString(),
                 Seats = game.GetSeatsState(),
+                CurrentPlayer = game.Phase != GamePhase.WaitingForPlayer ? game.GetCurrentPlayer()?.DisplayName : null,
                 CommunityCards = game.CommunityCards,
                 MinBuyIn = game.MinBuyIn,
                 MaxBuyIn = game.MaxBuyIn
@@ -101,6 +104,7 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult>> Check([FromQuery] Guid tableId)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] Check: TableId={tableId}, UserId={userId}");
             var result = await _gameManager.HandleCheck(tableId, userId);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
@@ -110,6 +114,7 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult<int>>> Call([FromQuery] Guid tableId)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] Call: TableId={tableId}, UserId={userId}");
             var result = await _gameManager.HandleCall(tableId, userId);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
@@ -119,6 +124,7 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult<int>>> Bet([FromQuery] Guid tableId, [FromQuery] int amount)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] Bet: TableId={tableId}, UserId={userId}, Amount={amount}");
             var result = await _gameManager.HandleBet(tableId, userId, amount);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
@@ -128,6 +134,7 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult<int>>> Raise([FromQuery] Guid tableId, [FromQuery] int raiseAmount)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] Raise: TableId={tableId}, UserId={userId}, RaiseAmount={raiseAmount}");
             var result = await _gameManager.HandleRaise(tableId, userId, raiseAmount);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
@@ -137,7 +144,16 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult>> Fold([FromQuery] Guid tableId)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] Fold: TableId={tableId}, UserId={userId}");
             var result = await _gameManager.HandleFold(tableId, userId);
+            if (!result.IsSuccess) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("start")]
+        public async Task<ActionResult<ServiceResult>> StartRound([FromQuery] Guid tableId)
+        {
+            var result = await _gameManager.StartRound(tableId);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
         }
@@ -146,6 +162,7 @@ namespace PokerAPIMPwDB.API.Controllers
         public async Task<ActionResult<ServiceResult>> AllIn([FromQuery] Guid tableId)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("Unauthorized"));
+            Console.WriteLine($"[CONTROLLER_LOG] AllIn: TableId={tableId}, UserId={userId}");
             var result = await _gameManager.HandleAllIn(tableId, userId);
             if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);

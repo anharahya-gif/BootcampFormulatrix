@@ -1,0 +1,198 @@
+Building...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*) FROM "sqlite_master" WHERE "name" = '__EFMigrationsHistory' AND "type" = 'table';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__normalizedName_0='?' (Size = 5)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."ConcurrencyStamp", "a"."Name", "a"."NormalizedName"
+      FROM "AspNetRoles" AS "a"
+      WHERE "a"."NormalizedName" = @__normalizedName_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedName_0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."ConcurrencyStamp", "a"."Name", "a"."NormalizedName"
+      FROM "AspNetRoles" AS "a"
+      WHERE "a"."NormalizedName" = @__normalizedName_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedEmail" = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedEmail" = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedUserName_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedUserName" = @__normalizedUserName_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Int32), @p2='?' (Size = 36), @p3='?' (DbType = DateTime), @p4='?' (Size = 11), @p5='?' (DbType = Boolean), @p6='?' (DbType = Boolean), @p7='?' (DbType = DateTimeOffset), @p8='?' (Size = 11), @p9='?' (Size = 11), @p10='?' (Size = 84), @p11='?', @p12='?' (DbType = Boolean), @p13='?' (Size = 32), @p14='?' (DbType = Boolean), @p15='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AspNetUsers" ("Id", "AccessFailedCount", "ConcurrencyStamp", "CreatedAt", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedRoleName_0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."ConcurrencyStamp", "a"."Name", "a"."NormalizedName"
+      FROM "AspNetRoles" AS "a"
+      WHERE "a"."NormalizedName" = @__normalizedRoleName_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__get_Item_0='?' (DbType = Guid), @__get_Item_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."UserId", "a"."RoleId"
+      FROM "AspNetUserRoles" AS "a"
+      WHERE "a"."UserId" = @__get_Item_0 AND "a"."RoleId" = @__get_Item_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedRoleName_0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."ConcurrencyStamp", "a"."Name", "a"."NormalizedName"
+      FROM "AspNetRoles" AS "a"
+      WHERE "a"."NormalizedName" = @__normalizedRoleName_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedUserName_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedUserName" = @__normalizedUserName_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AspNetUserRoles" ("RoleId", "UserId")
+      VALUES (@p0, @p1);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p15='?' (DbType = Guid), @p0='?' (DbType = Int32), @p1='?' (Size = 36), @p16='?' (Size = 36), @p2='?' (DbType = DateTime), @p3='?' (Size = 11), @p4='?' (DbType = Boolean), @p5='?' (DbType = Boolean), @p6='?' (DbType = DateTimeOffset), @p7='?' (Size = 11), @p8='?' (Size = 11), @p9='?' (Size = 84), @p10='?', @p11='?' (DbType = Boolean), @p12='?' (Size = 32), @p13='?' (DbType = Boolean), @p14='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      UPDATE "AspNetUsers" SET "AccessFailedCount" = @p0, "ConcurrencyStamp" = @p1, "CreatedAt" = @p2, "Email" = @p3, "EmailConfirmed" = @p4, "LockoutEnabled" = @p5, "LockoutEnd" = @p6, "NormalizedEmail" = @p7, "NormalizedUserName" = @p8, "PasswordHash" = @p9, "PhoneNumber" = @p10, "PhoneNumberConfirmed" = @p11, "SecurityStamp" = @p12, "TwoFactorEnabled" = @p13, "UserName" = @p14
+      WHERE "Id" = @p15 AND "ConcurrencyStamp" = @p16
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p9='?' (DbType = Guid), @p0='?', @p1='?' (DbType = DateTime), @p2='?' (DbType = DateTime), @p3='?' (Size = 7), @p4='?' (Size = 5), @p5='?' (DbType = Boolean), @p6='?', @p7='?' (DbType = DateTime), @p8='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      UPDATE "UserProfiles" SET "AvatarUrl" = @p0, "CreatedAt" = @p1, "DeletedAt" = @p2, "Department" = @p3, "FullName" = @p4, "IsDeleted" = @p5, "PhoneNumber" = @p6, "UpdatedAt" = @p7, "UserId" = @p8
+      WHERE "Id" = @p9
+      RETURNING 1;
+fail: Program[0]
+      An error occurred during database seeding.
+      Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException: The database operation was expected to affect 1 row(s), but actually affected 0 row(s); data may have been modified or deleted since entities were loaded. See https://go.microsoft.com/fwlink/?LinkId=527962 for information on understanding and handling optimistic concurrency exceptions.
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ThrowAggregateUpdateConcurrencyExceptionAsync(RelationalDataReader reader, Int32 commandIndex, Int32 expectedRowsAffected, Int32 rowsAffected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeResultSetWithRowsAffectedOnlyAsync(Int32 commandIndex, RelationalDataReader reader, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeAsync(RelationalDataReader reader, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at MeetingRoomBookingAPI.Data.DbSeeder.SeedAsync(AppDbContext context, UserManager`1 userManager, RoleManager`1 roleManager) in E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\MeetingRoomBookingAPI\Data\DbSeeder.cs:line 51
+         at Program.<Main>$(String[] args) in E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\MeetingRoomBookingAPI\Program.cs:line 39
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5076
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\MeetingRoomBookingAPI
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedEmail" = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "a0"."Name"
+      FROM "AspNetUserRoles" AS "a"
+      INNER JOIN "AspNetRoles" AS "a0" ON "a"."RoleId" = "a0"."Id"
+      WHERE "a"."UserId" = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."Capacity", "r"."CreatedAt", "r"."DeletedAt", "r"."HasProjector", "r"."IsDeleted", "r"."Location", "r"."Name", "r"."UpdatedAt"
+      FROM "Rooms" AS "r"
+      WHERE NOT ("r"."IsDeleted")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?' (Size = 11)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+      FROM "AspNetUsers" AS "a"
+      WHERE "a"."NormalizedEmail" = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "a0"."Name"
+      FROM "AspNetUserRoles" AS "a"
+      INNER JOIN "AspNetRoles" AS "a0" ON "a"."RoleId" = "a0"."Id"
+      WHERE "a"."UserId" = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."Capacity", "r"."CreatedAt", "r"."DeletedAt", "r"."HasProjector", "r"."IsDeleted", "r"."Location", "r"."Name", "r"."UpdatedAt"
+      FROM "Rooms" AS "r"
+      WHERE NOT ("r"."IsDeleted")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = DateTime), @p4='?' (DbType = Boolean), @p5='?' (DbType = Boolean), @p6='?' (Size = 7), @p7='?' (Size = 34), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Rooms" ("Id", "Capacity", "CreatedAt", "DeletedAt", "HasProjector", "IsDeleted", "Location", "Name", "UpdatedAt")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."Capacity", "r"."CreatedAt", "r"."DeletedAt", "r"."HasProjector", "r"."IsDeleted", "r"."Location", "r"."Name", "r"."UpdatedAt"
+      FROM "Rooms" AS "r"
+      WHERE NOT ("r"."IsDeleted") AND "r"."Id" = @__get_Item_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__roomId_0='?' (DbType = Guid), @__startTime_1='?' (DbType = DateTime), @__endTime_2='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Bookings" AS "b"
+          WHERE NOT ("b"."IsDeleted") AND "b"."RoomId" = @__roomId_0 AND "b"."Status" <> 3 AND ((@__startTime_1 >= "b"."StartTime" AND @__startTime_1 < "b"."EndTime") OR (@__endTime_2 > "b"."StartTime" AND @__endTime_2 <= "b"."EndTime") OR (@__startTime_1 <= "b"."StartTime" AND @__endTime_2 >= "b"."EndTime")))
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Guid), @p3='?' (DbType = DateTime), @p4='?', @p5='?' (DbType = DateTime), @p6='?' (DbType = Boolean), @p7='?' (DbType = Guid), @p8='?' (DbType = DateTime), @p9='?' (DbType = Int32), @p10='?' (Size = 12), @p11='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Bookings" ("Id", "CreatedAt", "CreatedByUserId", "DeletedAt", "Description", "EndTime", "IsDeleted", "RoomId", "StartTime", "Status", "Title", "UpdatedAt")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "t0"."Id", "t0"."CreatedAt", "t0"."CreatedByUserId", "t0"."DeletedAt", "t0"."Description", "t0"."EndTime", "t0"."IsDeleted", "t0"."RoomId", "t0"."StartTime", "t0"."Status", "t0"."Title", "t0"."UpdatedAt", "t0"."Id0", "t0"."Capacity", "t0"."CreatedAt0", "t0"."DeletedAt0", "t0"."HasProjector", "t0"."IsDeleted0", "t0"."Location", "t0"."Name", "t0"."UpdatedAt0", "t0"."Id1", "t0"."AccessFailedCount", "t0"."ConcurrencyStamp", "t0"."CreatedAt1", "t0"."Email", "t0"."EmailConfirmed", "t0"."LockoutEnabled", "t0"."LockoutEnd", "t0"."NormalizedEmail", "t0"."NormalizedUserName", "t0"."PasswordHash", "t0"."PhoneNumber", "t0"."PhoneNumberConfirmed", "t0"."SecurityStamp", "t0"."TwoFactorEnabled", "t0"."UserName", "t1"."Id", "t1"."BookingId", "t1"."CreatedAt", "t1"."DeletedAt", "t1"."IsDeleted", "t1"."IsOptional", "t1"."UpdatedAt", "t1"."UserId", "t1"."Id0", "t1"."AccessFailedCount", "t1"."ConcurrencyStamp", "t1"."CreatedAt0", "t1"."Email", "t1"."EmailConfirmed", "t1"."LockoutEnabled", "t1"."LockoutEnd", "t1"."NormalizedEmail", "t1"."NormalizedUserName", "t1"."PasswordHash", "t1"."PhoneNumber", "t1"."PhoneNumberConfirmed", "t1"."SecurityStamp", "t1"."TwoFactorEnabled", "t1"."UserName", "t1"."Id1", "t1"."AvatarUrl", "t1"."CreatedAt1", "t1"."DeletedAt0", "t1"."Department", "t1"."FullName", "t1"."IsDeleted0", "t1"."PhoneNumber0", "t1"."UpdatedAt0", "t1"."UserId0"
+      FROM (
+          SELECT "b"."Id", "b"."CreatedAt", "b"."CreatedByUserId", "b"."DeletedAt", "b"."Description", "b"."EndTime", "b"."IsDeleted", "b"."RoomId", "b"."StartTime", "b"."Status", "b"."Title", "b"."UpdatedAt", "t"."Id" AS "Id0", "t"."Capacity", "t"."CreatedAt" AS "CreatedAt0", "t"."DeletedAt" AS "DeletedAt0", "t"."HasProjector", "t"."IsDeleted" AS "IsDeleted0", "t"."Location", "t"."Name", "t"."UpdatedAt" AS "UpdatedAt0", "a"."Id" AS "Id1", "a"."AccessFailedCount", "a"."ConcurrencyStamp", "a"."CreatedAt" AS "CreatedAt1", "a"."Email", "a"."EmailConfirmed", "a"."LockoutEnabled", "a"."LockoutEnd", "a"."NormalizedEmail", "a"."NormalizedUserName", "a"."PasswordHash", "a"."PhoneNumber", "a"."PhoneNumberConfirmed", "a"."SecurityStamp", "a"."TwoFactorEnabled", "a"."UserName"
+          FROM "Bookings" AS "b"
+          INNER JOIN (
+              SELECT "r"."Id", "r"."Capacity", "r"."CreatedAt", "r"."DeletedAt", "r"."HasProjector", "r"."IsDeleted", "r"."Location", "r"."Name", "r"."UpdatedAt"
+              FROM "Rooms" AS "r"
+              WHERE NOT ("r"."IsDeleted")
+          ) AS "t" ON "b"."RoomId" = "t"."Id"
+          INNER JOIN "AspNetUsers" AS "a" ON "b"."CreatedByUserId" = "a"."Id"
+          WHERE NOT ("b"."IsDeleted") AND "b"."Id" = @__id_0
+          LIMIT 1
+      ) AS "t0"
+      LEFT JOIN (
+          SELECT "b0"."Id", "b0"."BookingId", "b0"."CreatedAt", "b0"."DeletedAt", "b0"."IsDeleted", "b0"."IsOptional", "b0"."UpdatedAt", "b0"."UserId", "a0"."Id" AS "Id0", "a0"."AccessFailedCount", "a0"."ConcurrencyStamp", "a0"."CreatedAt" AS "CreatedAt0", "a0"."Email", "a0"."EmailConfirmed", "a0"."LockoutEnabled", "a0"."LockoutEnd", "a0"."NormalizedEmail", "a0"."NormalizedUserName", "a0"."PasswordHash", "a0"."PhoneNumber", "a0"."PhoneNumberConfirmed", "a0"."SecurityStamp", "a0"."TwoFactorEnabled", "a0"."UserName", "t2"."Id" AS "Id1", "t2"."AvatarUrl", "t2"."CreatedAt" AS "CreatedAt1", "t2"."DeletedAt" AS "DeletedAt0", "t2"."Department", "t2"."FullName", "t2"."IsDeleted" AS "IsDeleted0", "t2"."PhoneNumber" AS "PhoneNumber0", "t2"."UpdatedAt" AS "UpdatedAt0", "t2"."UserId" AS "UserId0"
+          FROM "BookingParticipants" AS "b0"
+          INNER JOIN "AspNetUsers" AS "a0" ON "b0"."UserId" = "a0"."Id"
+          LEFT JOIN (
+              SELECT "u"."Id", "u"."AvatarUrl", "u"."CreatedAt", "u"."DeletedAt", "u"."Department", "u"."FullName", "u"."IsDeleted", "u"."PhoneNumber", "u"."UpdatedAt", "u"."UserId"
+              FROM "UserProfiles" AS "u"
+              WHERE NOT ("u"."IsDeleted")
+          ) AS "t2" ON "a0"."Id" = "t2"."UserId"
+          WHERE NOT ("b0"."IsDeleted")
+      ) AS "t1" ON "t0"."Id" = "t1"."BookingId"
+      ORDER BY "t0"."Id", "t0"."Id0", "t0"."Id1", "t1"."Id", "t1"."Id0"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."CreatedAt", "b"."CreatedByUserId", "b"."DeletedAt", "b"."Description", "b"."EndTime", "b"."IsDeleted", "b"."RoomId", "b"."StartTime", "b"."Status", "b"."Title", "b"."UpdatedAt", "t"."Id", "t"."Capacity", "t"."CreatedAt", "t"."DeletedAt", "t"."HasProjector", "t"."IsDeleted", "t"."Location", "t"."Name", "t"."UpdatedAt"
+      FROM "Bookings" AS "b"
+      INNER JOIN (
+          SELECT "r"."Id", "r"."Capacity", "r"."CreatedAt", "r"."DeletedAt", "r"."HasProjector", "r"."IsDeleted", "r"."Location", "r"."Name", "r"."UpdatedAt"
+          FROM "Rooms" AS "r"
+          WHERE NOT ("r"."IsDeleted")
+      ) AS "t" ON "b"."RoomId" = "t"."Id"
+      WHERE NOT ("b"."IsDeleted") AND "b"."CreatedByUserId" = @__userId_0

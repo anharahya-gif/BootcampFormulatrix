@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = MiniBoardgame
-build_property.ProjectDir = C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MiniBoardgame\
+build_property.ProjectDir = E:\BootcampFormulatrix\BootcampFormulatrix\MiniBoardgame\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

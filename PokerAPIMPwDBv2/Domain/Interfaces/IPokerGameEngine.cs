@@ -6,6 +6,7 @@ using PokerAPIMPwDB.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PokerAPIMPwDB.Domain.Interfaces
 {
@@ -19,7 +20,7 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         int GetTotalPot();
         IReadOnlyList<SeatStateDto> GetSeatsState();
         
-        public IServiceScope? Scope { get; set; }
+        IServiceScope? Scope { get; set; }
         
 
         IPlayer? GetPlayerByName(string name);
@@ -53,7 +54,7 @@ namespace PokerAPIMPwDB.Domain.Interfaces
         // ======================
         // Player Turn Management
         // ======================
-        IPlayer GetCurrentPlayer();
+        IPlayer? GetCurrentPlayer();
         IPlayer GetNextActivePlayer();
         bool IsBettingRoundOver();
 

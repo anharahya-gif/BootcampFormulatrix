@@ -15,6 +15,16 @@ api.interceptors.request.use((config) => {
     return Promise.reject(error);
 });
 
+// Response interceptor to log error details
+api.interceptors.response.use((response) => {
+    return response;
+}, (error) => {
+    if (error.response && error.response.status === 400) {
+        console.error("API 400 Error:", error.response.data);
+    }
+    return Promise.reject(error);
+});
+
 const apiService = {
     // [AUTH DOMAIN]
     register: async (username, password) => {
@@ -91,10 +101,9 @@ const apiService = {
         return api.post(`/poker/allin?tableId=${tableId}`);
     },
 
-    // Legacy/Utility (Cleanup if needed later)
-    startRound: async () => {
-        // Note: New backend might handle this automatically or via a specific action
-        return api.post('/poker/start');
+    // Round Management
+    startRound: async (tableId) => {
+        return api.post(`/poker/start?tableId=${tableId}`);
     }
 };
 

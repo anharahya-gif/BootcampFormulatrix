@@ -40,6 +40,9 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         public ShowdownResult? LastShowdown => _lastShowdown;
         public IServiceScope? Scope { get; set; }
 
+        public int MinBuyIn { get; private set; } = 1000;
+        public int MaxBuyIn { get; private set; } = 10000;
+
         // =========================
         // EVENTS
         // =========================
@@ -119,10 +122,12 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                   .Select(s => s.Player!)
                   .Select(p => new PlayerPublicStateDto
                   {
+                      PlayerId = p.PlayerId,
                       DisplayName = p.DisplayName,
                       ChipStack = p.ChipStack,
                       CurrentBet = p.CurrentBet,
-                      State = p.State
+                      State = p.State,
+                      SeatIndex = p.SeatIndex
                   });
         // =========================
         // PLAYER MANAGEMENT (Async DB-backed)
@@ -141,6 +146,7 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 TableId = tableId,
                 Phase = Phase,
                 CurrentBet = CurrentBet,
+                CurrentPlayer = Phase != GamePhase.WaitingForPlayer ? GetCurrentPlayer()?.DisplayName : null,
                 CommunityCards = CommunityCards
                             .Select(c => new Card(c.Rank, c.Suit)) // fix constructor
                             .ToList(),
@@ -278,7 +284,7 @@ namespace PokerAPIMPwDB.Domain.GameEngine
 
             Phase = GamePhase.PreFlop;
             _currentBet = 0;
-            _currentPlayerIndex = 0;
+            _currentPlayerIndex = _seats.FindIndex(s => s.IsOccupied);
             _communityCards.Clear();
 
             foreach (var seat in ActiveSeats())
@@ -312,7 +318,8 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         // PLAYER TURN MANAGEMENT
         // =========================
-        public IPlayer GetCurrentPlayer() => _seats[_currentPlayerIndex].Player!;
+        public IPlayer? GetCurrentPlayer() => 
+            (_currentPlayerIndex >= 0 && _currentPlayerIndex < _seats.Count) ? _seats[_currentPlayerIndex].Player : null;
 
         public IPlayer GetNextActivePlayer()
         {

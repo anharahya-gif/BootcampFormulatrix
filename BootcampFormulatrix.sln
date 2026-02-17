@@ -46,6 +46,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokerUIClient", "PokerUICli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokerAPI.Tests", "PokerAPI.Tests\PokerAPI.Tests.csproj", "{907D7623-89F7-4F4B-BC60-7AA2B44BE192}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MeetingRoomBookingAPI", "MeetingRoomBookingAPI", "{07AA3290-465A-41E5-BA5A-823E2A95DA59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBookingAPI.Domain", "MeetingRoomBookingAPI\MeetingRoomBookingAPI.Domain\MeetingRoomBookingAPI.Domain.csproj", "{35AE7ECE-F846-4244-B2D3-F6EC5DC14281}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBookingAPI.Application", "MeetingRoomBookingAPI\MeetingRoomBookingAPI.Application\MeetingRoomBookingAPI.Application.csproj", "{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBookingAPI.Infrastructure", "MeetingRoomBookingAPI\MeetingRoomBookingAPI.Infrastructure\MeetingRoomBookingAPI.Infrastructure.csproj", "{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBookingAPI.API", "MeetingRoomBookingAPI\MeetingRoomBookingAPI.API\MeetingRoomBookingAPI.API.csproj", "{A21748EE-6A61-43C9-B51B-2C830AEFD160}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -140,11 +150,33 @@ Global
 		{907D7623-89F7-4F4B-BC60-7AA2B44BE192}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{907D7623-89F7-4F4B-BC60-7AA2B44BE192}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{907D7623-89F7-4F4B-BC60-7AA2B44BE192}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35AE7ECE-F846-4244-B2D3-F6EC5DC14281}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35AE7ECE-F846-4244-B2D3-F6EC5DC14281}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35AE7ECE-F846-4244-B2D3-F6EC5DC14281}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35AE7ECE-F846-4244-B2D3-F6EC5DC14281}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A21748EE-6A61-43C9-B51B-2C830AEFD160}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A21748EE-6A61-43C9-B51B-2C830AEFD160}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A21748EE-6A61-43C9-B51B-2C830AEFD160}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A21748EE-6A61-43C9-B51B-2C830AEFD160}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {86067A8A-1740-41FA-B36C-5A1A447770F5}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{35AE7ECE-F846-4244-B2D3-F6EC5DC14281} = {07AA3290-465A-41E5-BA5A-823E2A95DA59}
+		{2B5D9923-1506-4A19-AFA7-4C8E2EE0B576} = {07AA3290-465A-41E5-BA5A-823E2A95DA59}
+		{8BA3C7C8-65A5-4046-8F47-9D7B08ABF0EC} = {07AA3290-465A-41E5-BA5A-823E2A95DA59}
+		{A21748EE-6A61-43C9-B51B-2C830AEFD160} = {07AA3290-465A-41E5-BA5A-823E2A95DA59}
 	EndGlobalSection
 EndGlobal

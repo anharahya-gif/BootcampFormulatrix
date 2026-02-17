@@ -7,9 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using PokerAPIMPwDB.Common.Results;
+using PokerAPIMPwDB.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.SignalR;
 using PokerAPIMPwDB.Hubs;
+using PokerAPIMPwDB.DTO.Table;
 
 namespace PokerAPIMPwDB.Services
 {
@@ -106,7 +108,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleFold Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult.Fail("Player not found");
+            }
             return await game.HandleFold(player);
         }
 
@@ -114,7 +121,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleCheck Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult.Fail("Player not found");
+            }
             return await game.HandleCheck(player);
         }
 
@@ -122,7 +134,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleBet Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult<int>.Fail("Player not found");
+            }
             return await game.HandleBet(player, amount);
         }
 
@@ -130,7 +147,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleCall Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult<int>.Fail("Player not found");
+            }
             return await game.HandleCall(player);
         }
 
@@ -138,7 +160,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult<int>.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleRaise Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult<int>.Fail("Player not found");
+            }
             return await game.HandleRaise(player, raiseAmount);
         }
 
@@ -146,7 +173,12 @@ namespace PokerAPIMPwDB.Services
         {
             var game = await GetOrCreateGameAsync(tableId);
             var player = game.ActivePlayers().FirstOrDefault(p => p.PlayerId == playerId);
-            if (player == null) return ServiceResult.Fail("Player not found");
+            if (player == null)
+            {
+                var allPlayers = string.Join(", ", game.ActivePlayers().Select(p => $"{p.DisplayName}({p.PlayerId})"));
+                Console.WriteLine($"[GM_LOG] HandleAllIn Failed: Player {playerId} not found. Active players: {allPlayers}");
+                return ServiceResult.Fail("Player not found");
+            }
             return await game.HandleAllIn(player.DisplayName);
         }
 
@@ -160,7 +192,9 @@ namespace PokerAPIMPwDB.Services
         {
              if (_games.TryGetValue(tableId, out var game))
              {
-                 return game.NextPhase();
+                 var result = game.NextPhase();
+                 if (result.IsSuccess) await BroadcastStateAsync(tableId, game);
+                 return result;
              }
              return ServiceResult.Fail("Table not found");
         }
@@ -207,6 +241,8 @@ namespace PokerAPIMPwDB.Services
                 TableId = tableId,
                 Phase = game.Phase.ToString(),
                 Seats = game.GetSeatsState(),
+                Players = game.GetPlayersPublicState(),
+                CurrentPlayer = game.Phase != GamePhase.WaitingForPlayer ? game.GetCurrentPlayer()?.DisplayName : null,
                 CommunityCards = game.CommunityCards,
                 MinBuyIn = game.MinBuyIn,
                 MaxBuyIn = game.MaxBuyIn

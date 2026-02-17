@@ -62,6 +62,19 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task LoadPlayersFromTableAsync(Guid tableId)
         {
+            await _semaphore.WaitAsync();
+            try
+            {
+                await LoadPlayersFromTableInternalAsync(tableId);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        private async Task LoadPlayersFromTableInternalAsync(Guid tableId)
+        {
             try
             {
                 CurrentTableId = tableId;
@@ -140,10 +153,12 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                   .Select(s => s.Player!)
                   .Select(p => new PlayerPublicStateDto
                   {
+                      PlayerId = p.PlayerId,
                       DisplayName = p.DisplayName,
                       ChipStack = p.ChipStack,
                       CurrentBet = p.CurrentBet,
-                      State = p.State
+                      State = p.State,
+                      SeatIndex = p.SeatIndex
                   });
         // =========================
         // PLAYER MANAGEMENT (Async DB-backed)
@@ -154,17 +169,19 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task<ServiceResult<TableStateDto>> JoinTableAsync(Guid tableId)
         {
+            await _semaphore.WaitAsync();
             try
             {
                 Console.WriteLine($"[JOIN_DEBUG] Starting JoinTableAsync for {tableId}");
                 // Load state table & seats
-                await LoadPlayersFromTableAsync(tableId);
+                await LoadPlayersFromTableInternalAsync(tableId);
 
                 var tableState = new TableStateDto
                 {
                     TableId = tableId,
                     Phase = Phase,
                     CurrentBet = CurrentBet,
+                    CurrentPlayer = Phase != GamePhase.WaitingForPlayer ? GetCurrentPlayer()?.DisplayName : null,
                     CommunityCards = CommunityCards
                                 .Select(c => new Domain.Models.Card(c.Rank, c.Suit))
                                 .ToList(),
@@ -193,6 +210,10 @@ namespace PokerAPIMPwDB.Domain.GameEngine
             {
                 Console.WriteLine($"[JOIN_ERROR] {ex.Message}\n{ex.StackTrace}");
                 throw; // rethrow to keep 500 but also log to console
+            }
+            finally
+            {
+                _semaphore.Release();
             }
         }
         // SitDown 
@@ -279,11 +300,17 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                 Console.WriteLine($"[SIT_FAIL] Failed to sit down: {ex.Message}");
                 return ServiceResult.Fail($"Failed to sit down: {ex.Message}");
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SIT_FAIL] Semaphore error: {ex.Message}");
+            return ServiceResult.Fail($"Failed to sit down: {ex.Message}");
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 
         public async Task<ServiceResult> StandUpAsync(Guid userId)
         {
@@ -312,16 +339,22 @@ namespace PokerAPIMPwDB.Domain.GameEngine
                     .FirstOrDefaultAsync(ps => ps.PlayerId == userId && ps.TableId == CurrentTableId);
                 if (dbSeat != null) dbSeat.PlayerId = null;
 
-                await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
 
-                if (RoundStarted != null) await RoundStarted.Invoke();
-                return ServiceResult.Success($"Player stood up and {chipsToReturn} chips returned to balance");
+                    if (RoundStarted != null) await RoundStarted.Invoke();
+                    return ServiceResult.Success($"Player stood up and {chipsToReturn} chips returned to balance");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine($"[STAND_FAIL] {ex.Message}");
+                    return ServiceResult.Fail($"Failed to stand up: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"[STAND_FAIL] {ex.Message}");
+                Console.WriteLine($"[STAND_FAIL] Semaphore error: {ex.Message}");
                 return ServiceResult.Fail($"Failed to stand up: {ex.Message}");
             }
             finally
@@ -332,15 +365,15 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         // LEAVE TABLE
         // =========================
-        public async Task<ServiceResult> LeaveTableAsync(Guid userId)
+        public Task<ServiceResult> LeaveTableAsync(Guid userId)
         {
             var isSeated = _players.Any(p => p.PlayerId == userId);
             if (isSeated)
             {
-                return ServiceResult.Fail("You must stand up before leaving the table.");
+                return Task.FromResult(ServiceResult.Fail("You must stand up before leaving the table."));
             }
 
-            return ServiceResult.Success("Player left table");
+            return Task.FromResult(ServiceResult.Success("Player left table"));
         }
 
 
@@ -350,24 +383,32 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task<ServiceResult> StartRound()
         {
-            if (_seats.Count(s => s.IsOccupied) < 2)
-                return ServiceResult.Fail("Not enough players to start round");
-
-            Phase = GamePhase.PreFlop;
-            _currentBet = 0;
-            _currentPlayerIndex = 0;
-            _communityCards.Clear();
-
-            foreach (var seat in ActiveSeats())
+            await _semaphore.WaitAsync();
+            try 
             {
-                seat.Player!.CurrentBet = 0;
-                seat.Player.State = PlayerState.Active;
+                if (_seats.Count(s => s.IsOccupied) < 2)
+                    return ServiceResult.Fail("Not enough players to start round");
+
+                Phase = GamePhase.PreFlop;
+                _currentBet = 0;
+                _currentPlayerIndex = _seats.FindIndex(s => s.IsOccupied);
+                _communityCards.Clear();
+
+                foreach (var seat in ActiveSeats())
+                {
+                    seat.Player!.CurrentBet = 0;
+                    seat.Player.State = PlayerState.Active;
+                }
+
+                await _db.SaveChangesAsync();
+
+                RoundStarted?.Invoke();
+                return ServiceResult.Success("Round started");
             }
-
-            await _db.SaveChangesAsync();
-
-            RoundStarted?.Invoke();
-            return ServiceResult.Success("Round started");
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public ServiceResult NextPhase()
@@ -389,7 +430,8 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         // PLAYER TURN MANAGEMENT
         // =========================
-        public IPlayer GetCurrentPlayer() => _seats[_currentPlayerIndex].Player!;
+        public IPlayer? GetCurrentPlayer() => 
+            (_currentPlayerIndex >= 0 && _currentPlayerIndex < _seats.Count) ? _seats[_currentPlayerIndex].Player : null;
 
         public IPlayer GetNextActivePlayer()
         {
@@ -413,17 +455,25 @@ namespace PokerAPIMPwDB.Domain.GameEngine
         // =========================
         public async Task<ServiceResult<int>> HandleBet(IPlayer player, int amount)
         {
-            if (player.ChipStack < amount)
-                return ServiceResult<int>.Fail("Not enough chips");
+            await _semaphore.WaitAsync();
+            try
+            {
+                if (player.ChipStack < amount)
+                    return ServiceResult<int>.Fail("Not enough chips");
 
-            player.ChipStack -= amount;
-            player.CurrentBet += amount;
+                player.ChipStack -= amount;
+                player.CurrentBet += amount;
 
-            if (player.CurrentBet > _currentBet)
-                _currentBet = player.CurrentBet;
+                if (player.CurrentBet > _currentBet)
+                    _currentBet = player.CurrentBet;
 
-            await _db.SaveChangesAsync();
-            return ServiceResult<int>.Success(_currentBet);
+                await _db.SaveChangesAsync();
+                return ServiceResult<int>.Success(_currentBet);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public async Task<ServiceResult<int>> HandleCall(IPlayer player) => await HandleBet(player, _currentBet - player.CurrentBet);
@@ -437,28 +487,44 @@ namespace PokerAPIMPwDB.Domain.GameEngine
 
         public async Task<ServiceResult> HandleFold(IPlayer player)
         {
-            player.State = PlayerState.Folded;
-            await _db.SaveChangesAsync();
-            return ServiceResult.Success("Folded");
+            await _semaphore.WaitAsync();
+            try
+            {
+                player.State = PlayerState.Folded;
+                await _db.SaveChangesAsync();
+                return ServiceResult.Success("Folded");
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public async Task<ServiceResult> HandleCheck(IPlayer player) => await Task.FromResult(ServiceResult.Success("Checked"));
 
         public async Task<ServiceResult> HandleAllIn(string playerName)
         {
-            var player = _players.FirstOrDefault(p => p.DisplayName == playerName);
-            if (player == null) return ServiceResult.Fail("Player not found");
+            await _semaphore.WaitAsync();
+            try
+            {
+                var player = _players.FirstOrDefault(p => p.DisplayName == playerName);
+                if (player == null) return ServiceResult.Fail("Player not found");
 
-            int amount = player.ChipStack;
-            player.ChipStack = 0;
-            player.CurrentBet += amount;
-            player.State = PlayerState.AllIn;
+                int amount = player.ChipStack;
+                player.ChipStack = 0;
+                player.CurrentBet += amount;
+                player.State = PlayerState.AllIn;
 
-            if (player.CurrentBet > _currentBet)
-                _currentBet = player.CurrentBet;
+                if (player.CurrentBet > _currentBet)
+                    _currentBet = player.CurrentBet;
 
-            await _db.SaveChangesAsync();
-            return ServiceResult.Success("All-in");
+                await _db.SaveChangesAsync();
+                return ServiceResult.Success("All-in");
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         // =========================
@@ -488,89 +554,105 @@ namespace PokerAPIMPwDB.Domain.GameEngine
 
         public async Task<List<IPlayer>> ResolveShowdown()
         {
-            var winners = DetermineWinners();
-            if (!winners.Any()) return winners;
-
-            int pot = GetTotalPot();
-            int share = pot / winners.Count;
-            
-            foreach (var winner in winners)
+            await _semaphore.WaitAsync();
+            try
             {
-                winner.ChipStack += share;
-                winner.ChipsWonThisRound = share;
+                var winners = DetermineWinners();
+                if (!winners.Any()) return winners;
+
+                int pot = GetTotalPot();
+                int share = pot / winners.Count;
+                
+                foreach (var winner in winners)
+                {
+                    winner.ChipStack += share;
+                    winner.ChipsWonThisRound = share;
+                }
+
+                _lastShowdown = new ShowdownResult
+                {
+                    Winners = winners,
+                    CommunityCards = _communityCards.ToList(),
+                    PlayerHands = _players.ToDictionary(p => p, p => p.Cards.ToList())
+                };
+
+                ShowdownCompleted?.Invoke();
+                
+                // Cleanup for next round
+                _communityCards.Clear();
+                foreach (var p in _players)
+                {
+                    p.Cards.Clear();
+                    p.CurrentBet = 0;
+                    if (p.State == PlayerState.Folded || p.State == PlayerState.AllIn)
+                        p.State = PlayerState.Active;
+                }
+                _currentBet = 0;
+                _currentPlayerIndex = 0;
+                await _db.SaveChangesAsync();
+
+                return winners;
             }
-
-            _lastShowdown = new ShowdownResult
+            finally
             {
-                Winners = winners,
-                CommunityCards = _communityCards.ToList(),
-                PlayerHands = _players.ToDictionary(p => p, p => p.Cards.ToList())
-            };
-
-            ShowdownCompleted?.Invoke();
-            
-            // Cleanup for next round
-            _communityCards.Clear();
-            foreach (var p in _players)
-            {
-                p.Cards.Clear();
-                p.CurrentBet = 0;
-                if (p.State == PlayerState.Folded || p.State == PlayerState.AllIn)
-                    p.State = PlayerState.Active;
+                _semaphore.Release();
             }
-            _currentBet = 0;
-            _currentPlayerIndex = 0;
-            await _db.SaveChangesAsync();
-
-            return winners;
         }
 
         public async Task<(List<IPlayer> winners, HandRank rank)> ResolveShowdownDetailed()
         {
-            var handResults = EvaluateHands();
-            if (!handResults.Any())
-                return (new List<IPlayer>(), HandRank.HighCard);
-
-            HandRank bestRank = handResults.Values.Max();
-            List<IPlayer> winners = handResults
-                .Where(kv => kv.Value == bestRank)
-                .Select(kv => kv.Key)
-                .ToList();
-
-            int pot = GetTotalPot();
-            int share = pot / winners.Count;
-            
-            foreach (var winner in winners)
+            await _semaphore.WaitAsync();
+            try
             {
-                winner.ChipStack += share;
-                winner.ChipsWonThisRound = share;
+                var handResults = EvaluateHands();
+                if (!handResults.Any())
+                    return (new List<IPlayer>(), HandRank.HighCard);
+
+                HandRank bestRank = handResults.Values.Max();
+                List<IPlayer> winners = handResults
+                    .Where(kv => kv.Value == bestRank)
+                    .Select(kv => kv.Key)
+                    .ToList();
+
+                int pot = GetTotalPot();
+                int share = pot / winners.Count;
+                
+                foreach (var winner in winners)
+                {
+                    winner.ChipStack += share;
+                    winner.ChipsWonThisRound = share;
+                }
+
+                _lastShowdown = new ShowdownResult
+                {
+                    Winners = winners,
+                    CommunityCards = _communityCards.ToList(),
+                    PlayerHands = _players.ToDictionary(p => p, p => p.Cards.ToList())
+                };
+
+                ShowdownCompleted?.Invoke();
+
+                // Pot cleanup handled by engine logic usually, 
+                // but here we ensure consistency
+                 _communityCards.Clear();
+                foreach (var p in _players)
+                {
+                    p.Cards.Clear();
+                    p.CurrentBet = 0;
+                    if (p.State == PlayerState.Folded || p.State == PlayerState.AllIn)
+                        p.State = PlayerState.Active;
+                }
+                _currentBet = 0;
+                _currentPlayerIndex = 0;
+                Phase = GamePhase.PreFlop;
+                await _db.SaveChangesAsync();
+
+                return (winners, bestRank);
             }
-
-            _lastShowdown = new ShowdownResult
+            finally
             {
-                Winners = winners,
-                CommunityCards = _communityCards.ToList(),
-                PlayerHands = _players.ToDictionary(p => p, p => p.Cards.ToList())
-            };
-
-            ShowdownCompleted?.Invoke();
-
-            // Pot cleanup handled by engine logic usually, 
-            // but here we ensure consistency
-             _communityCards.Clear();
-            foreach (var p in _players)
-            {
-                p.Cards.Clear();
-                p.CurrentBet = 0;
-                if (p.State == PlayerState.Folded || p.State == PlayerState.AllIn)
-                    p.State = PlayerState.Active;
+                _semaphore.Release();
             }
-            _currentBet = 0;
-            _currentPlayerIndex = 0;
-            Phase = GamePhase.PreFlop;
-            await _db.SaveChangesAsync();
-
-            return (winners, bestRank);
         }
 
         public int GetTotalPot() => _players.Sum(p => p.CurrentBet);
@@ -693,25 +775,33 @@ namespace PokerAPIMPwDB.Domain.GameEngine
 
         public async Task<ServiceResult> ResetGame()
         {
-            Phase = GamePhase.PreFlop;
-            _currentBet = 0;
-            _currentPlayerIndex = 0;
-            _communityCards.Clear();
-            _lastShowdown = null;
-
-            foreach (var seat in _seats)
+            await _semaphore.WaitAsync();
+            try
             {
-                if (seat.IsOccupied)
-                {
-                    seat.Player!.CurrentBet = 0;
-                    seat.Player.Cards.Clear();
-                    seat.Player.State = PlayerState.Active;
-                    seat.Player.ChipsWonThisRound = 0;
-                }
-            }
+                Phase = GamePhase.PreFlop;
+                _currentBet = 0;
+                _currentPlayerIndex = 0;
+                _communityCards.Clear();
+                _lastShowdown = null;
 
-            await _db.SaveChangesAsync();
-            return ServiceResult.Success("Game reset successful");
+                foreach (var seat in _seats)
+                {
+                    if (seat.IsOccupied)
+                    {
+                        seat.Player!.CurrentBet = 0;
+                        seat.Player.Cards.Clear();
+                        seat.Player.State = PlayerState.Active;
+                        seat.Player.ChipsWonThisRound = 0;
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                return ServiceResult.Success("Game reset successful");
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
     }
 }

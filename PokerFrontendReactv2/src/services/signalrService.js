@@ -45,6 +45,19 @@ class SignalRService {
         }
         delete this.events[eventName];
     }
+
+    async invoke(methodName, ...args) {
+        if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
+            console.warn("SignalR not connected. Cannot invoke:", methodName);
+            return;
+        }
+        try {
+            return await this.connection.invoke(methodName, ...args);
+        } catch (err) {
+            console.error(`Error invoking ${methodName}:`, err);
+            throw err;
+        }
+    }
 }
 
 const signalrService = new SignalRService();

@@ -2,7 +2,7 @@ import React from 'react';
 import Card from './Card';
 import { clsx } from 'clsx';
 
-const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0 }) => {
+const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, onStandUp, isActiveTurn, isLastWinner, cardPlacement = "top", gameStatus = "WaitingForPlayers", rotation = 0 }) => {
     // 1. Handle Empty Seat
     if (!player) {
         return (
@@ -57,8 +57,8 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
 
     // Clean Rank Text (Removing "You Have")
     const displayRank = hasRank
-        ? possibleRank.replace(/([A-Z])/g, ' $1').trim().toUpperCase()
-        : isCurrentUser ? "YOU" : "PLAYER";
+        ? (possibleRank.replace(/([A-Z])/g, ' $1').trim().toUpperCase())
+        : (isCurrentUser ? "YOU" : "");
 
     return (
         <div className={clsx("absolute flex flex-col items-center z-50", positionClasses)}>
@@ -121,8 +121,8 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                         </div>
                     )}
 
-                    {/* 2.3 Centered Player Info */}
-                    <div className="flex flex-col items-center justify-center z-10 px-1">
+                    {/* 2.3 Centered Player Info - Adjusted for balance */}
+                    <div className="flex flex-col items-center justify-center z-10 px-1 -translate-y-3">
                         <div className="font-black text-white text-[11px] truncate w-20 text-center leading-tight mb-0.5 shadow-black/80 drop-shadow-md">{name}</div>
                         <div className="text-poker-gold text-[10px] font-black font-mono leading-none flex items-center shadow-black/80 drop-shadow-md">
                             <img src="/icon/chip.png" className="w-3 h-3 object-contain mr-1 drop-shadow-sm" />{chipStack}
@@ -130,24 +130,23 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                     </div>
                 </div>
 
-                {/* PREMIUM RIBBON BADGE (At bottom) */}
+                {/* PREMIUM RIBBON BADGE (At bottom - lowered to prevent chips obstruction) */}
                 {(isCurrentUser || (isLastWinner && (gameStatus === 'Showdown' || gameStatus === 'Completed' || gameStatus === 'WaitingForStartRound'))) && (
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none w-[130px] flex justify-center">
+                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 z-[70] pointer-events-none w-[130px] flex flex-col items-center">
                         <div
                             className={clsx(
                                 "relative px-3 py-1.5 text-white text-[10px] font-black italic tracking-[0.1em] transition-all duration-500 flex items-center justify-center min-w-[80px]",
                                 isLastWinner
-                                    ? "bg-gradient-to-r from-yellow-700 via-poker-gold to-yellow-700 shadow-[0_8px_20px_rgba(250,204,21,0.5)] border-y-2 border-yellow-300/60"
+                                    ? "bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-700 shadow-[0_8px_20px_rgba(250,204,21,0.5)] border-y-2 border-yellow-300/60"
                                     : hasRank
                                         ? "bg-gradient-to-r from-blue-800 via-cyan-500 to-blue-800 shadow-[0_8px_20px_rgba(34,211,238,0.4)] border-y-2 border-cyan-300/50"
-                                        : "bg-gray-800 border-y-2 border-gray-500"
+                                        : (isCurrentUser ? "bg-gray-800 border-y-2 border-gray-500" : "hidden")
                             )}
                             style={{
                                 clipPath: "polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%)",
                                 textShadow: "0 2px 4px rgba(0,0,0,0.8)"
                             }}
                         >
-                            {/* 2.3 Player Info (Name & Chips) */}
                             {/* Inner Shine */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
 
@@ -155,6 +154,16 @@ const Seat = ({ player, seatIndex, isCurrentUser, positionClasses, onJoinSeat, i
                                 {isLastWinner && !hasRank ? "CHAMPION" : displayRank}
                             </span>
                         </div>
+
+                        {/* Stand Up Button (Compact version under YOU badge - with extra clearance) */}
+                        {isCurrentUser && onStandUp && (
+                            <button
+                                onClick={onStandUp}
+                                className="pointer-events-auto mt-2 px-3 py-1 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 hover:border-red-400 rounded-full transition-all font-black text-[8px] uppercase tracking-wider shadow-lg backdrop-blur-sm"
+                            >
+                                STAND UP
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

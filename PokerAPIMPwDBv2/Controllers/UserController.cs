@@ -32,11 +32,11 @@ namespace PokerAPIMPwDB.API.Controllers
             if (!result.IsSuccess)
                 return NotFound(result.ErrorMessage);
 
-            var user = result.Value;
+            var user = result.Value!;
             return Ok(new UserInfoDto
             {
                 Id = user.Id,
-                Username = user!.UserName!,
+                Username = user.UserName!,
                 Balance = user.Balance,
                 CreatedAt = user.CreatedAt
             });
@@ -75,12 +75,12 @@ namespace PokerAPIMPwDB.API.Controllers
             if (!result.IsSuccess)
                 return NotFound(result.ErrorMessage);
 
-            var user = result.Value;
+            var user = result.Value!;
 
             var dto = new UserInfoDto
             {
                 Id = user.Id,
-                Username = user!.UserName!,
+                Username = user.UserName!,
                 Balance = user.Balance,
                 CreatedAt = user.CreatedAt
             };
@@ -111,12 +111,12 @@ namespace PokerAPIMPwDB.API.Controllers
             if (!result.IsSuccess)
                 return BadRequest(result.ErrorMessage);
 
-            var createdUser = result.Value;
+            var createdUser = result.Value!;
 
             var response = new UserInfoDto
             {
                 Id = createdUser.Id,
-                Username = createdUser!.UserName!,
+                Username = createdUser.UserName!,
                 Balance = createdUser.Balance,
                 CreatedAt = createdUser.CreatedAt
             };
