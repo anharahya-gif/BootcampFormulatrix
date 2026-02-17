@@ -66,7 +66,8 @@ namespace MeetingRoomBookingAPI.Infrastructure.Identity
                 Token = token,
                 UserName = user.UserName,
                 Email = user.Email,
-                Role = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault()
+                Role = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault(),
+                UserId = user.Id
             });
         }
 
@@ -95,7 +96,8 @@ namespace MeetingRoomBookingAPI.Infrastructure.Identity
                 Token = token,
                 UserName = user.UserName,
                 Email = user.Email,
-                Role = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault()
+                Role = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault(),
+                UserId = user.Id
             });
         }
     }

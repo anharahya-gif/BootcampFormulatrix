@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setToken(response.token);
 
                 const userObj: User = {
-                    id: '',
+                    id: response.userId || '',
                     email: response.email || '',
                     userName: response.userName || '',
                     fullName: response.userName || '',
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (response.success && response.token) {
                 setToken(response.token);
                 const userObj: User = {
-                    id: '',
+                    id: response.userId || '',
                     email: response.email || '',
                     userName: response.userName || '',
                     fullName: response.userName || '',

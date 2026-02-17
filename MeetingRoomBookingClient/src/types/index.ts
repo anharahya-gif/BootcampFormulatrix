@@ -66,6 +66,7 @@ export interface AuthResponseDto {
   userName?: string;
   email?: string;
   role?: string;
+  userId?: string;
 }
 
 export interface RoomDto {
@@ -91,6 +92,12 @@ export interface RoomUpdateDto {
   hasProjector: boolean;
 }
 
+export interface ParticipantDto {
+  userId: string;
+  fullName: string;
+  isOptional: boolean;
+}
+
 export interface BookingDto {
   id: string;
   title: string;
@@ -102,7 +109,7 @@ export interface BookingDto {
   startTime: string;
   endTime: string;
   status: number;
-  participantUserIds?: string[];
+  participants: ParticipantDto[];
 }
 
 export interface BookingCreateDto {

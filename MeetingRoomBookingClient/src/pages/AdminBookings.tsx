@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { bookingsService } from '../api/bookings';
 import type { BookingDto } from '../types';
 import Button from '../components/Button';
@@ -7,6 +8,7 @@ import DataTable, { type Column } from '../components/DataTable';
 import { toast } from 'react-toastify';
 
 const AdminBookings: React.FC = () => {
+    const navigate = useNavigate();
     const [bookings, setBookings] = useState<BookingDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [confirmAction, setConfirmAction] = useState<{
@@ -111,6 +113,13 @@ const AdminBookings: React.FC = () => {
             header: 'Actions',
             accessor: (b) => (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-2)' }}>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => navigate(`/bookings/${b.id}`)}
+                    >
+                        Details
+                    </Button>
                     {b.status === 0 && (
                         <>
                             <Button size="sm" onClick={() => handleApprove(b.id)}>Approve</Button>

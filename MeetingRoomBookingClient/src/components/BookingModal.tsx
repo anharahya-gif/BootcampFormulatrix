@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import type { RoomDto } from '../types';
-import type { BookingCreateDto } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { RoomDto, BookingCreateDto, UserReadDto } from '../types';
 import { bookingsService } from '../api/bookings';
+import { usersService } from '../api/users';
 import Button from './Button';
 import Input from './Input';
 import { toast } from 'react-toastify';
@@ -22,6 +22,35 @@ const BookingModal: React.FC<BookingModalProps> = ({ room, onClose, onBooked }) 
         participantUserIds: []
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [showParticipants, setShowParticipants] = useState(false);
+    const [allUsers, setAllUsers] = useState<UserReadDto[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const users = await usersService.getAll();
+                setAllUsers(users);
+            } catch (err) {
+                console.error('Failed to fetch users', err);
+            }
+        };
+        fetchUsers();
+    }, []);
+
+    const filteredUsers = allUsers.filter((user: UserReadDto) =>
+        (user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        !formData.participantUserIds?.includes(user.id)
+    );
+
+    const toggleParticipant = (userId: string) => {
+        const current = formData.participantUserIds || [];
+        const updated = current.includes(userId)
+            ? current.filter(id => id !== userId)
+            : [...current, userId];
+        setFormData({ ...formData, participantUserIds: updated });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,7 +94,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ room, onClose, onBooked }) 
                                 rows={3}
                                 placeholder="Add any notes..."
                                 value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                                 style={{ resize: 'vertical' }}
                             />
                         </div>
@@ -106,6 +135,92 @@ const BookingModal: React.FC<BookingModalProps> = ({ room, onClose, onBooked }) 
                                 }}
                                 required
                             />
+                        </div>
+
+                        <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)' }}>
+                            <label className="form-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={showParticipants}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        setShowParticipants(e.target.checked);
+                                        if (!e.target.checked) {
+                                            setFormData({ ...formData, participantUserIds: [] });
+                                        }
+                                    }}
+                                />
+                                <span>Invite participants?</span>
+                            </label>
+
+                            {showParticipants && (
+                                <div style={{ marginTop: 'var(--space-4)' }}>
+                                    <Input
+                                        label="Search Users"
+                                        placeholder="Type name or email..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+
+                                    {/* Selected Participants Tags */}
+                                    {formData.participantUserIds && formData.participantUserIds.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                                            {formData.participantUserIds.map((id: string) => {
+                                                const u = allUsers.find((user: UserReadDto) => user.id === id);
+                                                if (!u) return null;
+                                                return (
+                                                    <span key={id} className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', textTransform: 'none' }}>
+                                                        {u.fullName || u.email}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleParticipant(id)}
+                                                            style={{ color: 'inherit', display: 'flex', alignItems: 'center' }}
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* User Search Results */}
+                                    {searchTerm && (
+                                        <div style={{
+                                            maxHeight: '150px',
+                                            overflowY: 'auto',
+                                            background: 'var(--bg-elevated)',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius-lg)'
+                                        }}>
+                                            {filteredUsers.length > 0 ? (
+                                                filteredUsers.map((user: UserReadDto) => (
+                                                    <div
+                                                        key={user.id}
+                                                        onClick={() => {
+                                                            toggleParticipant(user.id);
+                                                            setSearchTerm('');
+                                                        }}
+                                                        style={{
+                                                            padding: 'var(--space-2) var(--space-3)',
+                                                            cursor: 'pointer',
+                                                            borderBottom: '1px solid var(--border)',
+                                                            fontSize: '0.875rem'
+                                                        }}
+                                                        className="user-search-item"
+                                                    >
+                                                        <div style={{ fontWeight: 600 }}>{user.fullName}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div style={{ padding: 'var(--space-3)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                                    No users found
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="modal-footer">

@@ -35,6 +35,9 @@ namespace MeetingRoomBookingAPI.Infrastructure.Persistence
                 {
                     var parameter = Expression.Parameter(entityType.ClrType, "e");
                     var propertyMethodInfo = typeof(EF).GetMethod("Property", new[] { typeof(object), typeof(string) })?.MakeGenericMethod(typeof(bool));
+                    
+                    if (propertyMethodInfo == null) continue;
+
                     var isDeletedProperty = Expression.Call(propertyMethodInfo, parameter, Expression.Constant("IsDeleted"));
                     var compareExpression = Expression.MakeBinary(ExpressionType.Equal, isDeletedProperty, Expression.Constant(false));
                     var lambda = Expression.Lambda(compareExpression, parameter);

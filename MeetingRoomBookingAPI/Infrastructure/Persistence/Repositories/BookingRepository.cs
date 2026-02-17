@@ -45,7 +45,7 @@ namespace MeetingRoomBookingAPI.Infrastructure.Persistence.Repositories
         public async Task<IEnumerable<Booking>> GetBookingsByUserIdAsync(Guid userId)
         {
             return await _dbSet
-                .Where(b => b.CreatedByUserId == userId)
+                .Where(b => b.CreatedByUserId == userId || b.Participants.Any(p => p.UserId == userId))
                 .Include(b => b.Room)
                 .ToListAsync();
         }

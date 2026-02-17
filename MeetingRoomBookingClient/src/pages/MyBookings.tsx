@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { bookingsService } from '../api/bookings';
+import { useAuth } from '../context/AuthContext';
 import type { BookingDto } from '../types';
 import Button from '../components/Button';
 import ConfirmModal from '../components/ConfirmModal';
 import { toast } from 'react-toastify';
 
 const MyBookings: React.FC = () => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const [bookings, setBookings] = useState<BookingDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [confirmCancel, setConfirmCancel] = useState<{ isOpen: boolean, bookingId: string | null }>({
@@ -77,37 +81,63 @@ const MyBookings: React.FC = () => {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    {bookings.map(booking => (
-                        <div key={booking.id} className="booking-item">
-                            <div className="booking-info">
-                                <div className="booking-title">{booking.title}</div>
-                                <div className="booking-meta">
-                                    <span className="booking-meta-item">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        {formatDateTime(booking.startTime)}
-                                    </span>
-                                    <span className="booking-meta-item">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                    {booking.roomName && (
-                                        <span className="booking-meta-item">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" /></svg>
-                                            {booking.roomName}
+                    {bookings.map(booking => {
+                        const isOrganizer = booking.createdByUserId === user?.id;
+                        return (
+                            <div
+                                key={booking.id}
+                                className="booking-item"
+                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <div className="booking-info">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                        <div className="booking-title">{booking.title}</div>
+                                        <span className={`badge ${isOrganizer ? 'badge-primary' : 'badge-neutral'}`} style={{ textTransform: 'none', fontSize: '0.65rem' }}>
+                                            {isOrganizer ? 'Organizer' : 'Participant'}
                                         </span>
+                                    </div>
+                                    <div className="booking-meta">
+                                        <span className="booking-meta-item">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            {formatDateTime(booking.startTime)}
+                                        </span>
+                                        <span className="booking-meta-item">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        {booking.roomName && (
+                                            <span className="booking-meta-item">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" /></svg>
+                                                {booking.roomName}
+                                            </span>
+                                        )}
+                                        {!isOrganizer && booking.createdByUserName && (
+                                            <span className="booking-meta-item">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                                By {booking.createdByUserName}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="booking-actions">
+                                    {getStatusBadge(booking.status)}
+                                    {(booking.status === 0 || booking.status === 1) && isOrganizer && (
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setConfirmCancel({ isOpen: true, bookingId: booking.id });
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
                                     )}
                                 </div>
                             </div>
-                            <div className="booking-actions">
-                                {getStatusBadge(booking.status)}
-                                {(booking.status === 0 || booking.status === 1) && (
-                                    <Button variant="danger" size="sm" onClick={() => setConfirmCancel({ isOpen: true, bookingId: booking.id })}>
-                                        Cancel
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

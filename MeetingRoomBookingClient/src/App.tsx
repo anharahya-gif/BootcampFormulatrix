@@ -13,6 +13,7 @@ import AdminBookings from './pages/AdminBookings';
 import AdminUsers from './pages/AdminUsers.tsx';
 import AdminRecycleBin from './pages/AdminRecycleBin';
 import Profile from './pages/Profile';
+import BookingDetails from './pages/BookingDetails';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement, requiredRole?: string }> = ({ children, requiredRole }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -57,6 +58,7 @@ function App() {
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
             {/* Admin */}
