@@ -7,11 +7,15 @@ using MeetingRoomBookingAPI.Infrastructure.Identity;
 using MeetingRoomBookingAPI.Infrastructure.Persistence;
 using MeetingRoomBookingAPI.Infrastructure.Persistence.Repositories;
 using MeetingRoomBookingAPI.Data;
+using MeetingRoomBookingAPI.Application.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -77,6 +81,11 @@ builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRecycleBinService, RecycleBinService>();
+#endregion
+
+#region FLUENT VALIDATION
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<BookingCreateValidator>();
 #endregion
 
 #region AUTOMAPPER
