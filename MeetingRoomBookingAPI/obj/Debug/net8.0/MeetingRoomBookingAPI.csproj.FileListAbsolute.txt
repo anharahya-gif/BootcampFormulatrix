@@ -421,3 +421,6 @@ C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MeetingRoomBookingAPI\obj\D
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.dll
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.AspNetCore.dll
 C:\Users\AnharBootcamp\Documents\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.DependencyInjectionExtensions.dll
+E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.dll
+E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.AspNetCore.dll
+E:\BootcampFormulatrix\BootcampFormulatrix\MeetingRoomBookingAPI\bin\Debug\net8.0\FluentValidation.DependencyInjectionExtensions.dll

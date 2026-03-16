@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBookingAPI", "MeetingRoomBookingAPI\MeetingRoomBookingAPI.csproj", "{1C982BAA-8BD3-460F-92B2-47FB68C5F1AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingRoomBooking.Tests", "MeetingRoomBooking.Tests\MeetingRoomBooking.Tests.csproj", "{16E68D00-6FA2-4038-8297-15849BAA2646}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C982BAA-8BD3-460F-92B2-47FB68C5F1AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C982BAA-8BD3-460F-92B2-47FB68C5F1AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C982BAA-8BD3-460F-92B2-47FB68C5F1AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C982BAA-8BD3-460F-92B2-47FB68C5F1AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16E68D00-6FA2-4038-8297-15849BAA2646}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16E68D00-6FA2-4038-8297-15849BAA2646}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16E68D00-6FA2-4038-8297-15849BAA2646}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16E68D00-6FA2-4038-8297-15849BAA2646}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

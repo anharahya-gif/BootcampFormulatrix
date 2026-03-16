@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\PokerBetterUI_Redesign.props" />
-</Project>

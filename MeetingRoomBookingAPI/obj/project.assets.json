@@ -3707,19 +3707,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\AnharBootcamp\\.nuget\\packages\\": {}
+    "C:\\Users\\Anhar Ahya\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\MeetingRoomBookingAPI\\MeetingRoomBookingAPI.csproj",
+      "projectUniqueName": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\MeetingRoomBookingAPI\\MeetingRoomBookingAPI.csproj",
       "projectName": "MeetingRoomBookingAPI",
-      "projectPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\MeetingRoomBookingAPI\\MeetingRoomBookingAPI.csproj",
-      "packagesPath": "C:\\Users\\AnharBootcamp\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\AnharBootcamp\\Documents\\BootcampFormulatrix\\MeetingRoomBookingAPI\\obj\\",
+      "projectPath": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\MeetingRoomBookingAPI\\MeetingRoomBookingAPI.csproj",
+      "packagesPath": "C:\\Users\\Anhar Ahya\\.nuget\\packages\\",
+      "outputPath": "E:\\BootcampFormulatrix\\BootcampFormulatrix\\MeetingRoomBookingAPI\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\AnharBootcamp\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Anhar Ahya\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -3804,8 +3804,20 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
+      "libraryId": "AutoMapper",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,8 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
