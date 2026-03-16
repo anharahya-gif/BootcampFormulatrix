@@ -1,10 +1,10 @@
-# Meeting Room Booking System 🏢
+# Meeting Room Booking System
 
 An enterprise-ready Meeting Room Booking Full-Stack System built gracefully with proper separation of frontend and backend. 
 
 The backend boasts **.NET 8** under **Clean Architecture** principles, while the UI is built dynamically using modern Javascript ecosystems.
 
-## 🚀 Key Features & Highlights
+## Key Features & Highlights
 
 - **Full-Stack Presentation**: Contains both an organized **React.js/HTML** frontend interface and a heavily structured backend API directly on the root workspace.
 - **Backend Clean Architecture & N-Tier Separation**: C# logic is elegantly segregated into Domain, Application, Infrastructure, and Web API sub-layers.
@@ -13,7 +13,7 @@ The backend boasts **.NET 8** under **Clean Architecture** principles, while the
 - **Rich Tech Stack**: EF Core SQLite, ASP.NET Core Identity (Bearer JWT), AutoMapper, FluentValidation, and Swagger UI integration.
 - **Unit Tested**: Core domain logic and application services (e.g., `HasOverlapAsync` booking collision logic) are strictly tested with **NUnit** and **Moq**.
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 ├── MeetingRoomBookingAPI/      # Backend: ASP.NET Core API (.NET 8)
@@ -25,9 +25,7 @@ The backend boasts **.NET 8** under **Clean Architecture** principles, while the
 └── .gitignore                  
 ```
 
-*(Note: Random experiments and basic C# drills from the bootcamp days have been explicitly moved to the `/Sandbox` folder to keep the root directory focused and professional).*
-
-## 🛠️ Quick Setup
+## Quick Setup
 
 **1. Backend (API)**
 1. Ensure **.NET 8 SDK** is installed on your machine.
